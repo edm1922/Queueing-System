@@ -1,0 +1,12 @@
+# XAMPP / Local files
+.htaccess
+error_log
+php_errors.log
+*.tmp
+*.log
+
+# Project specific
+.gemini/
+node_modules/
+.vscode/
+.idea/

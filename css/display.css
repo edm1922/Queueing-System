@@ -1,0 +1,21 @@
+.number-change { animation: numberChange 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+@keyframes numberChange { 0% { transform: translateY(-20px) scale(0.9); opacity: 0; } 50% { transform: translateY(10px) scale(1.05); } 100% { transform: translateY(0) scale(1); opacity: 1; } }
+.ticker-container { mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent); -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent); }
+.text-glow { text-shadow: 0 0 10px currentColor, 0 0 20px currentColor; }
+.text-glow-yellow { text-shadow: 0 0 20px rgba(250, 204, 21, 0.8), 0 0 40px rgba(250, 204, 21, 0.4); }
+.text-glow-blue { text-shadow: 0 0 20px rgba(96, 165, 250, 0.8), 0 0 40px rgba(96, 165, 250, 0.4); }
+.counter-status-change { animation: statusPulse 1s ease-in-out; }
+@keyframes statusPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+.video-loading { background: linear-gradient(90deg, rgba(0,0,0,0.3) 0%, rgba(255,255,255,0.1) 50%, rgba(0,0,0,0.3) 100%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+.slide-up-enter { animation: slideUp 0.5s ease-out; }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.badge-pulse { animation: badgePulse 2s ease-in-out infinite; }
+@keyframes badgePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+button:focus, a:focus { outline: 2px solid #fbbf24; outline-offset: 2px; }
+@media print { body { background: white !important; color: black !important; } .no-print { display: none !important; } .window-card { background: white !important; border: 2px solid #ccc !important; } }
+@media (prefers-reduced-motion: reduce) { .flip-in, .pulse-glow, .marquee, .ticker-scroll, .number-change, .counter-status-change { animation: none !important; } }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: rgba(255,255,255,0.1); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.5); }
