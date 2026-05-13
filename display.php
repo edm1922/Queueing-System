@@ -6,8 +6,10 @@ try {
     $stmt = $conn->query("SELECT * FROM display_settings LIMIT 1");
     $settings = $stmt->fetch(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
-    $settings = ['company_name' => 'Service Center', 'welcome_message' => 'Welcome to our Service Center'];
+    $settings = ['company_name' => 'Service Center', 'welcome_message' => 'Welcome to our Service Center', 'cutoff_time' => '17:00:00'];
 }
+$cutoff = $settings['cutoff_time'] ?? '17:00:00';
+$cutoff_formatted = date("g:i A", strtotime($cutoff));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -34,8 +36,9 @@ try {
         .alert-warning { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
         .alert-urgent { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); animation: urgentPulse 1s infinite; }
         @keyframes urgentPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
-        .video-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; }
-        .video-container iframe, .video-container video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .bulletin-item { background: rgba(255,255,255,0.05); border-left: 4px solid #fbbf24; transition: all 0.3s ease; }
+        .bulletin-item:hover { background: rgba(255,255,255,0.1); transform: translateX(5px); }
+        .bulletin-urgent { border-left-color: #ef4444; background: rgba(239,68,68,0.1); }
     </style>
 </head>
 <body class="text-white min-h-screen">
@@ -52,7 +55,11 @@ try {
                     <i class="fas fa-building text-3xl mr-4 text-yellow-400"></i>
                     <div><h1 class="text-2xl md:text-3xl font-bold" id="companyName"><?php echo htmlspecialchars($settings['company_name'] ?? 'Service Center'); ?></h1><p class="text-sm opacity-80">Queue Management System</p></div>
                 </div>
-                <div class="text-right"><div id="currentTime" class="text-2xl md:text-3xl font-mono font-bold text-yellow-300"></div><div id="currentDate" class="text-sm opacity-80"></div></div>
+                
+                <div class="text-right">
+                    <div id="currentTime" class="text-2xl md:text-3xl font-mono font-bold text-yellow-300"></div>
+                    <div id="currentDate" class="text-sm opacity-80"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -100,14 +107,14 @@ try {
             </div>
 
             <div class="lg:col-span-1">
-                <div class="window-card rounded-2xl p-4 h-full">
+                <div class="window-card rounded-2xl p-4 h-full flex flex-col">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-xl font-bold"><i class="fas fa-play-circle mr-2 text-red-500"></i>Now Playing</h3>
-                        <button onclick="toggleVideo()" class="text-white opacity-70 hover:opacity-100"><i id="videoToggleBtn" class="fas fa-pause"></i></button>
+                        <h3 class="text-xl font-bold"><i class="fas fa-bullhorn mr-2 text-yellow-400"></i>BULLETIN BOARD</h3>
                     </div>
-                    <div id="videoContainer" class="video-container rounded-xl overflow-hidden">
-                        <div id="videoPlaceholder" class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                            <div class="text-center"><i class="fas fa-film text-6xl opacity-30 mb-4"></i><p class="opacity-50">Video Area</p></div>
+                    <div id="bulletinBoard" class="flex-grow space-y-4 overflow-y-auto pr-2 custom-scrollbar" style="max-height: 500px;">
+                        <div class="text-center py-10 opacity-50">
+                            <i class="fas fa-clipboard-list text-5xl mb-4"></i>
+                            <p>No active announcements</p>
                         </div>
                     </div>
                 </div>
@@ -132,47 +139,55 @@ try {
     <audio id="notificationSound" preload="auto" loop><source src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3" type="audio/mpeg"></audio>
 
     <script>
-        let lastServing = { '1': '', '2': '' }; let videoPlaying = true; let currentVideoUrl = '';
+        var lastServing = { '1': '', '2': '' };
+        var cutoffFormatted = "<?php echo $cutoff_formatted; ?>";
         
         function updateDisplayTime() {
-            const now = new Date();
-            document.getElementById('currentTime').textContent = now.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true});
-            document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+            var now = new Date();
+            var timeEl = document.getElementById('currentTime');
+            var dateEl = document.getElementById('currentDate');
+            if (timeEl) timeEl.textContent = now.toLocaleTimeString();
+            if (dateEl) dateEl.textContent = now.toLocaleDateString() + " • Cut-off: " + cutoffFormatted;
         }
+
         setInterval(updateDisplayTime, 1000); updateDisplayTime();
 
-        function playNotificationSound() { const audio = document.getElementById('notificationSound'); if (audio) { audio.currentTime = 0; audio.play().catch(e => {}); } }
+        function playNotificationSound() { 
+            var audio = document.getElementById('notificationSound'); 
+            if (audio) { audio.currentTime = 0; audio.play().catch(function(e) {}); } 
+        }
 
         async function updateDisplay() {
             try {
-                const response = await fetch('api/get_display_data.php');
-                if (!response.ok) throw new Error('Network error');
-                const data = await response.json();
+                var response = await fetch('api/get_display_data.php');
+                var data = await response.json();
                 if (data.error) return;
-                updateWindow('1', data.windows?.[0] || null, data);
-                updateWindow('2', data.windows?.[1] || null, data);
+                
+                updateWindow('1', (data.windows && data.windows[0]) ? data.windows[0] : null, data);
+                updateWindow('2', (data.windows && data.windows[1]) ? data.windows[1] : null, data);
                 updateWaitingQueue(data.waiting_queue || []);
                 updateRecentNumbers(data.recent_called || []);
                 updateAnnouncements(data.announcements || []);
-                if (data.redistribution_notice) showAlert(data.redistribution_notice.message, data.redistribution_notice.type);
-                if (data.settings?.video_url && data.settings.video_url !== currentVideoUrl) loadVideo(data.settings.video_url, data.settings.video_type);
-            } catch (error) { console.error('Error:', error); }
+            } catch (error) { console.error('Display Error:', error); }
         }
 
         function updateWindow(windowNum, windowData, fullData) {
-            const isOffline = !windowData?.is_online;
-            const card = document.getElementById(`window${windowNum}Card`);
-            const serving = document.getElementById(`window${windowNum}Serving`);
-            const next = document.getElementById(`window${windowNum}Next`);
-            const waiting = document.getElementById(`window${windowNum}Waiting`);
-            const status = document.getElementById(`window${windowNum}Status`);
+            var isOffline = !(windowData && windowData.is_online);
+            var card = document.getElementById('window' + windowNum + 'Card');
+            var serving = document.getElementById('window' + windowNum + 'Serving');
+            var next = document.getElementById('window' + windowNum + 'Next');
+            var waiting = document.getElementById('window' + windowNum + 'Waiting');
+            var status = document.getElementById('window' + windowNum + 'Status');
             
+            if (!card || !serving || !next || !waiting || !status) return;
+
             if (isOffline) {
                 card.classList.remove('window-card'); card.classList.add('window-offline');
                 status.innerHTML = '<i class="fas fa-circle text-xs mr-1"></i>Offline';
                 status.className = 'px-3 py-1 rounded-full text-sm bg-red-200 text-red-800';
-                serving.textContent = '---'; serving.classList.remove('flip-in');
-                next.textContent = 'Unavailable'; waiting.textContent = '0';
+                serving.textContent = '---';
+                next.textContent = 'Unavailable'; 
+                waiting.textContent = '0';
                 return;
             }
             
@@ -180,114 +195,76 @@ try {
             status.innerHTML = '<i class="fas fa-circle text-xs mr-1"></i>Online';
             status.className = 'px-3 py-1 rounded-full text-sm bg-green-200 text-green-800';
             
-            const newServing = windowData?.queue_number || '---';
+            var newServing = (windowData && windowData.queue_number) ? windowData.queue_number : '---';
             if (newServing !== lastServing[windowNum]) {
-                serving.textContent = newServing; serving.classList.add('flip-in');
-                setTimeout(() => serving.classList.remove('flip-in'), 600);
+                serving.textContent = newServing;
                 lastServing[windowNum] = newServing;
                 if (newServing !== '---') playNotificationSound();
             }
             
-            const serviceType = windowNum === '1' ? ['insurance', 'benefits'] : ['id_renewal', 'atm_renewal'];
-            const nextCustomer = fullData.next_by_service?.find(n => serviceType.includes(n.service_type));
-            next.textContent = nextCustomer?.queue_number || '---';
-            const waitCount = (fullData.waiting_queue || []).filter(c => serviceType.includes(c.service_type)).length;
+            var serviceType = windowNum === '1' ? ['insurance', 'benefits'] : ['id_renewal', 'atm_renewal'];
+            var nextCustomer = null;
+            if (fullData.next_by_service) {
+                for (var i = 0; i < fullData.next_by_service.length; i++) {
+                    if (serviceType.indexOf(fullData.next_by_service[i].service_type) !== -1) {
+                        nextCustomer = fullData.next_by_service[i];
+                        break;
+                    }
+                }
+            }
+            next.textContent = (nextCustomer && nextCustomer.queue_number) ? nextCustomer.queue_number : '---';
+            
+            var waitCount = 0;
+            var q = fullData.waiting_queue || [];
+            for (var j = 0; j < q.length; j++) {
+                if (serviceType.indexOf(q[j].service_type) !== -1) waitCount++;
+            }
             waiting.textContent = waitCount;
         }
 
         function updateWaitingQueue(queue) {
-            const ticker = document.getElementById('waitingQueueTicker');
-            if (!queue || queue.length === 0) { ticker.innerHTML = '<span class="text-gray-400">No customers waiting</span>'; ticker.classList.remove('ticker-scroll'); return; }
-            ticker.classList.add('ticker-scroll');
-            const iQueue = queue.filter(c => c.queue_number.startsWith('I')).map(c => c.queue_number);
-            const rQueue = queue.filter(c => c.queue_number.startsWith('R')).map(c => c.queue_number);
-            let tickerText = '';
-            if (iQueue.length > 0) tickerText += `<span class="text-yellow-300 mr-8">I: ${iQueue.slice(0, 10).join(' • ')}</span>`;
-            if (rQueue.length > 0) tickerText += `<span class="text-blue-300">R: ${rQueue.slice(0, 10).join(' • ')}</span>`;
-            ticker.innerHTML = tickerText + '&nbsp;&nbsp;&nbsp;&nbsp;' + tickerText;
+            var ticker = document.getElementById('waitingQueueTicker');
+            if (!ticker) return;
+            if (!queue || queue.length === 0) { ticker.innerHTML = '<span class="text-gray-400">No customers waiting</span>'; return; }
+            
+            var tickerText = '';
+            for (var i = 0; i < queue.length; i++) {
+                tickerText += '<span class="mr-6">' + queue[i].queue_number + '</span>';
+            }
+            ticker.innerHTML = tickerText;
         }
 
         function updateRecentNumbers(recent) {
-            const container = document.getElementById('recentNumbers');
+            var container = document.getElementById('recentNumbers');
+            if (!container) return;
             if (!recent || recent.length === 0) { container.innerHTML = '<span class="text-gray-400">No recent calls</span>'; return; }
-            container.innerHTML = recent.slice(0, 8).map(c => {
-                const colorClass = c.queue_number.startsWith('I') ? 'bg-yellow-500 bg-opacity-30' : 'bg-blue-500 bg-opacity-30';
-                return `<span class="${colorClass} px-4 py-2 rounded-xl text-2xl font-bold queue-number">${c.queue_number}</span>`;
-            }).join('');
+            var html = '';
+            for (var i = 0; i < Math.min(recent.length, 8); i++) {
+                html += '<span class="bg-blue-500 bg-opacity-30 px-4 py-2 rounded-xl text-2xl font-bold">' + recent[i].queue_number + '</span>';
+            }
+            container.innerHTML = html;
         }
 
         function updateAnnouncements(announcements) {
-            const ticker = document.getElementById('announcementTicker');
-            const alert = document.getElementById('alertBanner');
-            const urgent = announcements.find(a => a.type === 'urgent');
-            const warning = announcements.find(a => a.type === 'warning');
-            if (urgent) showAlert(urgent.message, 'urgent');
-            else if (warning) showAlert(warning.message, 'warning');
-            else if (announcements.length > 0) {
-                const message = announcements.map(a => a.message).join(' • ');
-                ticker.innerHTML = `<i class="fas fa-bullhorn mr-4 text-yellow-400"></i>${message}`;
-                alert.classList.add('hidden');
+            var board = document.getElementById('bulletinBoard');
+            if (!board) return;
+            if (!announcements || announcements.length === 0) {
+                board.innerHTML = '<div class="text-center py-10 opacity-50"><p>No active announcements</p></div>';
+                return;
             }
-        }
-
-        function showAlert(message, type) {
-            const alert = document.getElementById('alertBanner');
-            const messageEl = document.getElementById('alertMessage');
-            alert.classList.remove('hidden');
-            alert.querySelector('div').className = type === 'urgent' ? 'alert-urgent py-3 px-4 text-center' : 'alert-warning py-3 px-4 text-center';
-            messageEl.textContent = message;
-        }
-
-        function loadVideo(url, type) {
-            const container = document.getElementById('videoContainer');
-            if (!url || type === 'none') { container.innerHTML = '<div id="videoPlaceholder" class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50"><div class="text-center"><i class="fas fa-film text-6xl opacity-30 mb-4"></i><p class="opacity-50">Video Area</p></div></div>'; return; }
-            currentVideoUrl = url;
-            if (type === 'youtube') {
-                let videoId = '';
-                let playlistId = '';
-                try {
-                    const u = new URL(url);
-                    if (u.hostname.includes('youtube.com')) {
-                        videoId = u.searchParams.get('v');
-                        playlistId = u.searchParams.get('list');
-                        if (!videoId && u.pathname.includes('/embed/')) videoId = u.pathname.split('/embed/')[1].split('/')[0];
-                    } else if (u.hostname.includes('youtu.be')) {
-                        videoId = u.pathname.substring(1);
-                        playlistId = u.searchParams.get('list');
-                    }
-                } catch (e) {
-                    const vMatch = url.match(/[?&]v=([^&]+)/);
-                    if (vMatch) videoId = vMatch[1];
-                    const lMatch = url.match(/[?&]list=([^&]+)/);
-                    if (lMatch) playlistId = lMatch[1];
-                    if (!videoId && url.includes('youtu.be/')) videoId = url.split('youtu.be/')[1].split(/[?#]/)[0];
-                }
-                let embedUrl = `https://www.youtube.com/embed/${videoId || ''}?autoplay=1&mute=0&rel=0`;
-                if (playlistId) embedUrl += `&listType=playlist&list=${playlistId}`;
-                else if (videoId) embedUrl += `&loop=1&playlist=${videoId}`;
-                container.innerHTML = `<iframe src="${embedUrl}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>`;
-            } else {
-                container.innerHTML = `<video id="localVideo" src="${url}" autoplay loop muted class="w-full h-full object-cover">Your browser does not support video.</video>`;
+            var html = '';
+            for (var i = 0; i < announcements.length; i++) {
+                var a = announcements[i];
+                html += '<div class="bulletin-item rounded-lg p-4 mb-4">' +
+                        '<h5 class="font-bold text-xs uppercase opacity-70">' + a.type + '</h5>' +
+                        '<p class="text-base">' + a.message + '</p>' +
+                        '</div>';
             }
+            board.innerHTML = html;
         }
 
-        function toggleVideo() {
-            const video = document.getElementById('localVideo');
-            const btn = document.getElementById('videoToggleBtn');
-            if (video) { videoPlaying ? video.pause() : video.play(); btn.className = videoPlaying ? 'fas fa-play' : 'fas fa-pause'; videoPlaying = !videoPlaying; }
-        }
-
-        let refreshInterval = 3000; let errorCount = 0;
-        function startAutoRefresh() {
-            setInterval(() => {
-                updateDisplay().then(() => { errorCount = 0; refreshInterval = 3000; }).catch(() => { errorCount++; refreshInterval = Math.min(30000, 3000 + (errorCount * 2000)); });
-            }, refreshInterval);
-        }
-
-        document.addEventListener('keydown', (e) => { if (e.key === 'r' || e.key === 'R') updateDisplay(); if (e.key === 'm' || e.key === 'M') toggleVideo(); });
-        document.addEventListener('visibilitychange', () => { if (!document.hidden) updateDisplay(); });
-
-        updateDisplay(); startAutoRefresh();
+        setInterval(updateDisplay, 3000);
+        updateDisplay();
     </script>
 </body>
 </html>

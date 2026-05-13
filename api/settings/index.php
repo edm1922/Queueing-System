@@ -34,7 +34,7 @@ try {
         $fields = [];
         $params = [];
         
-        $allowedFields = ['company_name', 'welcome_message', 'refresh_interval', 'video_url', 'video_type', 'video_volume', 'auto_play_video', 'display_layout', 'active_announcement'];
+        $allowedFields = ['company_name', 'welcome_message', 'refresh_interval', 'video_url', 'video_type', 'video_volume', 'auto_play_video', 'display_layout', 'active_announcement', 'cutoff_time'];
         
         foreach ($allowedFields as $field) {
             if (isset($data[$field])) {

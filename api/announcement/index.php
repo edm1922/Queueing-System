@@ -11,7 +11,22 @@ try {
     $db = new Database();
     $conn = $db->getConnection();
     
-    switch ($_SERVER['REQUEST_METHOD']) {
+    $method = $_SERVER['REQUEST_METHOD'];
+    $input = '';
+    $data = [];
+
+    if ($method === 'POST') {
+        $input = file_get_contents('php://input');
+        $data = json_decode($input, true) ?? [];
+        
+        // Support _method=DELETE in POST for restricted environments
+        if (isset($data['_method']) && strtoupper($data['_method']) === 'DELETE') {
+            $method = 'DELETE';
+            $_GET['id'] = $data['id'] ?? null;
+        }
+    }
+    
+    switch ($method) {
         case 'GET':
             $type = $_GET['type'] ?? null;
             $activeOnly = isset($_GET['active']) ? (bool)$_GET['active'] : true;
@@ -43,18 +58,15 @@ try {
             break;
             
         case 'POST':
-            $input = file_get_contents('php://input');
-            $data = json_decode($input, true);
-            
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new Exception('Invalid JSON input');
+            if (empty($data) && !empty($input)) {
+                $data = json_decode($input, true) ?? [];
             }
             
             $title = $data['title'] ?? '';
             $message = $data['message'] ?? '';
             $type = $data['type'] ?? 'info';
             $priority = $data['priority'] ?? 0;
-            $isPreset = $data['is_preset'] ?? false;
+            $isPreset = $data['is_preset'] ?? 0;
             $startsAt = $data['starts_at'] ?? null;
             $expiresAt = $data['expires_at'] ?? null;
             
@@ -70,7 +82,7 @@ try {
                 INSERT INTO display_announcements (title, message, type, priority, is_active, is_preset, starts_at, expires_at)
                 VALUES (?, ?, ?, ?, 1, ?, ?, ?)
             ");
-            $stmt->execute([$title, $message, $type, $priority, $isPreset ? 1 : 0, $startsAt, $expiresAt]);
+            $stmt->execute([$title, $message, $type, (int)$priority, $isPreset ? 1 : 0, $startsAt, $expiresAt]);
             $announcementId = $conn->lastInsertId();
             
             echo json_encode([

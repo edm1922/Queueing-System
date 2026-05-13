@@ -117,6 +117,7 @@
                             <button onclick="refreshQueue()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition text-sm"><i class="fas fa-sync-alt mr-2"></i>Refresh</button>
                             <button onclick="openAnnouncementModal()" class="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition text-sm"><i class="fas fa-bullhorn mr-2"></i>Announcements</button>
                             <a href="reports.php" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition text-sm"><i class="fas fa-chart-bar mr-2"></i>Reports</a>
+                            <a href="settings.php" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition text-sm"><i class="fas fa-cog mr-2"></i>Settings</a>
                         </div>
                     </div>
                     <div class="flex flex-wrap gap-2 mb-4">

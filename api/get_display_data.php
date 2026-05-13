@@ -54,7 +54,7 @@ try {
         AND (starts_at IS NULL OR starts_at <= NOW())
         AND (expires_at IS NULL OR expires_at > NOW())
         ORDER BY priority DESC, created_at DESC
-        LIMIT 3
+        LIMIT 10
     ");
     $stmt->execute();
     $data['announcements'] = $stmt->fetchAll(PDO::FETCH_ASSOC);

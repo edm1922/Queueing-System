@@ -32,33 +32,52 @@
             </div>
 
             <div class="bg-white rounded-lg shadow-lg p-6">
-                <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-tv mr-2 text-purple-500"></i>Display Settings</h2>
+                <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-clock mr-2 text-red-500"></i>Queue Settings</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div><label class="block text-sm font-medium text-gray-700 mb-2">Refresh Interval (seconds)</label><input type="number" id="refreshInterval" min="3" max="60" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"></div>
-                    <div><label class="block text-sm font-medium text-gray-700 mb-2">Display Layout</label>
-                        <select id="displayLayout" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                            <option value="video_queue">Video + Queue Side by Side</option>
-                            <option value="queue_video">Queue + Video Side by Side</option>
-                            <option value="queue_only">Queue Only (No Video)</option>
-                        </select>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Cut-off Time (When queueing closes)</label>
+                        <input type="time" id="cutoffTime" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                     </div>
                 </div>
             </div>
 
             <div class="bg-white rounded-lg shadow-lg p-6">
-                <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-play-circle mr-2 text-red-500"></i>Video / Entertainment</h2>
-                <div class="space-y-4">
-                    <div><label class="block text-sm font-medium text-gray-700 mb-2">Video Source</label>
-                        <select id="videoType" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" onchange="toggleVideoFields()">
-                            <option value="none">No Video</option>
-                            <option value="youtube">YouTube Video</option>
-                            <option value="local">Local Video File</option>
+                <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-bullhorn mr-2 text-yellow-500"></i>Add New Announcement / Holiday</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Message</label>
+                        <textarea id="annMsg" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Enter announcement or holiday notice..."></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Type</label>
+                        <select id="annType" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <option value="info">Information</option>
+                            <option value="warning">Warning</option>
+                            <option value="urgent">Urgent Alert / Holiday</option>
                         </select>
                     </div>
-                    <div id="youtubeField" class="hidden"><label class="block text-sm font-medium text-gray-700 mb-2">YouTube URL</label><input type="url" id="videoUrl" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="https://www.youtube.com/watch?v=..."></div>
-                    <div id="localVideoField" class="hidden"><label class="block text-sm font-medium text-gray-700 mb-2">Video File Path</label><input type="text" id="videoFilePath" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="/videos/intro.mp4"></div>
-                    <div><label class="block text-sm font-medium text-gray-700 mb-2">Volume</label><input type="range" id="videoVolume" min="0" max="100" class="w-full"><div class="flex justify-between text-xs text-gray-500"><span>0%</span><span id="volumeValue">50%</span><span>100%</span></div></div>
-                    <div class="flex items-center"><input type="checkbox" id="autoPlayVideo" class="w-5 h-5 rounded" checked><label for="autoPlayVideo" class="ml-2 text-sm text-gray-700">Auto-play video</label></div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Priority</label>
+                        <input type="number" id="annPriority" value="0" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Starts At (Leave blank for immediate)</label>
+                        <input type="datetime-local" id="annStart" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Expires At (Optional)</label>
+                        <input type="datetime-local" id="annEnd" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="md:col-span-2 flex justify-end">
+                        <button type="button" onclick="addAnnouncement()" class="px-6 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 font-bold"><i class="fas fa-plus mr-2"></i>Add to Board</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-calendar-alt mr-2 text-blue-500"></i>Manage Board Announcements</h2>
+                <div id="announcementList" class="space-y-3">
+                    <div class="text-center py-4 text-gray-500">Loading announcements...</div>
                 </div>
             </div>
 
@@ -80,37 +99,18 @@
                     const s = data.data;
                     document.getElementById('companyName').value = s.company_name || '';
                     document.getElementById('welcomeMessage').value = s.welcome_message || '';
-                    document.getElementById('refreshInterval').value = s.refresh_interval || 10;
-                    document.getElementById('displayLayout').value = s.display_layout || 'video_queue';
-                    document.getElementById('videoType').value = s.video_type || 'none';
-                    document.getElementById('videoUrl').value = s.video_url || '';
-                    document.getElementById('videoVolume').value = s.video_volume || 50;
-                    document.getElementById('volumeValue').textContent = (s.video_volume || 50) + '%';
-                    document.getElementById('autoPlayVideo').checked = s.auto_play_video !== 0;
-                    toggleVideoFields();
+                    document.getElementById('cutoffTime').value = s.cutoff_time || '17:00';
                 }
             } catch (error) { showToast('Failed to load settings', 'error'); }
         }
-
-        function toggleVideoFields() {
-            const videoType = document.getElementById('videoType').value;
-            document.getElementById('youtubeField').classList.toggle('hidden', videoType !== 'youtube');
-            document.getElementById('localVideoField').classList.toggle('hidden', videoType !== 'local');
-        }
-
-        document.getElementById('videoVolume').addEventListener('input', function() { document.getElementById('volumeValue').textContent = this.value + '%'; });
 
         document.getElementById('settingsForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const data = {
                 company_name: document.getElementById('companyName').value,
                 welcome_message: document.getElementById('welcomeMessage').value,
-                refresh_interval: parseInt(document.getElementById('refreshInterval').value),
-                display_layout: document.getElementById('displayLayout').value,
-                video_type: document.getElementById('videoType').value,
-                video_url: document.getElementById('videoUrl').value,
-                video_volume: parseInt(document.getElementById('videoVolume').value),
-                auto_play_video: document.getElementById('autoPlayVideo').checked ? 1 : 0
+                cutoff_time: document.getElementById('cutoffTime').value,
+                auto_play_video: 1
             };
             try {
                 const response = await fetch('api/settings/index.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
@@ -127,7 +127,119 @@
             setTimeout(() => toast.classList.add('hidden'), 3000);
         }
 
+        async function loadAnnouncements() {
+            try {
+                const response = await fetch('api/announcement/index.php?active=0');
+                const result = await response.json();
+                if (result.success) {
+                    const list = document.getElementById('announcementList');
+                    if (result.data.length === 0) {
+                        list.innerHTML = '<div class="text-center py-4 text-gray-500 italic">No announcements found</div>';
+                        return;
+                    }
+                    list.innerHTML = result.data.map(a => {
+                        const now = new Date();
+                        const start = a.starts_at ? new Date(a.starts_at) : null;
+                        const end = a.expires_at ? new Date(a.expires_at) : null;
+                        let status = 'Active';
+                        let statusColor = 'text-green-600 bg-green-100';
+                        
+                        if (start && start > now) { status = 'Scheduled'; statusColor = 'text-blue-600 bg-blue-100'; }
+                        else if (end && end < now) { status = 'Expired'; statusColor = 'text-gray-600 bg-gray-100'; }
+                        
+                        return `
+                            <div class="flex items-center justify-between p-4 border border-gray-100 rounded-lg bg-gray-50 hover:bg-white transition shadow-sm">
+                                <div class="flex-grow">
+                                    <div class="flex items-center gap-3 mb-1">
+                                        <span class="px-2 py-0.5 rounded text-xs font-bold ${statusColor}">${status}</span>
+                                        <span class="text-xs font-bold text-gray-400 uppercase">${a.type}</span>
+                                    </div>
+                                    <p class="text-gray-800 font-medium">${a.message}</p>
+                                    <div class="text-xs text-gray-400 mt-1">
+                                        ${start ? 'From: ' + start.toLocaleString() : 'Immediate'} 
+                                        ${end ? ' • To: ' + end.toLocaleString() : ''}
+                                    </div>
+                                </div>
+                                <button type="button" onclick="deleteAnnouncement(${a.id})" class="ml-4 p-2 text-red-500 hover:bg-red-50 rounded-full transition"><i class="fas fa-trash-alt"></i></button>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } catch (error) { console.error('Error loading announcements:', error); }
+        }
+
+        async function addAnnouncement() {
+            const message = document.getElementById('annMsg').value;
+            if (!message) { showToast('Please enter a message', 'error'); return; }
+            
+            const data = {
+                message: message,
+                type: document.getElementById('annType').value,
+                priority: parseInt(document.getElementById('annPriority').value) || 0,
+                starts_at: document.getElementById('annStart').value || null,
+                expires_at: document.getElementById('annEnd').value || null,
+                is_preset: 0
+            };
+            
+            try {
+                const response = await fetch('api/announcement/index.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Announcement added successfully', 'success');
+                    document.getElementById('annMsg').value = '';
+                    document.getElementById('annStart').value = '';
+                    document.getElementById('annEnd').value = '';
+                    loadAnnouncements();
+                } else { showToast(result.message, 'error'); }
+            } catch (error) { showToast('Failed to add announcement', 'error'); }
+        }
+
+        async function deleteAnnouncement(id) {
+            if (!confirm('Are you sure you want to delete this announcement?')) return;
+            try {
+                // Try DELETE first
+                const response = await fetch(`api/announcement/index.php?id=${id}`, { method: 'DELETE' });
+                
+                // If DELETE is blocked or fails (e.g. 405), try POST with _method fallback
+                if (!response.ok && response.status === 405) {
+                    throw new Error('Method not allowed');
+                }
+                
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Announcement deleted', 'success');
+                    loadAnnouncements();
+                } else {
+                    showToast(result.message || 'Failed to delete announcement', 'error');
+                }
+            } catch (error) { 
+                console.warn('DELETE failed, trying POST fallback...', error);
+                try {
+                    const response = await fetch('api/announcement/index.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ _method: 'DELETE', id: id })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        showToast('Announcement deleted', 'success');
+                        loadAnnouncements();
+                    } else {
+                        showToast(result.message || 'Failed to delete announcement', 'error');
+                    }
+                } catch (err) {
+                    console.error('All delete methods failed:', err);
+                    showToast('Failed to delete: ' + err.message, 'error');
+                }
+            }
+        }
+
         loadSettings();
+        loadAnnouncements();
     </script>
 </body>
 </html>
