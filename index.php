@@ -72,39 +72,10 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="lg:col-span-1 space-y-6">
                 <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
-                    <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-plus-circle mr-2 text-blue-500"></i>Add Customer</h2>
-                    <form id="customerForm" class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
-                            <input type="text" id="customerName" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Enter customer name">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Service Type</label>
-                            <select id="serviceType" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                <option value="">Select service type</option>
-                                <option value="insurance">Insurance (UCBP)</option>
-                                <option value="benefits">Benefits (SSS)</option>
-                                <option value="id_renewal">ID Renewal</option>
-                                <option value="atm_renewal">ATM Renewal</option>
-                            </select>
-                        </div>
-                        <button type="submit" id="submitBtn" class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300 font-semibold">
-                            <i class="fas fa-ticket-alt mr-2"></i>Generate Queue Number
-                        </button>
-                    </form>
-                    <div id="queueResult" class="mt-4 hidden">
-                        <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-                            <i class="fas fa-check-circle text-green-500 text-3xl mb-2 block"></i>
-                            <h3 class="text-lg font-bold text-gray-800 mb-1">Queue Number Generated</h3>
-                            <div class="text-4xl font-bold text-green-600 queue-number mb-2" id="generatedQueue"></div>
-                            <div class="text-sm text-gray-600" id="queuePosition"></div>
-                            <p class="text-gray-500 text-sm mt-2">Please wait for your number to be called</p>
-                        </div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-gray-800"><i class="fas fa-desktop mr-2 text-purple-500"></i>Window Management</h2>
+                        <button onclick="openAddWindowModal()" class="bg-purple-100 text-purple-600 hover:bg-purple-200 px-3 py-1 rounded text-sm font-semibold transition"><i class="fas fa-plus mr-1"></i> Add Window</button>
                     </div>
-                </div>
-
-                <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
-                    <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-desktop mr-2 text-purple-500"></i>Window Management</h2>
                     <div id="countersStatus" class="space-y-4"></div>
                 </div>
             </div>
@@ -191,8 +162,46 @@
         </div>
     </div>
 
+    <!-- Add Window Modal -->
+    <div id="addWindowModal" class="fixed inset-0 bg-black bg-opacity-50 hidden modal-overlay z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">Add New Window</h3>
+                    <button onclick="closeAddWindowModal()" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Window Name</label>
+                        <input type="text" id="newWindowName" class="w-full px-4 py-2 border rounded-lg" placeholder="e.g. Window 3">
+                    </div>
+                    <button onclick="submitNewWindow()" class="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition">Add Window</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Services Modal -->
+    <div id="editServicesModal" class="fixed inset-0 bg-black bg-opacity-50 hidden modal-overlay z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">Edit Window Services</h3>
+                    <button onclick="closeEditServicesModal()" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button>
+                </div>
+                <div class="space-y-4">
+                    <input type="hidden" id="editServicesCounterId">
+                    <div id="servicesCheckboxes" class="space-y-2 max-h-60 overflow-y-auto border rounded p-3 bg-gray-50">
+                        <!-- Checkboxes populated by JS -->
+                    </div>
+                    <button onclick="submitEditServices()" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">Save Services</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
 
-    <script src="js/main.js"></script>
+    <script src="js/main.js?v=2"></script>
 </body>
 </html>

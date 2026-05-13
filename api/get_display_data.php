@@ -13,17 +13,16 @@ try {
     $data['settings'] = [
         'company_name' => $settings['company_name'] ?? 'Service Center',
         'welcome_message' => $settings['welcome_message'] ?? 'Welcome',
-        'video_url' => $settings['video_url'] ?? null,
-        'video_type' => $settings['video_type'] ?? 'none',
-        'display_layout' => $settings['display_layout'] ?? 'video_queue',
-        'auto_play_video' => (bool)($settings['auto_play_video'] ?? true),
-        'video_volume' => $settings['video_volume'] ?? 50
+        'company_logo' => $settings['company_logo'] ?? null,
+        'theme_color' => $settings['theme_color'] ?? '#1e3a5f'
     ];
     
     $stmt = $conn->query("
-        SELECT c.id, c.display_name, c.is_online, c.window_number,
+        SELECT c.id, c.display_name, c.is_online, c.status_text, c.window_number,
                cust.id as customer_id, cust.queue_number, cust.name as customer_name, 
-               cust.service_type, cust.called_at
+               cust.service_type, cust.called_at,
+               (SELECT GROUP_CONCAT(csa.service_type) FROM counter_service_assignments csa WHERE csa.counter_id = c.id AND csa.is_active = 1) as active_services,
+               (SELECT GROUP_CONCAT(st.name SEPARATOR ', ') FROM counter_service_assignments csa JOIN service_types st ON st.code = csa.service_type WHERE csa.counter_id = c.id AND csa.is_active = 1) as active_services_names
         FROM counters c
         LEFT JOIN customers cust ON cust.id = c.current_customer_id
         ORDER BY c.window_number ASC
@@ -84,15 +83,16 @@ try {
     $data['waiting_queue'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     $stmt = $conn->query("
-        SELECT queue_number, service_type, called_at
-        FROM customers 
-        WHERE status IN ('serving', 'completed') 
-        AND DATE(created_at) = CURDATE() 
-        AND called_at IS NOT NULL
-        ORDER BY called_at DESC
+        SELECT cust.queue_number, cust.service_type, cust.called_at, c.window_number, c.display_name
+        FROM customers cust
+        JOIN counters c ON cust.counter_id = c.id
+        WHERE cust.status IN ('serving', 'completed') 
+        AND DATE(cust.created_at) = CURDATE() 
+        AND cust.called_at IS NOT NULL
+        ORDER BY cust.called_at DESC
         LIMIT 10
     ");
-    $data['recent_called'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $data['recent_called_history'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     echo json_encode($data);
     

@@ -39,7 +39,7 @@
                     <select id="serviceFilter" class="px-4 py-2 border border-gray-300 rounded-lg">
                         <option value="">All Services</option>
                         <option value="insurance">Insurance</option><option value="benefits">Benefits</option>
-                        <option value="id_renewal">ID Renewal</option><option value="atm_renewal">ATM Renewal</option>
+                        <option value="id_renewal">ID Renewal</option><option value="atm_renewal">ATM claim</option><option value="other">Other</option>
                     </select>
                 </div>
                 <button onclick="loadReport()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"><i class="fas fa-filter mr-2"></i>Apply</button>

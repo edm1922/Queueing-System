@@ -17,16 +17,23 @@ try {
     }
     
     $counterId = $data['counter_id'] ?? null;
-    $isOnline = $data['is_online'] ?? null;
+    $statusText = $data['status'] ?? null;
     $notes = $data['notes'] ?? '';
     
-    if ($counterId === null || $isOnline === null) {
-        throw new Exception('counter_id and is_online are required');
+    // Support backward compatibility
+    if ($statusText === null && isset($data['is_online'])) {
+        $statusText = $data['is_online'] ? 'Online' : 'Offline';
     }
     
-    if (!is_numeric($counterId) || !is_bool($isOnline)) {
-        throw new Exception('Invalid parameter types');
+    if ($counterId === null || $statusText === null) {
+        throw new Exception('counter_id and status are required');
     }
+    
+    if (!is_numeric($counterId) || !in_array($statusText, ['Online', 'Offline', 'On Break'])) {
+        throw new Exception('Invalid parameters');
+    }
+    
+    $isOnline = ($statusText === 'Online');
     
     $db = new Database();
     $conn = $db->getConnection();
@@ -41,27 +48,28 @@ try {
         throw new Exception('Counter not found');
     }
     
-    $previousStatus = $counter['is_online'];
+    $previousStatusText = $counter['status_text'] ?? ($counter['is_online'] ? 'Online' : 'Offline');
+    $wasOnline = $counter['is_online'];
     $newStatus = $isOnline ? 1 : 0;
     
-    if ($previousStatus == $newStatus) {
+    if ($previousStatusText === $statusText) {
         $conn->rollBack();
         echo json_encode([
             'success' => true,
             'message' => 'Counter status unchanged',
             'data' => [
                 'counter_id' => $counterId,
-                'is_online' => $isOnline,
+                'status' => $statusText,
                 'status_changed' => false
             ]
         ]);
         exit;
     }
     
-    $stmt = $conn->prepare("UPDATE counters SET is_online = ?, last_status_change = NOW() WHERE id = ?");
-    $stmt->execute([$newStatus, $counterId]);
+    $stmt = $conn->prepare("UPDATE counters SET is_online = ?, status_text = ?, last_status_change = NOW() WHERE id = ?");
+    $stmt->execute([$newStatus, $statusText, $counterId]);
     
-    $eventType = $isOnline ? 'counter_online' : 'counter_offline';
+    $eventType = $isOnline ? 'counter_online' : ($statusText === 'On Break' ? 'counter_break' : 'counter_offline');
     
     $stmt = $conn->prepare("INSERT INTO redistribution_logs (event_type, counter_id, notes) VALUES (?, ?, ?)");
     $stmt->execute([$eventType, $counterId, $notes]);
@@ -71,7 +79,7 @@ try {
     $reassignedCustomers = 0;
     $fallbackCounterId = null;
     
-    if (!$isOnline) {
+    if ($wasOnline && !$isOnline) {
         $stmt = $conn->prepare("
             SELECT service_type FROM counter_service_assignments 
             WHERE counter_id = ? AND is_active = 1
@@ -144,7 +152,8 @@ try {
             ");
             $stmt->execute([$announcementMsg]);
         }
-    } else {
+    } else if (!$wasOnline && $isOnline) {
+        // Activate own primary services
         $stmt = $conn->prepare("
             UPDATE counter_service_assignments 
             SET is_active = 1 
@@ -152,6 +161,23 @@ try {
         ");
         $stmt->execute([$counterId]);
         
+        // Find services this counter is primary for
+        $stmt = $conn->prepare("SELECT service_type FROM counter_service_assignments WHERE counter_id = ? AND is_primary = 1");
+        $stmt->execute([$counterId]);
+        $primaryServices = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        
+        if (!empty($primaryServices)) {
+            // Remove these services from other counters that were temporarily handling them
+            $placeholders = implode(',', array_fill(0, count($primaryServices), '?'));
+            $stmt = $conn->prepare("
+                UPDATE counter_service_assignments 
+                SET is_active = 0 
+                WHERE service_type IN ($placeholders) AND is_primary = 0
+            ");
+            $stmt->execute($primaryServices);
+        }
+
+        // Also deactivate any temporary services this counter was handling while offline (should be none, but safe)
         $stmt = $conn->prepare("
             UPDATE counter_service_assignments 
             SET is_active = 0 
@@ -188,9 +214,10 @@ try {
     
     echo json_encode([
         'success' => true,
-        'message' => $isOnline ? 'Counter is now online' : 'Counter is now offline - services redistributed',
+        'message' => 'Status updated to ' . $statusText,
         'data' => [
             'counter_id' => $counterId,
+            'status' => $statusText,
             'is_online' => $isOnline,
             'status_changed' => true,
             'affected_services' => $affectedServices,

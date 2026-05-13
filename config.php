@@ -1,7 +1,7 @@
 <?php
 class Database {
     private $host = "localhost";
-    private $db_name = "queuing_system";
+    private $db_name = "queueing_system";
     private $username = "root";
     private $password = "";
     public $conn;

@@ -65,10 +65,12 @@ try {
             $title = $data['title'] ?? '';
             $message = $data['message'] ?? '';
             $type = $data['type'] ?? 'info';
+            $fontFamily = $data['font_family'] ?? 'Inter';
             $priority = $data['priority'] ?? 0;
             $isPreset = $data['is_preset'] ?? 0;
-            $startsAt = $data['starts_at'] ?? null;
-            $expiresAt = $data['expires_at'] ?? null;
+            $startsAt = !empty($data['starts_at']) ? $data['starts_at'] : null;
+            $expiresAt = !empty($data['expires_at']) ? $data['expires_at'] : null;
+            $duration = !empty($data['display_duration']) ? (int)$data['display_duration'] : 10;
             
             if (empty($message)) {
                 throw new Exception('Message is required');
@@ -79,10 +81,10 @@ try {
             }
             
             $stmt = $conn->prepare("
-                INSERT INTO display_announcements (title, message, type, priority, is_active, is_preset, starts_at, expires_at)
-                VALUES (?, ?, ?, ?, 1, ?, ?, ?)
+                INSERT INTO display_announcements (title, message, type, font_family, priority, is_active, is_preset, starts_at, expires_at, display_duration)
+                VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
             ");
-            $stmt->execute([$title, $message, $type, (int)$priority, $isPreset ? 1 : 0, $startsAt, $expiresAt]);
+            $stmt->execute([$title, $message, $type, $fontFamily, (int)$priority, $isPreset ? 1 : 0, $startsAt, $expiresAt, $duration]);
             $announcementId = $conn->lastInsertId();
             
             echo json_encode([
@@ -93,6 +95,7 @@ try {
                     'title' => $title,
                     'message' => $message,
                     'type' => $type,
+                    'font_family' => $fontFamily,
                     'priority' => $priority
                 ]
             ]);

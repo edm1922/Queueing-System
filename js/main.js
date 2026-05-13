@@ -68,6 +68,8 @@ async function refreshQueue() {
         var response = await fetch('api/get_queue.php');
         var data = await response.json();
         if (data.success) {
+            if (data.service_types) serviceTypesData = data.service_types;
+            if (data.counters) countersData = data.counters;
             updateQueueTable(data.customers || []);
             updateCounters(data.counters || []);
         }
@@ -110,12 +112,136 @@ function updateCounters(counters) {
     var html = '';
     for (var i = 0; i < counters.length; i++) {
         var c = counters[i];
-        html += '<div class="border rounded-lg p-4 mb-2 ' + (c.is_online ? 'bg-green-50' : 'bg-gray-50') + '">' +
-                '<div class="flex justify-between font-bold"><span>' + c.display_name + '</span><span>' + (c.is_online ? 'Online' : 'Offline') + '</span></div>' +
-                '<div class="text-sm">' + (c.current_customer_name ? 'Serving: ' + c.current_queue_number : 'Available') + '</div>' +
+        var statusColor = c.status_text === 'Online' ? 'bg-green-50' : (c.status_text === 'On Break' ? 'bg-yellow-50' : 'bg-gray-50');
+        
+        var servicesText = c.active_services || 'None';
+        try {
+            var allAssigned = JSON.parse(c.service_types || '[]');
+            servicesText = allAssigned.join(', ');
+        } catch(e) {}
+        
+        html += '<div class="border rounded-lg p-4 mb-3 ' + statusColor + '">' +
+                '<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-2">' +
+                    '<div class="font-bold text-lg">' + c.display_name + '</div>' +
+                    '<div class="flex items-center gap-2 mt-2 md:mt-0">' +
+                        '<select onchange="changeWindowStatus(' + c.id + ', this.value)" class="text-sm border-gray-300 rounded px-2 py-1 bg-white">' +
+                            '<option value="Online" ' + (c.status_text === 'Online' ? 'selected' : '') + '>Online</option>' +
+                            '<option value="On Break" ' + (c.status_text === 'On Break' ? 'selected' : '') + '>On Break</option>' +
+                            '<option value="Offline" ' + (c.status_text === 'Offline' ? 'selected' : '') + '>Offline</option>' +
+                        '</select>' +
+                        '<button onclick="openEditServicesModal(' + c.id + ')" class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-sm hover:bg-blue-200" title="Edit Services"><i class="fas fa-edit"></i></button>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="text-sm text-gray-600 mb-1"><i class="fas fa-tags mr-1"></i> Services: ' + servicesText + '</div>' +
+                '<div class="text-sm font-semibold">' + (c.current_customer_name ? 'Serving: <span class="text-blue-600">' + c.current_queue_number + '</span>' : '<span class="text-gray-500">Available</span>') + '</div>' +
                 '</div>';
     }
     container.innerHTML = html;
+}
+
+async function changeWindowStatus(counterId, status) {
+    try {
+        var response = await fetch('api/counter/toggle_status.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ counter_id: counterId, status: status })
+        });
+        var data = await response.json();
+        if (data.success) {
+            showToast('Window status updated', 'success');
+            refreshQueue(); refreshStats();
+        } else {
+            showToast(data.message || 'Failed to update status', 'error');
+            refreshQueue();
+        }
+    } catch (e) {
+        showToast('Error updating status', 'error');
+        refreshQueue();
+    }
+}
+
+function openAddWindowModal() {
+    document.getElementById('newWindowName').value = '';
+    document.getElementById('addWindowModal').classList.remove('hidden');
+}
+
+function closeAddWindowModal() {
+    document.getElementById('addWindowModal').classList.add('hidden');
+}
+
+async function submitNewWindow() {
+    var name = document.getElementById('newWindowName').value.trim();
+    if (!name) { showToast('Please enter a window name', 'error'); return; }
+    try {
+        var response = await fetch('api/counter/add_window.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: name })
+        });
+        var data = await response.json();
+        if (data.success) {
+            showToast('New window added successfully', 'success');
+            closeAddWindowModal();
+            refreshQueue();
+        } else {
+            showToast(data.message || 'Failed to add window', 'error');
+        }
+    } catch (e) {
+        showToast('Error adding window', 'error');
+    }
+}
+
+function openEditServicesModal(counterId) {
+    var counter = countersData.find(c => c.id == counterId);
+    if (!counter) return;
+    
+    document.getElementById('editServicesCounterId').value = counterId;
+    
+    var assignedServices = [];
+    try { assignedServices = JSON.parse(counter.service_types || '[]'); } catch(e) {}
+    
+    var html = '';
+    for (var i = 0; i < serviceTypesData.length; i++) {
+        var s = serviceTypesData[i];
+        var isChecked = assignedServices.includes(s.code) ? 'checked' : '';
+        html += '<label class="flex items-center space-x-3 p-2 hover:bg-white rounded cursor-pointer">' +
+                '<input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600 service-cb" value="' + s.code + '" ' + isChecked + '>' +
+                '<span class="text-gray-700">' + s.name + '</span>' +
+                '</label>';
+    }
+    document.getElementById('servicesCheckboxes').innerHTML = html;
+    document.getElementById('editServicesModal').classList.remove('hidden');
+}
+
+function closeEditServicesModal() {
+    document.getElementById('editServicesModal').classList.add('hidden');
+}
+
+async function submitEditServices() {
+    var counterId = document.getElementById('editServicesCounterId').value;
+    var checkboxes = document.querySelectorAll('.service-cb:checked');
+    var services = [];
+    for (var i = 0; i < checkboxes.length; i++) {
+        services.push(checkboxes[i].value);
+    }
+    
+    try {
+        var response = await fetch('api/counter/update_services.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ counter_id: counterId, services: services })
+        });
+        var data = await response.json();
+        if (data.success) {
+            showToast('Services updated successfully', 'success');
+            closeEditServicesModal();
+            refreshQueue();
+        } else {
+            showToast(data.message || 'Failed to update services', 'error');
+        }
+    } catch (e) {
+        showToast('Error updating services', 'error');
+    }
 }
 
 async function callCustomer(id) {
@@ -146,38 +272,57 @@ function filterQueue(filter) {
     refreshQueue();
 }
 
-document.getElementById('customerForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    var name = document.getElementById('customerName').value.trim();
-    var serviceType = document.getElementById('serviceType').value;
-    if (!name || !serviceType) return;
-    var submitBtn = document.getElementById('submitBtn');
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Adding...';
-    try {
-        var response = await fetch('api/add_customer.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: name, service_type: serviceType })
-        });
-        var data = await response.json();
-        if (data.success) {
-            document.getElementById('queueResult').classList.remove('hidden');
-            document.getElementById('generatedQueue').textContent = data.queue_number;
-            document.getElementById('queuePosition').textContent = 'Position in queue: ' + (data.data.queue_position || '--');
-            document.getElementById('customerName').value = '';
-            document.getElementById('serviceType').value = '';
-            refreshQueue(); refreshStats();
-            showToast('Queue number ' + data.queue_number + ' generated', 'success');
-        } else {
-            showToast(data.message || 'Failed to add customer', 'error');
+var customerForm = document.getElementById('customerForm');
+if (customerForm) {
+    customerForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        var nameInput = document.getElementById('customerName');
+        var serviceTypeInput = document.getElementById('serviceType');
+        var name = nameInput ? nameInput.value.trim() : '';
+        var serviceType = serviceTypeInput ? serviceTypeInput.value : '';
+        
+        if (!name || !serviceType) return;
+        var submitBtn = document.getElementById('submitBtn');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Adding...';
         }
-    } catch (e) {
-        showToast('Error adding customer', 'error');
-    }
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = '<i class="fas fa-ticket-alt mr-2"></i>Generate Queue Number';
-});
+        
+        try {
+            var response = await fetch('api/add_customer.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, service_type: serviceType })
+            });
+            var data = await response.json();
+            if (data.success) {
+                var resDiv = document.getElementById('queueResult');
+                if (resDiv) resDiv.classList.remove('hidden');
+                
+                var genQ = document.getElementById('generatedQueue');
+                if (genQ) genQ.textContent = data.queue_number;
+                
+                var qPos = document.getElementById('queuePosition');
+                if (qPos) qPos.textContent = 'Position in queue: ' + (data.data.queue_position || '--');
+                
+                if (nameInput) nameInput.value = '';
+                if (serviceTypeInput) serviceTypeInput.value = '';
+                
+                refreshQueue(); refreshStats();
+                showToast('Queue number ' + data.queue_number + ' generated', 'success');
+            } else {
+                showToast(data.message || 'Failed to add customer', 'error');
+            }
+        } catch (e) {
+            showToast('Error adding customer', 'error');
+        }
+        
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-ticket-alt mr-2"></i>Generate Queue Number';
+        }
+    });
+}
 
 function init() {
     refreshQueue();

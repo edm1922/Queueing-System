@@ -28,6 +28,8 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div><label class="block text-sm font-medium text-gray-700 mb-2">Company Name</label><input type="text" id="companyName" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"></div>
                     <div><label class="block text-sm font-medium text-gray-700 mb-2">Welcome Message</label><input type="text" id="welcomeMessage" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"></div>
+                    <div><label class="block text-sm font-medium text-gray-700 mb-2">Company Logo URL</label><input type="text" id="companyLogo" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="https://example.com/logo.png"></div>
+                    <div><label class="block text-sm font-medium text-gray-700 mb-2">Display Theme Color</label><input type="color" id="themeColor" class="h-10 w-full px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" value="#1e3a5f"></div>
                 </div>
             </div>
 
@@ -41,41 +43,31 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-bullhorn mr-2 text-yellow-500"></i>Add New Announcement / Holiday</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Message</label>
-                        <textarea id="annMsg" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Enter announcement or holiday notice..."></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Type</label>
-                        <select id="annType" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                            <option value="info">Information</option>
-                            <option value="warning">Warning</option>
-                            <option value="urgent">Urgent Alert / Holiday</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Priority</label>
-                        <input type="number" id="annPriority" value="0" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Starts At (Leave blank for immediate)</label>
-                        <input type="datetime-local" id="annStart" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Expires At (Optional)</label>
-                        <input type="datetime-local" id="annEnd" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    <div class="md:col-span-2 flex justify-end">
-                        <button type="button" onclick="addAnnouncement()" class="px-6 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 font-bold"><i class="fas fa-plus mr-2"></i>Add to Board</button>
-                    </div>
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-bullhorn mr-2 text-yellow-500"></i>Announcement Ticker Message</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Message</label>
+                    <input type="text" id="annMsg" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Enter message to scroll on top...">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Show For (Duration)</label>
+                    <select id="annDurationPreset" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="60">1 Hour</option>
+                        <option value="240">4 Hours</option>
+                        <option value="480">8 Hours</option>
+                        <option value="1440">24 Hours</option>
+                        <option value="10080">1 Week</option>
+                        <option value="0">Forever</option>
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <button type="button" onclick="addAnnouncement()" class="w-full px-6 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 font-bold"><i class="fas fa-paper-plane mr-2"></i>Post</button>
                 </div>
             </div>
+        </div>
 
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-calendar-alt mr-2 text-blue-500"></i>Manage Board Announcements</h2>
+
                 <div id="announcementList" class="space-y-3">
                     <div class="text-center py-4 text-gray-500">Loading announcements...</div>
                 </div>
@@ -100,6 +92,8 @@
                     document.getElementById('companyName').value = s.company_name || '';
                     document.getElementById('welcomeMessage').value = s.welcome_message || '';
                     document.getElementById('cutoffTime').value = s.cutoff_time || '17:00';
+                    document.getElementById('companyLogo').value = s.company_logo || '';
+                    document.getElementById('themeColor').value = s.theme_color || '#1e3a5f';
                 }
             } catch (error) { showToast('Failed to load settings', 'error'); }
         }
@@ -110,6 +104,8 @@
                 company_name: document.getElementById('companyName').value,
                 welcome_message: document.getElementById('welcomeMessage').value,
                 cutoff_time: document.getElementById('cutoffTime').value,
+                company_logo: document.getElementById('companyLogo').value,
+                theme_color: document.getElementById('themeColor').value,
                 auto_play_video: 1
             };
             try {
@@ -156,8 +152,7 @@
                                     </div>
                                     <p class="text-gray-800 font-medium">${a.message}</p>
                                     <div class="text-xs text-gray-400 mt-1">
-                                        ${start ? 'From: ' + start.toLocaleString() : 'Immediate'} 
-                                        ${end ? ' • To: ' + end.toLocaleString() : ''}
+                                        Expires: <span class="font-bold text-red-500">${end ? end.toLocaleString() : 'Never'}</span>
                                     </div>
                                 </div>
                                 <button type="button" onclick="deleteAnnouncement(${a.id})" class="ml-4 p-2 text-red-500 hover:bg-red-50 rounded-full transition"><i class="fas fa-trash-alt"></i></button>
@@ -169,15 +164,31 @@
         }
 
         async function addAnnouncement() {
-            const message = document.getElementById('annMsg').value;
-            if (!message) { showToast('Please enter a message', 'error'); return; }
+            var message = document.getElementById('annMsg').value;
+            if (!message) return;
             
-            const data = {
+            var presetMinutes = parseInt(document.getElementById('annDurationPreset').value);
+            var expiresAt = null;
+            if (presetMinutes > 0) {
+                var d = new Date();
+                d.setMinutes(d.getMinutes() + presetMinutes);
+                // Format to MySQL DATETIME (YYYY-MM-DD HH:mm:ss)
+                expiresAt = d.getFullYear() + '-' + 
+                           String(d.getMonth() + 1).padStart(2, '0') + '-' + 
+                           String(d.getDate()).padStart(2, '0') + ' ' + 
+                           String(d.getHours()).padStart(2, '0') + ':' + 
+                           String(d.getMinutes()).padStart(2, '0') + ':' + 
+                           String(d.getSeconds()).padStart(2, '0');
+            }
+
+            var data = {
                 message: message,
-                type: document.getElementById('annType').value,
-                priority: parseInt(document.getElementById('annPriority').value) || 0,
-                starts_at: document.getElementById('annStart').value || null,
-                expires_at: document.getElementById('annEnd').value || null,
+                type: 'info',
+                font_family: 'Inter',
+                priority: 0,
+                starts_at: null,
+                expires_at: expiresAt,
+                display_duration: 10,
                 is_preset: 0
             };
             
@@ -191,8 +202,6 @@
                 if (result.success) {
                     showToast('Announcement added successfully', 'success');
                     document.getElementById('annMsg').value = '';
-                    document.getElementById('annStart').value = '';
-                    document.getElementById('annEnd').value = '';
                     loadAnnouncements();
                 } else { showToast(result.message, 'error'); }
             } catch (error) { showToast('Failed to add announcement', 'error'); }
