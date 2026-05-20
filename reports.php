@@ -5,9 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reports - Queue Management System</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23667eea'><path d='M3 3h18v2H3V3zm0 4h18v2H3V7zm0 4h18v2H3v-2zm0 4h12v2H3v-2zm14 0l3 3-3 3v-6z'/></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        body { font-family: 'Inter', system-ui, sans-serif; }
         .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
         @media print {
             header, .gradient-bg, .bg-white.rounded-lg.shadow-lg.p-6.mb-6, #pagination, #searchTable, button {
@@ -26,6 +29,7 @@
             .print-header { display: block !important; text-align: center; margin-bottom: 20px; color: black; }
         }
         @media screen { .print-header { display: none; } }
+        button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid #667eea; outline-offset: 2px; border-radius: 0.375rem; }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -47,7 +51,7 @@
     </header>
 
     <main class="container mx-auto px-4 py-6">
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+        <div class="card p-5 mb-6">
             <div class="flex flex-wrap gap-4 items-end">
                 <div><label class="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
                     <select id="dateRange" class="px-4 py-2 border border-gray-300 rounded-lg" onchange="updateDateRange()">
@@ -75,23 +79,23 @@
         </div>
 
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div class="bg-white rounded-lg shadow-lg p-6"><div class="flex items-center"><div class="p-3 rounded-full bg-blue-100 text-blue-600 mr-4"><i class="fas fa-users text-xl"></i></div><div><h3 class="text-3xl font-bold text-gray-800" id="totalCustomers">0</h3><p class="text-gray-600 text-sm">Total Served</p></div></div></div>
-            <div class="bg-white rounded-lg shadow-lg p-6"><div class="flex items-center"><div class="p-3 rounded-full bg-green-100 text-green-600 mr-4"><i class="fas fa-clock text-xl"></i></div><div><h3 class="text-3xl font-bold text-gray-800" id="avgWaitTime">0:00</h3><p class="text-gray-600 text-sm">Avg Wait</p></div></div></div>
-            <div class="bg-white rounded-lg shadow-lg p-6"><div class="flex items-center"><div class="p-3 rounded-full bg-purple-100 text-purple-600 mr-4"><i class="fas fa-user-check text-xl"></i></div><div><h3 class="text-3xl font-bold text-gray-800" id="avgServiceTime">0:00</h3><p class="text-gray-600 text-sm">Avg Service</p></div></div></div>
-            <div class="bg-white rounded-lg shadow-lg p-6"><div class="flex items-center"><div class="p-3 rounded-full bg-yellow-100 text-yellow-600 mr-4"><i class="fas fa-tachometer-alt text-xl"></i></div><div><h3 class="text-3xl font-bold text-gray-800" id="customersPerHour">0</h3><p class="text-gray-600 text-sm">Per Hour</p></div></div></div>
+            <div class="card p-5 border-t-4 border-blue-400"><div class="flex items-center"><div class="p-3 rounded-full bg-blue-100 text-blue-600 mr-4"><i class="fas fa-users text-xl"></i></div><div><h3 class="text-3xl font-bold text-gray-800" id="totalCustomers">0</h3><p class="text-gray-600 text-sm">Total Served</p></div></div></div>
+            <div class="card p-5 border-t-4 border-green-400"><div class="flex items-center"><div class="p-3 rounded-full bg-green-100 text-green-600 mr-4"><i class="fas fa-clock text-xl"></i></div><div><h3 class="text-3xl font-bold text-gray-800" id="avgWaitTime">0:00</h3><p class="text-gray-600 text-sm">Avg Wait</p></div></div></div>
+            <div class="card p-5 border-t-4 border-purple-400"><div class="flex items-center"><div class="p-3 rounded-full bg-purple-100 text-purple-600 mr-4"><i class="fas fa-user-check text-xl"></i></div><div><h3 class="text-3xl font-bold text-gray-800" id="avgServiceTime">0:00</h3><p class="text-gray-600 text-sm">Avg Service</p></div></div></div>
+            <div class="card p-5 border-t-4 border-yellow-400"><div class="flex items-center"><div class="p-3 rounded-full bg-yellow-100 text-yellow-600 mr-4"><i class="fas fa-tachometer-alt text-xl"></i></div><div><h3 class="text-3xl font-bold text-gray-800" id="customersPerHour">0</h3><p class="text-gray-600 text-sm">Per Hour</p></div></div></div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <div class="bg-white rounded-lg shadow-lg p-6"><h3 class="text-lg font-bold text-gray-800 mb-4"><i class="fas fa-chart-pie mr-2"></i>Service Breakdown</h3><div id="serviceBreakdown" class="space-y-3"></div></div>
-            <div class="bg-white rounded-lg shadow-lg p-6"><h3 class="text-lg font-bold text-gray-800 mb-4"><i class="fas fa-chart-line mr-2"></i>Hourly Distribution</h3><div id="hourlyChart" class="space-y-2"></div></div>
+            <div class="card p-5"><h3 class="text-lg font-bold text-gray-800 mb-4"><i class="fas fa-chart-pie mr-2 text-blue-500"></i>Service Breakdown</h3><div id="serviceBreakdown" class="space-y-3"></div></div>
+            <div class="card p-5"><h3 class="text-lg font-bold text-gray-800 mb-4"><i class="fas fa-chart-line mr-2 text-blue-500"></i>Hourly Distribution</h3><div id="hourlyChart" class="space-y-2"></div></div>
         </div>
 
-        <div class="bg-white rounded-lg shadow-lg p-6">
-            <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800"><i class="fas fa-table mr-2"></i>Detailed Report</h3><input type="text" id="searchTable" placeholder="Search..." class="px-4 py-2 border rounded-lg"></div>
+        <div class="card p-5">
+            <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800"><i class="fas fa-table mr-2 text-blue-500"></i>Detailed Report</h3><input type="text" id="searchTable" placeholder="Search..." class="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"></div>
             <div class="overflow-x-auto">
                 <table class="w-full table-auto text-sm">
-                    <thead><tr class="bg-gray-50"><th class="px-4 py-3 text-left">Date</th><th class="px-4 py-3 text-left">Queue #</th><th class="px-4 py-3 text-left">Customer</th><th class="px-4 py-3 text-left">Service</th><th class="px-4 py-3 text-left">Window</th><th class="px-4 py-3 text-left">Status</th><th class="px-4 py-3 text-left">Wait</th><th class="px-4 py-3 text-left">Service</th></tr></thead>
-                    <tbody id="reportTable" class="divide-y"></tbody>
+                    <thead><tr class="bg-gray-50 border-b border-gray-200"><th class="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wider">Date</th><th class="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wider">Queue #</th><th class="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wider">Customer</th><th class="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wider">Service</th><th class="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wider">Window</th><th class="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wider">Status</th><th class="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wider">Wait</th><th class="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wider">Service</th></tr></thead>
+                    <tbody id="reportTable" class="divide-y divide-gray-100"></tbody>
                 </table>
             </div>
             <div id="pagination" class="flex justify-center mt-4 gap-2"></div>

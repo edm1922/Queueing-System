@@ -5,9 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Settings - Queue Management System</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23667eea'><path d='M3 3h18v2H3V3zm0 4h18v2H3V7zm0 4h18v2H3v-2zm0 4h12v2H3v-2zm14 0l3 3-3 3v-6z'/></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>.gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }</style>
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid #667eea; outline-offset: 2px; border-radius: 0.375rem; }
+    </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
     <header class="gradient-bg text-white shadow-lg">
@@ -23,7 +29,7 @@
 
     <main class="container mx-auto px-4 py-8 max-w-4xl">
         <form id="settingsForm" class="space-y-6">
-            <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="card p-5">
                 <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-building mr-2 text-blue-500"></i>Company Information</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div><label class="block text-sm font-medium text-gray-700 mb-2">Company Name</label><input type="text" id="companyName" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"></div>
@@ -31,7 +37,7 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="card p-5">
                 <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-clock mr-2 text-red-500"></i>Queue Settings</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -41,7 +47,7 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="card p-5 mb-6">
             <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-bullhorn mr-2 text-yellow-500"></i>Announcement Ticker Message</h2>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div class="md:col-span-2">

@@ -37,10 +37,10 @@ $cutoff_formatted = date("g:i A", strtotime($cutoff));
         @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 20px rgba(250, 204, 21, 0.5); } 50% { box-shadow: 0 0 40px rgba(250, 204, 21, 0.8), 0 0 60px rgba(250, 204, 21, 0.4); } }
         .flip-in { animation: flipIn 0.6s ease-in-out; }
         @keyframes flipIn { from { transform: rotateX(90deg) scale(0.8); opacity: 0; } to { transform: rotateX(0deg) scale(1); opacity: 1; } }
-        .marquee { animation: marquee 25s linear infinite; white-space: nowrap; }
-        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-        .ticker-scroll { animation: tickerScroll 40s linear infinite; }
-        @keyframes tickerScroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+        .marquee { overflow: hidden; white-space: nowrap; }
+        .marquee-inner { display: inline-block; white-space: nowrap; animation: marqueeScroll 30s linear infinite; }
+        .marquee-inner > span { display: inline-block; padding-right: 80px; }
+        @keyframes marqueeScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         .alert-warning { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
         .alert-urgent { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); animation: urgentPulse 1s infinite; }
         @keyframes urgentPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
@@ -83,10 +83,13 @@ $cutoff_formatted = date("g:i A", strtotime($cutoff));
 
     <div class="bg-blue-900 py-3 overflow-hidden">
         <div class="container mx-auto px-4">
-            <div class="overflow-hidden">
-                <div id="announcementTicker" class="marquee text-lg font-medium">
-                    <i class="fas fa-bullhorn mr-4 text-yellow-400"></i>
-                    <span id="tickerContent"><?php echo htmlspecialchars($settings['welcome_message'] ?? 'Welcome to our Service Center! Please have your queue ticket ready.'); ?></span>
+            <div class="overflow-hidden flex items-center">
+                <i class="fas fa-bullhorn mr-4 text-yellow-400 flex-shrink-0"></i>
+                <div id="announcementTicker" class="marquee text-lg font-medium flex-1">
+                    <div class="marquee-inner" id="tickerInner">
+                        <span><?php echo htmlspecialchars($settings['welcome_message'] ?? 'Welcome to our Service Center! Please have your queue ticket ready.'); ?></span>
+                        <span><?php echo htmlspecialchars($settings['welcome_message'] ?? 'Welcome to our Service Center! Please have your queue ticket ready.'); ?></span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -361,16 +364,21 @@ $cutoff_formatted = date("g:i A", strtotime($cutoff));
 
 
         function updateAnnouncements(announcements) {
-            var ticker = document.getElementById('tickerContent');
-            if (!ticker) return;
+            var inner = document.getElementById('tickerInner');
+            if (!inner) return;
             
+            var text;
             if (!announcements || announcements.length === 0) {
-                ticker.textContent = "<?php echo addslashes($settings['welcome_message'] ?? 'Welcome to our Service Center! Please have your queue ticket ready.'); ?>";
-                return;
+                text = "<?php echo addslashes($settings['welcome_message'] ?? 'Welcome to our Service Center! Please have your queue ticket ready.'); ?>";
+            } else {
+                text = announcements.map(a => a.message).join(' ••• ');
             }
             
-            var text = announcements.map(a => a.message).join(' ••• ');
-            ticker.textContent = text;
+            // Only update if content actually changed (prevents animation restart)
+            if (inner.getAttribute('data-text') === text) return;
+            inner.setAttribute('data-text', text);
+            
+            inner.innerHTML = '<span>' + text + '</span><span>' + text + '</span>';
         }
 
         function updateRecentCalledHistory(history) {

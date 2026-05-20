@@ -63,7 +63,26 @@ function updateServiceMetrics(metrics) {
     container.innerHTML = html;
 }
 
+function showSkeleton() {
+    var table = document.getElementById('queueTable');
+    if (!table) return;
+    var sk = '';
+    for (var i = 0; i < 4; i++) {
+        sk += '<tr><td colspan="6" class="px-4 py-3"><div class="skeleton h-5 w-16 mb-1"></div></td></tr>' +
+              '<tr class="' + (i % 2 === 0 ? 'bg-gray-50' : '') + '">' +
+              '<td class="px-4 py-3"><div class="skeleton h-5 w-20"></div></td>' +
+              '<td class="px-4 py-3"><div class="skeleton h-5 w-32"></div></td>' +
+              '<td class="px-4 py-3"><div class="skeleton h-5 w-24"></div></td>' +
+              '<td class="px-4 py-3"><div class="skeleton h-5 w-16"></div></td>' +
+              '<td class="px-4 py-3"><div class="skeleton h-5 w-16"></div></td>' +
+              '<td class="px-4 py-3"><div class="skeleton h-5 w-20"></div></td>' +
+              '</tr>';
+    }
+    table.innerHTML = sk;
+}
+
 async function refreshQueue() {
+    showSkeleton();
     try {
         var response = await fetch('api/get_queue.php');
         var data = await response.json();
@@ -87,22 +106,27 @@ function updateQueueTable(customers) {
     var html = '';
     for (var i = 0; i < filtered.length; i++) {
         var c = filtered[i];
+        var rowBg = (i % 2 === 0) ? '' : ' bg-gray-50';
         var statusClass = 'bg-gray-100 text-gray-800';
         if (c.status === 'waiting') statusClass = 'bg-yellow-100 text-yellow-800';
         if (c.status === 'serving') statusClass = 'bg-blue-100 text-blue-800';
         if (c.status === 'completed') statusClass = 'bg-green-100 text-green-800';
         
-        html += '<tr class="hover:bg-gray-50">' +
-                '<td class="px-3 py-2 font-bold">' + c.queue_number + '</td>' +
-                '<td class="px-3 py-2">' + c.name + '</td>' +
-                '<td class="px-3 py-2">' + c.service_type + '</td>' +
-                '<td class="px-3 py-2"><span class="px-2 py-1 rounded-full text-xs ' + statusClass + '">' + c.status + '</span></td>' +
-                '<td class="px-3 py-2">' + new Date(c.created_at).toLocaleTimeString() + '</td>' +
-                '<td class="px-3 py-2">' +
-                (c.status === 'waiting' ? '<button onclick="callCustomer(' + c.id + ')" class="text-green-600 mr-2" title="Call Customer"><i class="fas fa-bullhorn"></i> Call</button>' : '') +
-                (c.status === 'serving' ? '<button onclick="recallCustomer(' + c.id + ')" class="text-yellow-600 mr-2" title="Recall (Announce Again)"><i class="fas fa-bell"></i></button>' : '') +
-                (c.status === 'serving' ? '<button onclick="completeCustomer(' + c.id + ')" class="text-blue-600" title="Complete Service">Complete</button>' : '') +
-                '</td></tr>';
+        var actions = '';
+        if (c.status === 'waiting') {
+            actions = '<button onclick="callCustomer(' + c.id + ')" class="inline-flex items-center gap-1 bg-green-50 text-green-700 hover:bg-green-100 px-2.5 py-1.5 rounded-lg text-xs font-medium transition" title="Call Customer"><i class="fas fa-bullhorn text-xs"></i> Call</button>';
+        } else if (c.status === 'serving') {
+            actions = '<button onclick="recallCustomer(' + c.id + ')" class="inline-flex items-center gap-1 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 px-2.5 py-1.5 rounded-lg text-xs font-medium transition mr-1" title="Recall (Announce Again)"><i class="fas fa-bell text-xs"></i></button>' +
+                      '<button onclick="completeCustomer(' + c.id + ')" class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg text-xs font-medium transition" title="Complete Service"><i class="fas fa-check text-xs"></i> Complete</button>';
+        }
+        
+        html += '<tr class="hover:bg-gray-100' + rowBg + ' transition-colors">' +
+                '<td class="px-4 py-3 font-bold text-gray-900">' + c.queue_number + '</td>' +
+                '<td class="px-4 py-3 text-gray-700">' + c.name + '</td>' +
+                '<td class="px-4 py-3 text-gray-600">' + c.service_type + '</td>' +
+                '<td class="px-4 py-3"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' + statusClass + '">' + c.status + '</span></td>' +
+                '<td class="px-4 py-3 text-gray-500 text-xs">' + new Date(c.created_at).toLocaleTimeString() + '</td>' +
+                '<td class="px-4 py-3">' + actions + '</td></tr>';
     }
     table.innerHTML = html;
 }
@@ -113,24 +137,36 @@ function updateCounters(counters) {
     var html = '';
     for (var i = 0; i < counters.length; i++) {
         var c = counters[i];
-        var statusColor = c.status_text === 'Online' ? 'bg-green-50' : (c.status_text === 'On Break' ? 'bg-yellow-50' : 'bg-gray-50');
+        var borderColor = 'border-l-green-400';
+        var statusColor = 'bg-white';
+        var dotColor = 'text-green-500';
+        if (c.status_text === 'On Break') {
+            borderColor = 'border-l-yellow-400';
+            statusColor = 'bg-yellow-50';
+            dotColor = 'text-yellow-500';
+        } else if (c.status_text === 'Offline') {
+            borderColor = 'border-l-gray-300';
+            statusColor = 'bg-gray-50';
+            dotColor = 'text-gray-400';
+        }
         
         var servicesText = c.active_services || 'None';
         
-        html += '<div class="border rounded-lg p-4 mb-3 ' + statusColor + '">' +
+        html += '<div class="rounded-lg p-4 mb-3 border border-l-4 ' + borderColor + ' ' + statusColor + '">' +
                 '<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-2">' +
-                    '<div class="font-bold text-lg">' + c.display_name + '</div>' +
+                    '<div class="flex items-center gap-2"><span class="inline-block w-2 h-2 rounded-full ' + dotColor + '"></span><div class="font-bold text-lg text-gray-900">' + c.display_name + '</div></div>' +
                     '<div class="flex items-center gap-2 mt-2 md:mt-0">' +
-                        '<select onchange="changeWindowStatus(' + c.id + ', this.value)" class="text-sm border-gray-300 rounded px-2 py-1 bg-white">' +
+                        '<select onchange="changeWindowStatus(' + c.id + ', this.value)" class="text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">' +
                             '<option value="Online" ' + (c.status_text === 'Online' ? 'selected' : '') + '>Online</option>' +
                             '<option value="On Break" ' + (c.status_text === 'On Break' ? 'selected' : '') + '>On Break</option>' +
                             '<option value="Offline" ' + (c.status_text === 'Offline' ? 'selected' : '') + '>Offline</option>' +
                         '</select>' +
-                        '<button onclick="openEditServicesModal(' + c.id + ')" class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-sm hover:bg-blue-200" title="Edit Services"><i class="fas fa-edit"></i></button>' +
+                        '<button onclick="openEditServicesModal(' + c.id + ')" class="inline-flex items-center justify-center w-8 h-8 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition" title="Edit Services"><i class="fas fa-edit text-xs"></i></button>' +
+                        '<button onclick="deleteWindow(' + c.id + ')" class="inline-flex items-center justify-center w-8 h-8 text-red-500 hover:bg-red-50 rounded-lg transition" title="Delete Window"><i class="fas fa-trash text-xs"></i></button>' +
                     '</div>' +
                 '</div>' +
-                '<div class="text-sm text-gray-600 mb-1"><i class="fas fa-tags mr-1"></i> Services: ' + servicesText + '</div>' +
-                '<div class="text-sm font-semibold">' + (c.current_customer_name ? 'Serving: <span class="text-blue-600">' + c.current_queue_number + '</span>' : '<span class="text-gray-500">Available</span>') + '</div>' +
+                '<div class="text-sm text-gray-500 ml-4"><i class="fas fa-tags mr-1.5 text-gray-400"></i> ' + servicesText + '</div>' +
+                '<div class="text-sm ml-4 mt-1">' + (c.current_customer_name ? 'Serving: <span class="font-semibold text-blue-600">' + c.current_queue_number + '</span>' : '<span class="text-gray-400">Available</span>') + '</div>' +
                 '</div>';
     }
     container.innerHTML = html;
@@ -186,6 +222,29 @@ async function submitNewWindow() {
     } catch (e) {
         showToast('Error adding window', 'error');
     }
+}
+
+function deleteWindow(counterId) {
+    if (!confirm('Are you sure you want to delete this window? This action cannot be undone.')) return;
+    
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', 'api/counter/delete_window.php', true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.onload = function() {
+        try {
+            var data = JSON.parse(xhr.responseText);
+            if (data.success) {
+                showToast('Window deleted successfully', 'success');
+                refreshQueue();
+                refreshStats();
+            } else {
+                showToast(data.message || 'Failed to delete window', 'error');
+            }
+        } catch (e) {
+            showToast('Error deleting window', 'error');
+        }
+    };
+    xhr.send(JSON.stringify({ counter_id: counterId }));
 }
 
 function openEditServicesModal(counterId) {
@@ -335,6 +394,15 @@ if (customerForm) {
             submitBtn.innerHTML = '<i class="fas fa-ticket-alt mr-2"></i>Generate Queue Number';
         }
     });
+}
+
+function logout() {
+    if (!confirm('Sign out of Queue Management System?')) return;
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_data');
+    sessionStorage.removeItem('auth_token');
+    sessionStorage.removeItem('user_data');
+    window.location.href = 'login.php';
 }
 
 function init() {
