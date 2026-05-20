@@ -137,7 +137,7 @@ $cutoff_formatted = date("g:i A", strtotime($cutoff));
     <audio id="notificationSound" preload="auto" loop><source src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3" type="audio/mpeg"></audio>
 
     <script>
-        var lastServing = { '1': '', '2': '' };
+        var lastCallInfo = {}; // Stores {queue_number, called_at} per window
         var cutoffFormatted = "<?php echo $cutoff_formatted; ?>";
         var announcementsPool = [];
         var currentAnnIndex = 0;
@@ -287,13 +287,21 @@ $cutoff_formatted = date("g:i A", strtotime($cutoff));
             status.className = 'px-3 py-1 rounded-full text-sm bg-green-200 text-green-800';
             
             var newServing = (windowData && windowData.queue_number) ? windowData.queue_number : '---';
-            if (newServing !== lastServing[windowNum]) {
+            var calledAt = (windowData && windowData.called_at) ? windowData.called_at : '';
+            
+            if (!lastCallInfo[windowNum]) {
+                lastCallInfo[windowNum] = { queue_number: '', called_at: '' };
+            }
+
+            if (newServing !== '---' && (newServing !== lastCallInfo[windowNum].queue_number || calledAt !== lastCallInfo[windowNum].called_at)) {
                 serving.textContent = newServing;
-                lastServing[windowNum] = newServing;
-                if (newServing !== '---') {
-                    playNotificationSound();
-                    announceNumber(newServing, windowNum);
-                }
+                lastCallInfo[windowNum] = { queue_number: newServing, called_at: calledAt };
+                
+                playNotificationSound();
+                announceNumber(newServing, windowNum);
+            } else if (newServing === '---') {
+                serving.textContent = '---';
+                lastCallInfo[windowNum] = { queue_number: '---', called_at: '' };
             }
             
             var serviceType = (windowData && windowData.active_services) ? windowData.active_services.split(',') : [];

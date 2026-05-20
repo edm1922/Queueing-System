@@ -34,8 +34,8 @@ try {
     
     // Insert new counter
     $stmt = $conn->prepare("
-        INSERT INTO counters (name, display_name, window_number, service_types, is_online, status_text)
-        VALUES (?, ?, ?, '[\"other\"]', 0, 'Offline')
+        INSERT INTO counters (name, display_name, window_number, is_online, status_text)
+        VALUES (?, ?, ?, 0, 'Offline')
     ");
     $stmt->execute([$name, $name, $windowNumber]);
     $counterId = $conn->lastInsertId();

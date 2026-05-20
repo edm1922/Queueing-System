@@ -54,10 +54,7 @@ try {
         $stmt->execute([$counterId, $service, $isOnline ? 1 : 0, $displayOrder++]);
     }
     
-    // Update service_types in counters table
-    $servicesJson = json_encode($services);
-    $stmt = $conn->prepare("UPDATE counters SET service_types = ? WHERE id = ?");
-    $stmt->execute([$servicesJson, $counterId]);
+    // service_types column has been removed in v2, only counter_service_assignments is used
     
     $conn->commit();
     

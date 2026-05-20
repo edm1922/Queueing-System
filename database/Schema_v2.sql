@@ -105,7 +105,7 @@ INSERT INTO `service_types` (`name`, `code`, `description`, `queue_prefix`) VALU
 ('Insurance', 'insurance', 'UCBP Insurance services, claims, inquiries', 'I'),
 ('Benefits', 'benefits', 'SSS Benefits applications and inquiries', 'I'),
 ('ID Renewal', 'id_renewal', 'ID card renewal, updates, replacements', 'R'),
-('ATM Renewal', 'atm_renewal', 'ATM card renewal, PIN issues, replacements', 'R');
+('ATM Claim', 'atm_renewal', 'ATM card renewal, PIN issues, replacements', 'R');
 
 -- --------------------------------------------------------
 -- Queue sequences for atomic queue number generation
@@ -213,6 +213,8 @@ CREATE TABLE `display_settings` (
   `auto_play_video` tinyint(1) DEFAULT 1,
   `display_layout` enum('queue_only','video_queue','queue_video') DEFAULT 'video_queue',
   `active_announcement` text DEFAULT NULL,
+  `company_logo` varchar(255) DEFAULT NULL,
+  `theme_color` varchar(20) DEFAULT '#1e3a5f',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -228,11 +230,13 @@ CREATE TABLE `display_announcements` (
   `title` varchar(100) DEFAULT NULL,
   `message` text NOT NULL,
   `type` enum('info','warning','urgent') DEFAULT 'info',
+  `font_family` varchar(50) DEFAULT 'Inter',
   `priority` int(11) DEFAULT 0,
   `is_active` tinyint(1) DEFAULT 1,
   `is_preset` tinyint(1) DEFAULT 0,
   `starts_at` timestamp NULL DEFAULT NULL,
   `expires_at` timestamp NULL DEFAULT NULL,
+  `display_duration` int(11) DEFAULT 10,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `is_active` (`is_active`),

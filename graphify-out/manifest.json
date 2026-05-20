@@ -1,0 +1,174 @@
+{
+  "C:\\xampp\\htdocs\\queue-management-system\\auth_tables.sql": {
+    "mtime": 1778706382.0,
+    "hash": "b0eac5e1975d8ec66f1b1e6ad67f7542"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\check_counters_debug.php": {
+    "mtime": 1778714740.0,
+    "hash": "a48bc141db95bf420e68b4251ccc941c"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\config.php": {
+    "mtime": 1778724427.5195427,
+    "hash": "c534407d3790c9abbbb0160c402894d7"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\display.php": {
+    "mtime": 1778724015.97998,
+    "hash": "1069a4bee383e318f085d466d320c30e"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\index.php": {
+    "mtime": 1778711122.0,
+    "hash": "0df0b7c68cba1072d1561783379a0b58"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\kiosk.php": {
+    "mtime": 1778711162.0,
+    "hash": "ae90a49a0b62981550ab6fe7a27be09f"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\login.php": {
+    "mtime": 1778706382.0,
+    "hash": "dd0819fce9d5714d2f7735dd980f0e13"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\queuing_system.sql": {
+    "mtime": 1778706382.0,
+    "hash": "abc332c5be03f06b46291841ed2391dd"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\queuing_system_v2.sql": {
+    "mtime": 1778723309.2247846,
+    "hash": "cc134e7bb033db55e70c0602c4531c13"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\reports.php": {
+    "mtime": 1778724363.0629618,
+    "hash": "fcf236e00be24d98c3b0c6bc97a4e01b"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\settings.php": {
+    "mtime": 1778724120.7569335,
+    "hash": "e6544dd7b67efadce48375123b5f00e6"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\test_add.php": {
+    "mtime": 1778721932.6178539,
+    "hash": "9e534bcb053f63a7244e424ae63b0fc9"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\test_add_window.php": {
+    "mtime": 1778722641.2432368,
+    "hash": "f428d6bb447983fe449c60fbff00a4d0"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\test_update.php": {
+    "mtime": 1778722621.666803,
+    "hash": "1d8307e1fb33f9532f981c730e5f4fb5"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\api\\add_customer.php": {
+    "mtime": 1778721640.7320628,
+    "hash": "9aac700b193a66fe86d1e18a503d09bf"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\api\\call_customer.php": {
+    "mtime": 1778706382.0,
+    "hash": "377cd18bdeb34939dd3b4f2d2aaf152d"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\api\\cancel_customer.php": {
+    "mtime": 1778706382.0,
+    "hash": "7a58ef75fef3557f81a72080ea9daaa3"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\api\\complete_customer.php": {
+    "mtime": 1778706382.0,
+    "hash": "0e08dcce45461c20d698c11954c38cbd"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\api\\get_display_data.php": {
+    "mtime": 1778714294.0,
+    "hash": "127d78cc74b55366c3f385d601ab536c"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\api\\get_queue.php": {
+    "mtime": 1778706382.0,
+    "hash": "77f3b74c45eb55b2b3bc9e20441e2597"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\api\\get_stats.php": {
+    "mtime": 1778706382.0,
+    "hash": "f6e49ed28e890c2d44cbc13d6b69cab1"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\api\\recall_customer.php": {
+    "mtime": 1778723691.898259,
+    "hash": "2a22db9ecbf2700d0d8b090d2eda29fb"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\api\\announcement\\get_active.php": {
+    "mtime": 1778706382.0,
+    "hash": "fd2e61d159b24291f64080c7e2f23ba1"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\api\\announcement\\index.php": {
+    "mtime": 1778713536.0,
+    "hash": "82a25a4df841b5d4683e7220058dbd33"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\api\\auth\\login.php": {
+    "mtime": 1778706382.0,
+    "hash": "9407cd597dc944572ce66920365bed34"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\api\\auth\\logout.php": {
+    "mtime": 1778706382.0,
+    "hash": "fa98fe162f365a580138c239ea2b7f15"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\api\\auth\\session.php": {
+    "mtime": 1778706382.0,
+    "hash": "54a3d6465960a5b04ab64bc63928cc7f"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\api\\counter\\add_window.php": {
+    "mtime": 1778722536.8219316,
+    "hash": "dc0e6feaee2b5734f87886c1fb8c8643"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\api\\counter\\get_assignments.php": {
+    "mtime": 1778706382.0,
+    "hash": "52fdc8e4f4f0303fa425791228c3fcfa"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\api\\counter\\get_redistribution_logs.php": {
+    "mtime": 1778706382.0,
+    "hash": "496c4698f835f0327138d5d473972166"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\api\\counter\\override_assignment.php": {
+    "mtime": 1778706382.0,
+    "hash": "af47f71544ea89470ed3e16c64d7b96d"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\api\\counter\\toggle_status.php": {
+    "mtime": 1778709938.0,
+    "hash": "1ef95d63f520659e561fa2935fb40910"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\api\\counter\\update_services.php": {
+    "mtime": 1778722515.9747167,
+    "hash": "8642ef3edef5848bbd83febbca8aa8f9"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\api\\customer\\reassign_by_service.php": {
+    "mtime": 1778706382.0,
+    "hash": "1649d409fa16ea9f250abf9090a21c0b"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\api\\reports\\daily.php": {
+    "mtime": 1778724215.0863912,
+    "hash": "80ff7fac0e65711bbedb210c5afe6cdc"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\api\\settings\\index.php": {
+    "mtime": 1778712750.0,
+    "hash": "1830a5cea2d5d83af36564643bad205e"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\database\\Schema_v2.sql": {
+    "mtime": 1778723319.8761983,
+    "hash": "66b97cc12b50a0bf9f5b6adbd0b2c578"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\js\\display.js": {
+    "mtime": 1778706382.0,
+    "hash": "f56c65a00adda725cd55f5d0f74d215a"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\js\\main.js": {
+    "mtime": 1778723752.9480386,
+    "hash": "186b48ee6689c028f122e362dec676a1"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\scratch\\debug_stats.php": {
+    "mtime": 1778706382.0,
+    "hash": "8290405f79f8b73dd097905d6645ee95"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\scratch\\migrate_duration.php": {
+    "mtime": 1778713498.0,
+    "hash": "f3db4024206d80302f069645e85ac4c7"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\scratch\\migrate_font_family.php": {
+    "mtime": 1778712652.0,
+    "hash": "80ee52c001ce61962141d7a52542b8a1"
+  },
+  "C:\\xampp\\htdocs\\queue-management-system\\README.md": {
+    "mtime": 1778706382.0,
+    "hash": "cc327166796eb40e2f36bd0dbb8c601a"
+  }
+}

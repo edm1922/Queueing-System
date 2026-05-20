@@ -1,0 +1,1598 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "label": "check_counters_debug.php",
+      "file_type": "code",
+      "source_file": "check_counters_debug.php",
+      "source_location": "L1",
+      "id": "check_counters_debug_php",
+      "community": 9,
+      "norm_label": "check_counters_debug.php"
+    },
+    {
+      "label": "config.php",
+      "file_type": "code",
+      "source_file": "config.php",
+      "source_location": "L1",
+      "id": "config_php",
+      "community": 3,
+      "norm_label": "config.php"
+    },
+    {
+      "label": "Database",
+      "file_type": "code",
+      "source_file": "config.php",
+      "source_location": "L4",
+      "id": "queue_management_system_config_database",
+      "community": 3,
+      "norm_label": "database"
+    },
+    {
+      "label": ".getConnection()",
+      "file_type": "code",
+      "source_file": "config.php",
+      "source_location": "L11",
+      "id": "queue_management_system_config_database_getconnection",
+      "community": 3,
+      "norm_label": ".getconnection()"
+    },
+    {
+      "label": "requireAuth()",
+      "file_type": "code",
+      "source_file": "config.php",
+      "source_location": "L30",
+      "id": "queue_management_system_config_requireauth",
+      "community": 3,
+      "norm_label": "requireauth()"
+    },
+    {
+      "label": "requireRole()",
+      "file_type": "code",
+      "source_file": "config.php",
+      "source_location": "L80",
+      "id": "queue_management_system_config_requirerole",
+      "community": 3,
+      "norm_label": "requirerole()"
+    },
+    {
+      "label": "display.php",
+      "file_type": "code",
+      "source_file": "display.php",
+      "source_location": "L1",
+      "id": "display_php",
+      "community": 10,
+      "norm_label": "display.php"
+    },
+    {
+      "label": "index.php",
+      "file_type": "code",
+      "source_file": "index.php",
+      "source_location": "L1",
+      "id": "index_php",
+      "community": 11,
+      "norm_label": "index.php"
+    },
+    {
+      "label": "kiosk.php",
+      "file_type": "code",
+      "source_file": "kiosk.php",
+      "source_location": "L1",
+      "id": "kiosk_php",
+      "community": 12,
+      "norm_label": "kiosk.php"
+    },
+    {
+      "label": "login.php",
+      "file_type": "code",
+      "source_file": "login.php",
+      "source_location": "L1",
+      "id": "login_php",
+      "community": 13,
+      "norm_label": "login.php"
+    },
+    {
+      "label": "reports.php",
+      "file_type": "code",
+      "source_file": "reports.php",
+      "source_location": "L1",
+      "id": "reports_php",
+      "community": 14,
+      "norm_label": "reports.php"
+    },
+    {
+      "label": "settings.php",
+      "file_type": "code",
+      "source_file": "settings.php",
+      "source_location": "L1",
+      "id": "settings_php",
+      "community": 15,
+      "norm_label": "settings.php"
+    },
+    {
+      "label": "test_add.php",
+      "file_type": "code",
+      "source_file": "test_add.php",
+      "source_location": "L1",
+      "id": "test_add_php",
+      "community": 16,
+      "norm_label": "test_add.php"
+    },
+    {
+      "label": "test_add_window.php",
+      "file_type": "code",
+      "source_file": "test_add_window.php",
+      "source_location": "L1",
+      "id": "test_add_window_php",
+      "community": 17,
+      "norm_label": "test_add_window.php"
+    },
+    {
+      "label": "test_update.php",
+      "file_type": "code",
+      "source_file": "test_update.php",
+      "source_location": "L1",
+      "id": "test_update_php",
+      "community": 18,
+      "norm_label": "test_update.php"
+    },
+    {
+      "label": "add_customer.php",
+      "file_type": "code",
+      "source_file": "api/add_customer.php",
+      "source_location": "L1",
+      "id": "api_add_customer_php",
+      "community": 5,
+      "norm_label": "add_customer.php"
+    },
+    {
+      "label": "getQueuePosition()",
+      "file_type": "code",
+      "source_file": "api/add_customer.php",
+      "source_location": "L99",
+      "id": "api_add_customer_getqueueposition",
+      "community": 5,
+      "norm_label": "getqueueposition()"
+    },
+    {
+      "label": "call_customer.php",
+      "file_type": "code",
+      "source_file": "api/call_customer.php",
+      "source_location": "L1",
+      "id": "api_call_customer_php",
+      "community": 19,
+      "norm_label": "call_customer.php"
+    },
+    {
+      "label": "cancel_customer.php",
+      "file_type": "code",
+      "source_file": "api/cancel_customer.php",
+      "source_location": "L1",
+      "id": "api_cancel_customer_php",
+      "community": 20,
+      "norm_label": "cancel_customer.php"
+    },
+    {
+      "label": "complete_customer.php",
+      "file_type": "code",
+      "source_file": "api/complete_customer.php",
+      "source_location": "L1",
+      "id": "api_complete_customer_php",
+      "community": 6,
+      "norm_label": "complete_customer.php"
+    },
+    {
+      "label": "formatDuration()",
+      "file_type": "code",
+      "source_file": "api/complete_customer.php",
+      "source_location": "L103",
+      "id": "api_complete_customer_formatduration",
+      "community": 6,
+      "norm_label": "formatduration()"
+    },
+    {
+      "label": "get_display_data.php",
+      "file_type": "code",
+      "source_file": "api/get_display_data.php",
+      "source_location": "L1",
+      "id": "api_get_display_data_php",
+      "community": 21,
+      "norm_label": "get_display_data.php"
+    },
+    {
+      "label": "get_queue.php",
+      "file_type": "code",
+      "source_file": "api/get_queue.php",
+      "source_location": "L1",
+      "id": "api_get_queue_php",
+      "community": 22,
+      "norm_label": "get_queue.php"
+    },
+    {
+      "label": "get_stats.php",
+      "file_type": "code",
+      "source_file": "api/get_stats.php",
+      "source_location": "L1",
+      "id": "api_get_stats_php",
+      "community": 7,
+      "norm_label": "get_stats.php"
+    },
+    {
+      "label": "formatDuration()",
+      "file_type": "code",
+      "source_file": "api/get_stats.php",
+      "source_location": "L102",
+      "id": "api_get_stats_formatduration",
+      "community": 7,
+      "norm_label": "formatduration()"
+    },
+    {
+      "label": "recall_customer.php",
+      "file_type": "code",
+      "source_file": "api/recall_customer.php",
+      "source_location": "L1",
+      "id": "api_recall_customer_php",
+      "community": 23,
+      "norm_label": "recall_customer.php"
+    },
+    {
+      "label": "get_active.php",
+      "file_type": "code",
+      "source_file": "api/announcement/get_active.php",
+      "source_location": "L1",
+      "id": "api_announcement_get_active_php",
+      "community": 24,
+      "norm_label": "get_active.php"
+    },
+    {
+      "label": "index.php",
+      "file_type": "code",
+      "source_file": "api/announcement/index.php",
+      "source_location": "L1",
+      "id": "api_announcement_index_php",
+      "community": 25,
+      "norm_label": "index.php"
+    },
+    {
+      "label": "login.php",
+      "file_type": "code",
+      "source_file": "api/auth/login.php",
+      "source_location": "L1",
+      "id": "api_auth_login_php",
+      "community": 8,
+      "norm_label": "login.php"
+    },
+    {
+      "label": "logAuthEvent()",
+      "file_type": "code",
+      "source_file": "api/auth/login.php",
+      "source_location": "L88",
+      "id": "auth_login_logauthevent",
+      "community": 8,
+      "norm_label": "logauthevent()"
+    },
+    {
+      "label": "logout.php",
+      "file_type": "code",
+      "source_file": "api/auth/logout.php",
+      "source_location": "L1",
+      "id": "api_auth_logout_php",
+      "community": 26,
+      "norm_label": "logout.php"
+    },
+    {
+      "label": "session.php",
+      "file_type": "code",
+      "source_file": "api/auth/session.php",
+      "source_location": "L1",
+      "id": "api_auth_session_php",
+      "community": 27,
+      "norm_label": "session.php"
+    },
+    {
+      "label": "add_window.php",
+      "file_type": "code",
+      "source_file": "api/counter/add_window.php",
+      "source_location": "L1",
+      "id": "api_counter_add_window_php",
+      "community": 28,
+      "norm_label": "add_window.php"
+    },
+    {
+      "label": "get_assignments.php",
+      "file_type": "code",
+      "source_file": "api/counter/get_assignments.php",
+      "source_location": "L1",
+      "id": "api_counter_get_assignments_php",
+      "community": 29,
+      "norm_label": "get_assignments.php"
+    },
+    {
+      "label": "get_redistribution_logs.php",
+      "file_type": "code",
+      "source_file": "api/counter/get_redistribution_logs.php",
+      "source_location": "L1",
+      "id": "api_counter_get_redistribution_logs_php",
+      "community": 30,
+      "norm_label": "get_redistribution_logs.php"
+    },
+    {
+      "label": "override_assignment.php",
+      "file_type": "code",
+      "source_file": "api/counter/override_assignment.php",
+      "source_location": "L1",
+      "id": "api_counter_override_assignment_php",
+      "community": 31,
+      "norm_label": "override_assignment.php"
+    },
+    {
+      "label": "toggle_status.php",
+      "file_type": "code",
+      "source_file": "api/counter/toggle_status.php",
+      "source_location": "L1",
+      "id": "api_counter_toggle_status_php",
+      "community": 32,
+      "norm_label": "toggle_status.php"
+    },
+    {
+      "label": "update_services.php",
+      "file_type": "code",
+      "source_file": "api/counter/update_services.php",
+      "source_location": "L1",
+      "id": "api_counter_update_services_php",
+      "community": 33,
+      "norm_label": "update_services.php"
+    },
+    {
+      "label": "reassign_by_service.php",
+      "file_type": "code",
+      "source_file": "api/customer/reassign_by_service.php",
+      "source_location": "L1",
+      "id": "api_customer_reassign_by_service_php",
+      "community": 34,
+      "norm_label": "reassign_by_service.php"
+    },
+    {
+      "label": "daily.php",
+      "file_type": "code",
+      "source_file": "api/reports/daily.php",
+      "source_location": "L1",
+      "id": "api_reports_daily_php",
+      "community": 35,
+      "norm_label": "daily.php"
+    },
+    {
+      "label": "index.php",
+      "file_type": "code",
+      "source_file": "api/settings/index.php",
+      "source_location": "L1",
+      "id": "api_settings_index_php",
+      "community": 36,
+      "norm_label": "index.php"
+    },
+    {
+      "label": "display.js",
+      "file_type": "code",
+      "source_file": "js/display.js",
+      "source_location": "L1",
+      "id": "js_display_js",
+      "community": 2,
+      "norm_label": "display.js"
+    },
+    {
+      "label": "updateDisplayTime()",
+      "file_type": "code",
+      "source_file": "js/display.js",
+      "source_location": "L6",
+      "id": "js_display_updatedisplaytime",
+      "community": 2,
+      "norm_label": "updatedisplaytime()"
+    },
+    {
+      "label": "playNotificationSound()",
+      "file_type": "code",
+      "source_file": "js/display.js",
+      "source_location": "L31",
+      "id": "js_display_playnotificationsound",
+      "community": 2,
+      "norm_label": "playnotificationsound()"
+    },
+    {
+      "label": "updateDisplay()",
+      "file_type": "code",
+      "source_file": "js/display.js",
+      "source_location": "L40",
+      "id": "js_display_updatedisplay",
+      "community": 2,
+      "norm_label": "updatedisplay()"
+    },
+    {
+      "label": "startAutoRefresh()",
+      "file_type": "code",
+      "source_file": "js/display.js",
+      "source_location": "L141",
+      "id": "js_display_startautorefresh",
+      "community": 2,
+      "norm_label": "startautorefresh()"
+    },
+    {
+      "label": "style",
+      "file_type": "code",
+      "source_file": "js/display.js",
+      "source_location": "L156",
+      "id": "js_display_style",
+      "community": 2,
+      "norm_label": "style"
+    },
+    {
+      "label": "main.js",
+      "file_type": "code",
+      "source_file": "js/main.js",
+      "source_location": "L1",
+      "id": "js_main_js",
+      "community": 0,
+      "norm_label": "main.js"
+    },
+    {
+      "label": "updateTime()",
+      "file_type": "code",
+      "source_file": "js/main.js",
+      "source_location": "L5",
+      "id": "js_main_updatetime",
+      "community": 0,
+      "norm_label": "updatetime()"
+    },
+    {
+      "label": "showToast()",
+      "file_type": "code",
+      "source_file": "js/main.js",
+      "source_location": "L12",
+      "id": "js_main_showtoast",
+      "community": 0,
+      "norm_label": "showtoast()"
+    },
+    {
+      "label": "refreshStats()",
+      "file_type": "code",
+      "source_file": "js/main.js",
+      "source_location": "L26",
+      "id": "js_main_refreshstats",
+      "community": 0,
+      "norm_label": "refreshstats()"
+    },
+    {
+      "label": "updateServiceMetrics()",
+      "file_type": "code",
+      "source_file": "js/main.js",
+      "source_location": "L42",
+      "id": "js_main_updateservicemetrics",
+      "community": 0,
+      "norm_label": "updateservicemetrics()"
+    },
+    {
+      "label": "refreshQueue()",
+      "file_type": "code",
+      "source_file": "js/main.js",
+      "source_location": "L66",
+      "id": "js_main_refreshqueue",
+      "community": 0,
+      "norm_label": "refreshqueue()"
+    },
+    {
+      "label": "updateQueueTable()",
+      "file_type": "code",
+      "source_file": "js/main.js",
+      "source_location": "L79",
+      "id": "js_main_updatequeuetable",
+      "community": 0,
+      "norm_label": "updatequeuetable()"
+    },
+    {
+      "label": "updateCounters()",
+      "file_type": "code",
+      "source_file": "js/main.js",
+      "source_location": "L110",
+      "id": "js_main_updatecounters",
+      "community": 0,
+      "norm_label": "updatecounters()"
+    },
+    {
+      "label": "changeWindowStatus()",
+      "file_type": "code",
+      "source_file": "js/main.js",
+      "source_location": "L139",
+      "id": "js_main_changewindowstatus",
+      "community": 0,
+      "norm_label": "changewindowstatus()"
+    },
+    {
+      "label": "openAddWindowModal()",
+      "file_type": "code",
+      "source_file": "js/main.js",
+      "source_location": "L160",
+      "id": "js_main_openaddwindowmodal",
+      "community": 0,
+      "norm_label": "openaddwindowmodal()"
+    },
+    {
+      "label": "closeAddWindowModal()",
+      "file_type": "code",
+      "source_file": "js/main.js",
+      "source_location": "L165",
+      "id": "js_main_closeaddwindowmodal",
+      "community": 0,
+      "norm_label": "closeaddwindowmodal()"
+    },
+    {
+      "label": "submitNewWindow()",
+      "file_type": "code",
+      "source_file": "js/main.js",
+      "source_location": "L169",
+      "id": "js_main_submitnewwindow",
+      "community": 0,
+      "norm_label": "submitnewwindow()"
+    },
+    {
+      "label": "openEditServicesModal()",
+      "file_type": "code",
+      "source_file": "js/main.js",
+      "source_location": "L191",
+      "id": "js_main_openeditservicesmodal",
+      "community": 0,
+      "norm_label": "openeditservicesmodal()"
+    },
+    {
+      "label": "closeEditServicesModal()",
+      "file_type": "code",
+      "source_file": "js/main.js",
+      "source_location": "L212",
+      "id": "js_main_closeeditservicesmodal",
+      "community": 0,
+      "norm_label": "closeeditservicesmodal()"
+    },
+    {
+      "label": "submitEditServices()",
+      "file_type": "code",
+      "source_file": "js/main.js",
+      "source_location": "L216",
+      "id": "js_main_submiteditservices",
+      "community": 0,
+      "norm_label": "submiteditservices()"
+    },
+    {
+      "label": "callCustomer()",
+      "file_type": "code",
+      "source_file": "js/main.js",
+      "source_location": "L243",
+      "id": "js_main_callcustomer",
+      "community": 0,
+      "norm_label": "callcustomer()"
+    },
+    {
+      "label": "recallCustomer()",
+      "file_type": "code",
+      "source_file": "js/main.js",
+      "source_location": "L250",
+      "id": "js_main_recallcustomer",
+      "community": 0,
+      "norm_label": "recallcustomer()"
+    },
+    {
+      "label": "completeCustomer()",
+      "file_type": "code",
+      "source_file": "js/main.js",
+      "source_location": "L267",
+      "id": "js_main_completecustomer",
+      "community": 0,
+      "norm_label": "completecustomer()"
+    },
+    {
+      "label": "filterQueue()",
+      "file_type": "code",
+      "source_file": "js/main.js",
+      "source_location": "L274",
+      "id": "js_main_filterqueue",
+      "community": 0,
+      "norm_label": "filterqueue()"
+    },
+    {
+      "label": "init()",
+      "file_type": "code",
+      "source_file": "js/main.js",
+      "source_location": "L340",
+      "id": "js_main_init",
+      "community": 0,
+      "norm_label": "init()"
+    },
+    {
+      "label": "debug_stats.php",
+      "file_type": "code",
+      "source_file": "scratch/debug_stats.php",
+      "source_location": "L1",
+      "id": "scratch_debug_stats_php",
+      "community": 37,
+      "norm_label": "debug_stats.php"
+    },
+    {
+      "label": "migrate_duration.php",
+      "file_type": "code",
+      "source_file": "scratch/migrate_duration.php",
+      "source_location": "L1",
+      "id": "scratch_migrate_duration_php",
+      "community": 38,
+      "norm_label": "migrate_duration.php"
+    },
+    {
+      "label": "migrate_font_family.php",
+      "file_type": "code",
+      "source_file": "scratch/migrate_font_family.php",
+      "source_location": "L1",
+      "id": "scratch_migrate_font_family_php",
+      "community": 39,
+      "norm_label": "migrate_font_family.php"
+    },
+    {
+      "label": "README.md",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L1",
+      "id": "readme_md",
+      "community": 1,
+      "norm_label": "readme.md"
+    },
+    {
+      "label": "Queue Management System",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L1",
+      "id": "queue_management_system_readme_queue_management_system",
+      "community": 1,
+      "norm_label": "queue management system"
+    },
+    {
+      "label": "Manpower Agency Edition v2.0",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L2",
+      "id": "queue_management_system_readme_manpower_agency_edition_v2_0",
+      "community": 1,
+      "norm_label": "manpower agency edition v2.0"
+    },
+    {
+      "label": "Features",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L6",
+      "id": "queue_management_system_readme_features",
+      "community": 4,
+      "norm_label": "features"
+    },
+    {
+      "label": "Queue Management",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L8",
+      "id": "queue_management_system_readme_queue_management",
+      "community": 4,
+      "norm_label": "queue management"
+    },
+    {
+      "label": "Security",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L14",
+      "id": "queue_management_system_readme_security",
+      "community": 4,
+      "norm_label": "security"
+    },
+    {
+      "label": "Reporting & Analytics",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L20",
+      "id": "queue_management_system_readme_reporting_analytics",
+      "community": 4,
+      "norm_label": "reporting & analytics"
+    },
+    {
+      "label": "Customer Experience",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L25",
+      "id": "queue_management_system_readme_customer_experience",
+      "community": 4,
+      "norm_label": "customer experience"
+    },
+    {
+      "label": "System Requirements",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L31",
+      "id": "queue_management_system_readme_system_requirements",
+      "community": 1,
+      "norm_label": "system requirements"
+    },
+    {
+      "label": "Installation",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L38",
+      "id": "queue_management_system_readme_installation",
+      "community": 1,
+      "norm_label": "installation"
+    },
+    {
+      "label": "code:sql (CREATE DATABASE queuing_system;)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L41",
+      "id": "queue_management_system_readme_codeblock_1",
+      "community": 1,
+      "norm_label": "code:sql (create database queuing_system;)"
+    },
+    {
+      "label": "code:bash (mysql -u root -p queuing_system < database\\Schema_v2.sql)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L46",
+      "id": "queue_management_system_readme_codeblock_2",
+      "community": 1,
+      "norm_label": "code:bash (mysql -u root -p queuing_system < database\\schema_v2.sql)"
+    },
+    {
+      "label": "code:php (private $host = \"localhost\";)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L51",
+      "id": "queue_management_system_readme_codeblock_3",
+      "community": 1,
+      "norm_label": "code:php (private $host = \"localhost\";)"
+    },
+    {
+      "label": "File Structure",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L62",
+      "id": "queue_management_system_readme_file_structure",
+      "community": 1,
+      "norm_label": "file structure"
+    },
+    {
+      "label": "code:block4 (\u251c\u2500\u2500 database/)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L64",
+      "id": "queue_management_system_readme_codeblock_4",
+      "community": 1,
+      "norm_label": "code:block4 (\u251c\u2500\u2500 database/)"
+    },
+    {
+      "label": "Service Types",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L106",
+      "id": "queue_management_system_readme_service_types",
+      "community": 1,
+      "norm_label": "service types"
+    },
+    {
+      "label": "Page Access",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L115",
+      "id": "queue_management_system_readme_page_access",
+      "community": 1,
+      "norm_label": "page access"
+    },
+    {
+      "label": "How Counter Redistribution Works",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L125",
+      "id": "queue_management_system_readme_how_counter_redistribution_works",
+      "community": 1,
+      "norm_label": "how counter redistribution works"
+    },
+    {
+      "label": "Support",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L137",
+      "id": "queue_management_system_readme_support",
+      "community": 1,
+      "norm_label": "support"
+    }
+  ],
+  "links": [
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "config.php",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "config_php",
+      "target": "queue_management_system_config_database",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "config.php",
+      "source_location": "L30",
+      "weight": 1.0,
+      "source": "config_php",
+      "target": "queue_management_system_config_requireauth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "config.php",
+      "source_location": "L80",
+      "weight": 1.0,
+      "source": "config_php",
+      "target": "queue_management_system_config_requirerole",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "config.php",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "queue_management_system_config_database",
+      "target": "queue_management_system_config_database_getconnection",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "config.php",
+      "source_location": "L54",
+      "weight": 1.0,
+      "source": "queue_management_system_config_requireauth",
+      "target": "queue_management_system_config_database_getconnection",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "config.php",
+      "source_location": "L81",
+      "weight": 1.0,
+      "source": "queue_management_system_config_requirerole",
+      "target": "queue_management_system_config_requireauth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/add_customer.php",
+      "source_location": "L99",
+      "weight": 1.0,
+      "source": "api_add_customer_php",
+      "target": "api_add_customer_getqueueposition",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/complete_customer.php",
+      "source_location": "L103",
+      "weight": 1.0,
+      "source": "api_complete_customer_php",
+      "target": "api_complete_customer_formatduration",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/get_stats.php",
+      "source_location": "L102",
+      "weight": 1.0,
+      "source": "api_get_stats_php",
+      "target": "api_get_stats_formatduration",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/auth/login.php",
+      "source_location": "L88",
+      "weight": 1.0,
+      "source": "api_auth_login_php",
+      "target": "auth_login_logauthevent",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/display.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "js_display_js",
+      "target": "js_display_updatedisplaytime",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/display.js",
+      "source_location": "L31",
+      "weight": 1.0,
+      "source": "js_display_js",
+      "target": "js_display_playnotificationsound",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/display.js",
+      "source_location": "L40",
+      "weight": 1.0,
+      "source": "js_display_js",
+      "target": "js_display_updatedisplay",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/display.js",
+      "source_location": "L141",
+      "weight": 1.0,
+      "source": "js_display_js",
+      "target": "js_display_startautorefresh",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/display.js",
+      "source_location": "L156",
+      "weight": 1.0,
+      "source": "js_display_js",
+      "target": "js_display_style",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/display.js",
+      "source_location": "L65",
+      "weight": 1.0,
+      "source": "js_display_updatedisplay",
+      "target": "js_display_playnotificationsound",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "js_main_js",
+      "target": "js_main_updatetime",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "js_main_js",
+      "target": "js_main_showtoast",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "js_main_js",
+      "target": "js_main_refreshstats",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L42",
+      "weight": 1.0,
+      "source": "js_main_js",
+      "target": "js_main_updateservicemetrics",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L66",
+      "weight": 1.0,
+      "source": "js_main_js",
+      "target": "js_main_refreshqueue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L79",
+      "weight": 1.0,
+      "source": "js_main_js",
+      "target": "js_main_updatequeuetable",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L110",
+      "weight": 1.0,
+      "source": "js_main_js",
+      "target": "js_main_updatecounters",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L139",
+      "weight": 1.0,
+      "source": "js_main_js",
+      "target": "js_main_changewindowstatus",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L160",
+      "weight": 1.0,
+      "source": "js_main_js",
+      "target": "js_main_openaddwindowmodal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L165",
+      "weight": 1.0,
+      "source": "js_main_js",
+      "target": "js_main_closeaddwindowmodal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L169",
+      "weight": 1.0,
+      "source": "js_main_js",
+      "target": "js_main_submitnewwindow",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L191",
+      "weight": 1.0,
+      "source": "js_main_js",
+      "target": "js_main_openeditservicesmodal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L212",
+      "weight": 1.0,
+      "source": "js_main_js",
+      "target": "js_main_closeeditservicesmodal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L216",
+      "weight": 1.0,
+      "source": "js_main_js",
+      "target": "js_main_submiteditservices",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L243",
+      "weight": 1.0,
+      "source": "js_main_js",
+      "target": "js_main_callcustomer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L250",
+      "weight": 1.0,
+      "source": "js_main_js",
+      "target": "js_main_recallcustomer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L267",
+      "weight": 1.0,
+      "source": "js_main_js",
+      "target": "js_main_completecustomer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L274",
+      "weight": 1.0,
+      "source": "js_main_js",
+      "target": "js_main_filterqueue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L340",
+      "weight": 1.0,
+      "source": "js_main_js",
+      "target": "js_main_init",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L148",
+      "weight": 1.0,
+      "source": "js_main_changewindowstatus",
+      "target": "js_main_showtoast",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L171",
+      "weight": 1.0,
+      "source": "js_main_submitnewwindow",
+      "target": "js_main_showtoast",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L232",
+      "weight": 1.0,
+      "source": "js_main_submiteditservices",
+      "target": "js_main_showtoast",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L247",
+      "weight": 1.0,
+      "source": "js_main_callcustomer",
+      "target": "js_main_showtoast",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L259",
+      "weight": 1.0,
+      "source": "js_main_recallcustomer",
+      "target": "js_main_showtoast",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L271",
+      "weight": 1.0,
+      "source": "js_main_completecustomer",
+      "target": "js_main_showtoast",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L37",
+      "weight": 1.0,
+      "source": "js_main_refreshstats",
+      "target": "js_main_updateservicemetrics",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L149",
+      "weight": 1.0,
+      "source": "js_main_changewindowstatus",
+      "target": "js_main_refreshstats",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L246",
+      "weight": 1.0,
+      "source": "js_main_callcustomer",
+      "target": "js_main_refreshstats",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L270",
+      "weight": 1.0,
+      "source": "js_main_completecustomer",
+      "target": "js_main_refreshstats",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L342",
+      "weight": 1.0,
+      "source": "js_main_init",
+      "target": "js_main_refreshstats",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L73",
+      "weight": 1.0,
+      "source": "js_main_refreshqueue",
+      "target": "js_main_updatequeuetable",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L74",
+      "weight": 1.0,
+      "source": "js_main_refreshqueue",
+      "target": "js_main_updatecounters",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L149",
+      "weight": 1.0,
+      "source": "js_main_changewindowstatus",
+      "target": "js_main_refreshqueue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L182",
+      "weight": 1.0,
+      "source": "js_main_submitnewwindow",
+      "target": "js_main_refreshqueue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L234",
+      "weight": 1.0,
+      "source": "js_main_submiteditservices",
+      "target": "js_main_refreshqueue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L246",
+      "weight": 1.0,
+      "source": "js_main_callcustomer",
+      "target": "js_main_refreshqueue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L260",
+      "weight": 1.0,
+      "source": "js_main_recallcustomer",
+      "target": "js_main_refreshqueue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L270",
+      "weight": 1.0,
+      "source": "js_main_completecustomer",
+      "target": "js_main_refreshqueue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L285",
+      "weight": 1.0,
+      "source": "js_main_filterqueue",
+      "target": "js_main_refreshqueue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L341",
+      "weight": 1.0,
+      "source": "js_main_init",
+      "target": "js_main_refreshqueue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L181",
+      "weight": 1.0,
+      "source": "js_main_submitnewwindow",
+      "target": "js_main_closeaddwindowmodal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L233",
+      "weight": 1.0,
+      "source": "js_main_submiteditservices",
+      "target": "js_main_closeeditservicesmodal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "readme_md",
+      "target": "queue_management_system_readme_queue_management_system",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "queue_management_system_readme_queue_management_system",
+      "target": "queue_management_system_readme_manpower_agency_edition_v2_0",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "queue_management_system_readme_manpower_agency_edition_v2_0",
+      "target": "queue_management_system_readme_features",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L31",
+      "weight": 1.0,
+      "source": "queue_management_system_readme_manpower_agency_edition_v2_0",
+      "target": "queue_management_system_readme_system_requirements",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L38",
+      "weight": 1.0,
+      "source": "queue_management_system_readme_manpower_agency_edition_v2_0",
+      "target": "queue_management_system_readme_installation",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L62",
+      "weight": 1.0,
+      "source": "queue_management_system_readme_manpower_agency_edition_v2_0",
+      "target": "queue_management_system_readme_file_structure",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L106",
+      "weight": 1.0,
+      "source": "queue_management_system_readme_manpower_agency_edition_v2_0",
+      "target": "queue_management_system_readme_service_types",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L115",
+      "weight": 1.0,
+      "source": "queue_management_system_readme_manpower_agency_edition_v2_0",
+      "target": "queue_management_system_readme_page_access",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L125",
+      "weight": 1.0,
+      "source": "queue_management_system_readme_manpower_agency_edition_v2_0",
+      "target": "queue_management_system_readme_how_counter_redistribution_works",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L137",
+      "weight": 1.0,
+      "source": "queue_management_system_readme_manpower_agency_edition_v2_0",
+      "target": "queue_management_system_readme_support",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "queue_management_system_readme_features",
+      "target": "queue_management_system_readme_queue_management",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "queue_management_system_readme_features",
+      "target": "queue_management_system_readme_security",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "queue_management_system_readme_features",
+      "target": "queue_management_system_readme_reporting_analytics",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L25",
+      "weight": 1.0,
+      "source": "queue_management_system_readme_features",
+      "target": "queue_management_system_readme_customer_experience",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L41",
+      "weight": 1.0,
+      "source": "queue_management_system_readme_installation",
+      "target": "queue_management_system_readme_codeblock_1",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L46",
+      "weight": 1.0,
+      "source": "queue_management_system_readme_installation",
+      "target": "queue_management_system_readme_codeblock_2",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L51",
+      "weight": 1.0,
+      "source": "queue_management_system_readme_installation",
+      "target": "queue_management_system_readme_codeblock_3",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L64",
+      "weight": 1.0,
+      "source": "queue_management_system_readme_file_structure",
+      "target": "queue_management_system_readme_codeblock_4",
+      "confidence_score": 1.0
+    }
+  ],
+  "hyperedges": [],
+  "built_at_commit": "e2a9d29470b147b9c9d4e4d182eecd8ebc7a9a78"
+}

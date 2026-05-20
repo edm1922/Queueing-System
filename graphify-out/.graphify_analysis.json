@@ -1,0 +1,333 @@
+{
+  "communities": {
+    "0": [
+      "js_display_js",
+      "js_display_playnotificationsound",
+      "js_display_startautorefresh",
+      "js_display_style",
+      "js_display_updatedisplay",
+      "js_display_updatedisplaytime"
+    ],
+    "1": [
+      "js_main_closeaddwindowmodal",
+      "js_main_js",
+      "js_main_openaddwindowmodal",
+      "js_main_openeditservicesmodal",
+      "js_main_submitnewwindow",
+      "js_main_updatetime"
+    ],
+    "2": [
+      "config_php",
+      "queue_management_system_config_database",
+      "queue_management_system_config_database_getconnection",
+      "queue_management_system_config_requireauth",
+      "queue_management_system_config_requirerole"
+    ],
+    "3": [
+      "js_main_callcustomer",
+      "js_main_changewindowstatus",
+      "js_main_recallcustomer",
+      "js_main_showtoast"
+    ],
+    "4": [
+      "js_main_filterqueue",
+      "js_main_refreshqueue",
+      "js_main_updatecounters",
+      "js_main_updatequeuetable"
+    ],
+    "5": [
+      "js_main_completecustomer",
+      "js_main_init",
+      "js_main_refreshstats",
+      "js_main_updateservicemetrics"
+    ],
+    "6": [
+      "api_add_customer_getqueueposition",
+      "api_add_customer_php"
+    ],
+    "7": [
+      "api_complete_customer_formatduration",
+      "api_complete_customer_php"
+    ],
+    "8": [
+      "api_get_stats_formatduration",
+      "api_get_stats_php"
+    ],
+    "9": [
+      "api_auth_login_php",
+      "auth_login_logauthevent"
+    ],
+    "10": [
+      "js_main_closeeditservicesmodal",
+      "js_main_submiteditservices"
+    ],
+    "11": [
+      "check_counters_debug_php"
+    ],
+    "12": [
+      "display_php"
+    ],
+    "13": [
+      "index_php"
+    ],
+    "14": [
+      "kiosk_php"
+    ],
+    "15": [
+      "login_php"
+    ],
+    "16": [
+      "reports_php"
+    ],
+    "17": [
+      "settings_php"
+    ],
+    "18": [
+      "test_add_php"
+    ],
+    "19": [
+      "test_add_window_php"
+    ],
+    "20": [
+      "test_update_php"
+    ],
+    "21": [
+      "api_call_customer_php"
+    ],
+    "22": [
+      "api_cancel_customer_php"
+    ],
+    "23": [
+      "api_get_display_data_php"
+    ],
+    "24": [
+      "api_get_queue_php"
+    ],
+    "25": [
+      "api_recall_customer_php"
+    ],
+    "26": [
+      "api_announcement_get_active_php"
+    ],
+    "27": [
+      "api_announcement_index_php"
+    ],
+    "28": [
+      "api_auth_logout_php"
+    ],
+    "29": [
+      "api_auth_session_php"
+    ],
+    "30": [
+      "api_counter_add_window_php"
+    ],
+    "31": [
+      "api_counter_get_assignments_php"
+    ],
+    "32": [
+      "api_counter_get_redistribution_logs_php"
+    ],
+    "33": [
+      "api_counter_override_assignment_php"
+    ],
+    "34": [
+      "api_counter_toggle_status_php"
+    ],
+    "35": [
+      "api_counter_update_services_php"
+    ],
+    "36": [
+      "api_customer_reassign_by_service_php"
+    ],
+    "37": [
+      "api_reports_daily_php"
+    ],
+    "38": [
+      "api_settings_index_php"
+    ],
+    "39": [
+      "scratch_debug_stats_php"
+    ],
+    "40": [
+      "scratch_migrate_duration_php"
+    ],
+    "41": [
+      "scratch_migrate_font_family_php"
+    ]
+  },
+  "cohesion": {
+    "0": 0.4,
+    "1": 0.4,
+    "2": 0.6,
+    "3": 0.5,
+    "4": 0.5,
+    "5": 0.5,
+    "6": 1.0,
+    "7": 1.0,
+    "8": 1.0,
+    "9": 1.0,
+    "10": 1.0,
+    "11": 1.0,
+    "12": 1.0,
+    "13": 1.0,
+    "14": 1.0,
+    "15": 1.0,
+    "16": 1.0,
+    "17": 1.0,
+    "18": 1.0,
+    "19": 1.0,
+    "20": 1.0,
+    "21": 1.0,
+    "22": 1.0,
+    "23": 1.0,
+    "24": 1.0,
+    "25": 1.0,
+    "26": 1.0,
+    "27": 1.0,
+    "28": 1.0,
+    "29": 1.0,
+    "30": 1.0,
+    "31": 1.0,
+    "32": 1.0,
+    "33": 1.0,
+    "34": 1.0,
+    "35": 1.0,
+    "36": 1.0,
+    "37": 1.0,
+    "38": 1.0,
+    "39": 1.0,
+    "40": 1.0,
+    "41": 1.0
+  },
+  "gods": [
+    {
+      "id": "js_main_refreshqueue",
+      "label": "refreshQueue()",
+      "degree": 11
+    },
+    {
+      "id": "js_main_showtoast",
+      "label": "showToast()",
+      "degree": 7
+    },
+    {
+      "id": "js_main_refreshstats",
+      "label": "refreshStats()",
+      "degree": 6
+    },
+    {
+      "id": "js_main_changewindowstatus",
+      "label": "changeWindowStatus()",
+      "degree": 4
+    },
+    {
+      "id": "js_main_submitnewwindow",
+      "label": "submitNewWindow()",
+      "degree": 4
+    },
+    {
+      "id": "js_main_submiteditservices",
+      "label": "submitEditServices()",
+      "degree": 4
+    },
+    {
+      "id": "js_main_callcustomer",
+      "label": "callCustomer()",
+      "degree": 4
+    },
+    {
+      "id": "js_main_completecustomer",
+      "label": "completeCustomer()",
+      "degree": 4
+    },
+    {
+      "id": "queue_management_system_config_requireauth",
+      "label": "requireAuth()",
+      "degree": 3
+    },
+    {
+      "id": "js_main_recallcustomer",
+      "label": "recallCustomer()",
+      "degree": 3
+    }
+  ],
+  "surprises": [
+    {
+      "source": "submitNewWindow()",
+      "target": "showToast()",
+      "source_files": [
+        "js/main.js",
+        "js/main.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "note": "Bridges community 3 → community 1"
+    },
+    {
+      "source": "submitEditServices()",
+      "target": "showToast()",
+      "source_files": [
+        "js/main.js",
+        "js/main.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "note": "Bridges community 3 → community 10"
+    },
+    {
+      "source": "completeCustomer()",
+      "target": "showToast()",
+      "source_files": [
+        "js/main.js",
+        "js/main.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "note": "Bridges community 3 → community 5"
+    },
+    {
+      "source": "changeWindowStatus()",
+      "target": "refreshQueue()",
+      "source_files": [
+        "js/main.js",
+        "js/main.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "note": "Bridges community 4 → community 3"
+    },
+    {
+      "source": "submitNewWindow()",
+      "target": "refreshQueue()",
+      "source_files": [
+        "js/main.js",
+        "js/main.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "note": "Bridges community 4 → community 1"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `refreshQueue()` connect `Community 4` to `Community 1`, `Community 10`, `Community 3`, `Community 5`?",
+      "why": "High betweenness centrality (0.008) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `showToast()` connect `Community 3` to `Community 1`, `Community 10`, `Community 5`?",
+      "why": "High betweenness centrality (0.002) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `refreshStats()` connect `Community 5` to `Community 1`, `Community 3`?",
+      "why": "High betweenness centrality (0.002) - this node is a cross-community bridge."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `style` to the rest of the system?",
+      "why": "1 weakly-connected nodes found - possible documentation gaps or missing edges."
+    }
+  ]
+}

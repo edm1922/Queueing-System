@@ -27,9 +27,7 @@
                 <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-building mr-2 text-blue-500"></i>Company Information</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div><label class="block text-sm font-medium text-gray-700 mb-2">Company Name</label><input type="text" id="companyName" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"></div>
-                    <div><label class="block text-sm font-medium text-gray-700 mb-2">Welcome Message</label><input type="text" id="welcomeMessage" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"></div>
                     <div><label class="block text-sm font-medium text-gray-700 mb-2">Company Logo URL</label><input type="text" id="companyLogo" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="https://example.com/logo.png"></div>
-                    <div><label class="block text-sm font-medium text-gray-700 mb-2">Display Theme Color</label><input type="color" id="themeColor" class="h-10 w-full px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" value="#1e3a5f"></div>
                 </div>
             </div>
 
@@ -90,10 +88,8 @@
                 if (data.success) {
                     const s = data.data;
                     document.getElementById('companyName').value = s.company_name || '';
-                    document.getElementById('welcomeMessage').value = s.welcome_message || '';
                     document.getElementById('cutoffTime').value = s.cutoff_time || '17:00';
                     document.getElementById('companyLogo').value = s.company_logo || '';
-                    document.getElementById('themeColor').value = s.theme_color || '#1e3a5f';
                 }
             } catch (error) { showToast('Failed to load settings', 'error'); }
         }
@@ -102,10 +98,8 @@
             e.preventDefault();
             const data = {
                 company_name: document.getElementById('companyName').value,
-                welcome_message: document.getElementById('welcomeMessage').value,
                 cutoff_time: document.getElementById('cutoffTime').value,
                 company_logo: document.getElementById('companyLogo').value,
-                theme_color: document.getElementById('themeColor').value,
                 auto_play_video: 1
             };
             try {

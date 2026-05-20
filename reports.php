@@ -7,9 +7,33 @@
     <title>Reports - Queue Management System</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>.gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }</style>
+    <style>
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        @media print {
+            header, .gradient-bg, .bg-white.rounded-lg.shadow-lg.p-6.mb-6, #pagination, #searchTable, button {
+                display: none !important;
+            }
+            body { background: white !important; padding: 0 !important; }
+            .container { max-width: 100% !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+            .shadow-lg { shadow: none !important; box-shadow: none !important; border: 1px solid #eee; }
+            .bg-gray-100 { background: white !important; }
+            main { padding: 0 !important; }
+            .grid { display: block !important; }
+            .grid > div { margin-bottom: 20px; break-inside: avoid; }
+            table { font-size: 10pt !important; }
+            th, td { border: 1px solid #ddd !important; }
+            .text-3xl { font-size: 1.5rem !important; }
+            .print-header { display: block !important; text-align: center; margin-bottom: 20px; color: black; }
+        }
+        @media screen { .print-header { display: none; } }
+    </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
+    <div class="print-header">
+        <h1 class="text-2xl font-bold">Queue Management System Report</h1>
+        <p id="printDateRange"></p>
+        <p class="text-sm">Generated on: <span id="reportGenDate"></span></p>
+    </div>
     <header class="gradient-bg text-white shadow-lg">
         <div class="container mx-auto px-4 py-4">
             <div class="flex justify-between items-center">
@@ -91,6 +115,11 @@
 
         async function loadReport() {
             const { from, to } = getDateRange(); const serviceType = document.getElementById('serviceFilter').value;
+            
+            // Update print-only header info
+            document.getElementById('reportGenDate').textContent = new Date().toLocaleString();
+            document.getElementById('printDateRange').textContent = `Period: ${from} to ${to}`;
+            
             try {
                 const params = new URLSearchParams({ from, to }); if (serviceType) params.append('service_type', serviceType);
                 const response = await fetch(`api/reports/daily.php?${params}`); const data = await response.json();
@@ -117,10 +146,10 @@
 
         function updateTable() {
             const tbody = document.getElementById('reportTable'); const search = document.getElementById('searchTable').value.toLowerCase();
-            let filtered = search ? reportData.filter(c => c.name.toLowerCase().includes(search) || c.queue_number.toLowerCase().includes(search) || c.service_type.toLowerCase().includes(search)) : reportData;
+            let filtered = search ? reportData.filter(c => (c.name || '').toLowerCase().includes(search) || (c.queue_number || '').toLowerCase().includes(search) || (c.service_type || '').toLowerCase().includes(search)) : reportData;
             const start = (currentPage - 1) * itemsPerPage; const pageData = filtered.slice(start, start + itemsPerPage);
             if (pageData.length === 0) { tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">No records</td></tr>'; return; }
-            tbody.innerHTML = pageData.map(c => `<tr class="hover:bg-gray-50"><td class="px-4 py-2">${new Date(c.created_at).toLocaleDateString()}</td><td class="px-4 py-2 font-mono font-bold">${c.queue_number}</td><td class="px-4 py-2">${c.name}</td><td class="px-4 py-2"><span class="px-2 py-1 rounded text-xs ${getServiceClass(c.service_type)}">${c.service_type.replace('_',' ')}</span></td><td class="px-4 py-2">${c.window_name || '-'}</td><td class="px-4 py-2"><span class="px-2 py-1 rounded text-xs ${getStatusClass(c.status)}">${c.status}</span></td><td class="px-4 py-2">${formatDuration(c.wait_duration)}</td><td class="px-4 py-2">${formatDuration(c.service_duration)}</td></tr>`).join('');
+            tbody.innerHTML = pageData.map(c => `<tr class="hover:bg-gray-50"><td class="px-4 py-2">${new Date(c.created_at).toLocaleDateString()}</td><td class="px-4 py-2 font-mono font-bold">${c.queue_number}</td><td class="px-4 py-2">${c.name}</td><td class="px-4 py-2"><span class="px-2 py-1 rounded text-xs ${getServiceClass(c.service_type)}">${(c.service_name || c.service_type).replace('_',' ')}</span></td><td class="px-4 py-2">${c.window_name || '-'}</td><td class="px-4 py-2"><span class="px-2 py-1 rounded text-xs ${getStatusClass(c.status)}">${c.status}</span></td><td class="px-4 py-2">${formatDuration(c.wait_duration)}</td><td class="px-4 py-2">${formatDuration(c.service_duration)}</td></tr>`).join('');
             updatePagination(filtered.length);
         }
 
@@ -133,7 +162,14 @@
         function goToPage(page) { currentPage = page; updateTable(); }
         function getServiceClass(s) { return { insurance:'bg-blue-100 text-blue-800', benefits:'bg-green-100 text-green-800', id_renewal:'bg-purple-100 text-purple-800', atm_renewal:'bg-orange-100 text-orange-800' }[s] || 'bg-gray-100 text-gray-800'; }
         function getStatusClass(s) { return { completed:'bg-green-100 text-green-800', cancelled:'bg-red-100 text-red-800', serving:'bg-blue-100 text-blue-800' }[s] || 'bg-gray-100 text-gray-800'; }
-        function formatDuration(seconds) { if (!seconds) return '0:00'; const m = Math.floor(seconds/60); const s = seconds%60; return `${m}:${s.toString().padStart(2,'0')}`; }
+        function formatDuration(seconds) { 
+            if (!seconds || seconds === 0) return '0:00'; 
+            const isNegative = seconds < 0;
+            const absSeconds = Math.abs(seconds);
+            const m = Math.floor(absSeconds / 60); 
+            const s = absSeconds % 60; 
+            return `${isNegative ? '-' : ''}${m}:${s.toString().padStart(2, '0')}`; 
+        }
         function exportToExcel() { const { from, to } = getDateRange(); window.open(`api/reports/daily.php?from=${from}&to=${to}&export=excel`, '_blank'); }
         function showToast(m, t) { const toast = document.getElementById('toast'); toast.textContent = m; toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${t === 'success' ? 'bg-green-500' : 'bg-red-500'} text-white`; toast.classList.remove('hidden'); setTimeout(() => toast.classList.add('hidden'), 3000); }
         document.getElementById('searchTable').addEventListener('input', updateTable);

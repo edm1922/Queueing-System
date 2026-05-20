@@ -75,6 +75,33 @@ try {
     $stmt->execute([$from, $to]);
     $hourly = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
+    if (isset($_GET['export']) && $_GET['export'] === 'excel') {
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=daily_report_' . $from . '_to_' . $to . '.csv');
+        
+        $output = fopen('php://output', 'w');
+        
+        // Header row
+        fputcsv($output, ['Queue Number', 'Customer Name', 'Service', 'Status', 'Date/Time', 'Wait Time (sec)', 'Service Time (sec)', 'Window']);
+        
+        // Data rows
+        foreach ($customers as $c) {
+            fputcsv($output, [
+                $c['queue_number'],
+                $c['name'],
+                $c['service_name'],
+                ucfirst($c['status']),
+                $c['created_at'],
+                $c['wait_duration'] ?? 0,
+                $c['service_duration'] ?? 0,
+                $c['window_name'] ?? 'N/A'
+            ]);
+        }
+        
+        fclose($output);
+        exit;
+    }
+
     echo json_encode([
         'success' => true,
         'data' => [

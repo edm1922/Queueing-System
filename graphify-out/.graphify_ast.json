@@ -1,0 +1,1046 @@
+{
+  "nodes": [
+    {
+      "id": "check_counters_debug_php",
+      "label": "check_counters_debug.php",
+      "file_type": "code",
+      "source_file": "check_counters_debug.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "config_php",
+      "label": "config.php",
+      "file_type": "code",
+      "source_file": "config.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "queue_management_system_config_database",
+      "label": "Database",
+      "file_type": "code",
+      "source_file": "config.php",
+      "source_location": "L4"
+    },
+    {
+      "id": "queue_management_system_config_database_getconnection",
+      "label": ".getConnection()",
+      "file_type": "code",
+      "source_file": "config.php",
+      "source_location": "L11"
+    },
+    {
+      "id": "queue_management_system_config_requireauth",
+      "label": "requireAuth()",
+      "file_type": "code",
+      "source_file": "config.php",
+      "source_location": "L30"
+    },
+    {
+      "id": "queue_management_system_config_requirerole",
+      "label": "requireRole()",
+      "file_type": "code",
+      "source_file": "config.php",
+      "source_location": "L80"
+    },
+    {
+      "id": "display_php",
+      "label": "display.php",
+      "file_type": "code",
+      "source_file": "display.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "index_php",
+      "label": "index.php",
+      "file_type": "code",
+      "source_file": "index.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "kiosk_php",
+      "label": "kiosk.php",
+      "file_type": "code",
+      "source_file": "kiosk.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "login_php",
+      "label": "login.php",
+      "file_type": "code",
+      "source_file": "login.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "reports_php",
+      "label": "reports.php",
+      "file_type": "code",
+      "source_file": "reports.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "settings_php",
+      "label": "settings.php",
+      "file_type": "code",
+      "source_file": "settings.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "test_add_php",
+      "label": "test_add.php",
+      "file_type": "code",
+      "source_file": "test_add.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "test_add_window_php",
+      "label": "test_add_window.php",
+      "file_type": "code",
+      "source_file": "test_add_window.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "test_update_php",
+      "label": "test_update.php",
+      "file_type": "code",
+      "source_file": "test_update.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "api_add_customer_php",
+      "label": "add_customer.php",
+      "file_type": "code",
+      "source_file": "api\\add_customer.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "api_add_customer_getqueueposition",
+      "label": "getQueuePosition()",
+      "file_type": "code",
+      "source_file": "api\\add_customer.php",
+      "source_location": "L99"
+    },
+    {
+      "id": "api_call_customer_php",
+      "label": "call_customer.php",
+      "file_type": "code",
+      "source_file": "api\\call_customer.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "api_cancel_customer_php",
+      "label": "cancel_customer.php",
+      "file_type": "code",
+      "source_file": "api\\cancel_customer.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "api_complete_customer_php",
+      "label": "complete_customer.php",
+      "file_type": "code",
+      "source_file": "api\\complete_customer.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "api_complete_customer_formatduration",
+      "label": "formatDuration()",
+      "file_type": "code",
+      "source_file": "api\\complete_customer.php",
+      "source_location": "L103"
+    },
+    {
+      "id": "api_get_display_data_php",
+      "label": "get_display_data.php",
+      "file_type": "code",
+      "source_file": "api\\get_display_data.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "api_get_queue_php",
+      "label": "get_queue.php",
+      "file_type": "code",
+      "source_file": "api\\get_queue.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "api_get_stats_php",
+      "label": "get_stats.php",
+      "file_type": "code",
+      "source_file": "api\\get_stats.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "api_get_stats_formatduration",
+      "label": "formatDuration()",
+      "file_type": "code",
+      "source_file": "api\\get_stats.php",
+      "source_location": "L102"
+    },
+    {
+      "id": "api_recall_customer_php",
+      "label": "recall_customer.php",
+      "file_type": "code",
+      "source_file": "api\\recall_customer.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "api_announcement_get_active_php",
+      "label": "get_active.php",
+      "file_type": "code",
+      "source_file": "api\\announcement\\get_active.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "api_announcement_index_php",
+      "label": "index.php",
+      "file_type": "code",
+      "source_file": "api\\announcement\\index.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "api_auth_login_php",
+      "label": "login.php",
+      "file_type": "code",
+      "source_file": "api\\auth\\login.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "auth_login_logauthevent",
+      "label": "logAuthEvent()",
+      "file_type": "code",
+      "source_file": "api\\auth\\login.php",
+      "source_location": "L88"
+    },
+    {
+      "id": "api_auth_logout_php",
+      "label": "logout.php",
+      "file_type": "code",
+      "source_file": "api\\auth\\logout.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "api_auth_session_php",
+      "label": "session.php",
+      "file_type": "code",
+      "source_file": "api\\auth\\session.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "api_counter_add_window_php",
+      "label": "add_window.php",
+      "file_type": "code",
+      "source_file": "api\\counter\\add_window.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "api_counter_get_assignments_php",
+      "label": "get_assignments.php",
+      "file_type": "code",
+      "source_file": "api\\counter\\get_assignments.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "api_counter_get_redistribution_logs_php",
+      "label": "get_redistribution_logs.php",
+      "file_type": "code",
+      "source_file": "api\\counter\\get_redistribution_logs.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "api_counter_override_assignment_php",
+      "label": "override_assignment.php",
+      "file_type": "code",
+      "source_file": "api\\counter\\override_assignment.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "api_counter_toggle_status_php",
+      "label": "toggle_status.php",
+      "file_type": "code",
+      "source_file": "api\\counter\\toggle_status.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "api_counter_update_services_php",
+      "label": "update_services.php",
+      "file_type": "code",
+      "source_file": "api\\counter\\update_services.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "api_customer_reassign_by_service_php",
+      "label": "reassign_by_service.php",
+      "file_type": "code",
+      "source_file": "api\\customer\\reassign_by_service.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "api_reports_daily_php",
+      "label": "daily.php",
+      "file_type": "code",
+      "source_file": "api\\reports\\daily.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "api_settings_index_php",
+      "label": "index.php",
+      "file_type": "code",
+      "source_file": "api\\settings\\index.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "js_display_js",
+      "label": "display.js",
+      "file_type": "code",
+      "source_file": "js\\display.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "js_display_updatedisplaytime",
+      "label": "updateDisplayTime()",
+      "file_type": "code",
+      "source_file": "js\\display.js",
+      "source_location": "L6"
+    },
+    {
+      "id": "js_display_playnotificationsound",
+      "label": "playNotificationSound()",
+      "file_type": "code",
+      "source_file": "js\\display.js",
+      "source_location": "L31"
+    },
+    {
+      "id": "js_display_updatedisplay",
+      "label": "updateDisplay()",
+      "file_type": "code",
+      "source_file": "js\\display.js",
+      "source_location": "L40"
+    },
+    {
+      "id": "js_display_startautorefresh",
+      "label": "startAutoRefresh()",
+      "file_type": "code",
+      "source_file": "js\\display.js",
+      "source_location": "L141"
+    },
+    {
+      "id": "js_display_style",
+      "label": "style",
+      "file_type": "code",
+      "source_file": "js\\display.js",
+      "source_location": "L156"
+    },
+    {
+      "id": "js_main_js",
+      "label": "main.js",
+      "file_type": "code",
+      "source_file": "js\\main.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "js_main_updatetime",
+      "label": "updateTime()",
+      "file_type": "code",
+      "source_file": "js\\main.js",
+      "source_location": "L5"
+    },
+    {
+      "id": "js_main_showtoast",
+      "label": "showToast()",
+      "file_type": "code",
+      "source_file": "js\\main.js",
+      "source_location": "L12"
+    },
+    {
+      "id": "js_main_refreshstats",
+      "label": "refreshStats()",
+      "file_type": "code",
+      "source_file": "js\\main.js",
+      "source_location": "L26"
+    },
+    {
+      "id": "js_main_updateservicemetrics",
+      "label": "updateServiceMetrics()",
+      "file_type": "code",
+      "source_file": "js\\main.js",
+      "source_location": "L42"
+    },
+    {
+      "id": "js_main_refreshqueue",
+      "label": "refreshQueue()",
+      "file_type": "code",
+      "source_file": "js\\main.js",
+      "source_location": "L66"
+    },
+    {
+      "id": "js_main_updatequeuetable",
+      "label": "updateQueueTable()",
+      "file_type": "code",
+      "source_file": "js\\main.js",
+      "source_location": "L79"
+    },
+    {
+      "id": "js_main_updatecounters",
+      "label": "updateCounters()",
+      "file_type": "code",
+      "source_file": "js\\main.js",
+      "source_location": "L110"
+    },
+    {
+      "id": "js_main_changewindowstatus",
+      "label": "changeWindowStatus()",
+      "file_type": "code",
+      "source_file": "js\\main.js",
+      "source_location": "L139"
+    },
+    {
+      "id": "js_main_openaddwindowmodal",
+      "label": "openAddWindowModal()",
+      "file_type": "code",
+      "source_file": "js\\main.js",
+      "source_location": "L160"
+    },
+    {
+      "id": "js_main_closeaddwindowmodal",
+      "label": "closeAddWindowModal()",
+      "file_type": "code",
+      "source_file": "js\\main.js",
+      "source_location": "L165"
+    },
+    {
+      "id": "js_main_submitnewwindow",
+      "label": "submitNewWindow()",
+      "file_type": "code",
+      "source_file": "js\\main.js",
+      "source_location": "L169"
+    },
+    {
+      "id": "js_main_openeditservicesmodal",
+      "label": "openEditServicesModal()",
+      "file_type": "code",
+      "source_file": "js\\main.js",
+      "source_location": "L191"
+    },
+    {
+      "id": "js_main_closeeditservicesmodal",
+      "label": "closeEditServicesModal()",
+      "file_type": "code",
+      "source_file": "js\\main.js",
+      "source_location": "L212"
+    },
+    {
+      "id": "js_main_submiteditservices",
+      "label": "submitEditServices()",
+      "file_type": "code",
+      "source_file": "js\\main.js",
+      "source_location": "L216"
+    },
+    {
+      "id": "js_main_callcustomer",
+      "label": "callCustomer()",
+      "file_type": "code",
+      "source_file": "js\\main.js",
+      "source_location": "L243"
+    },
+    {
+      "id": "js_main_recallcustomer",
+      "label": "recallCustomer()",
+      "file_type": "code",
+      "source_file": "js\\main.js",
+      "source_location": "L250"
+    },
+    {
+      "id": "js_main_completecustomer",
+      "label": "completeCustomer()",
+      "file_type": "code",
+      "source_file": "js\\main.js",
+      "source_location": "L267"
+    },
+    {
+      "id": "js_main_filterqueue",
+      "label": "filterQueue()",
+      "file_type": "code",
+      "source_file": "js\\main.js",
+      "source_location": "L274"
+    },
+    {
+      "id": "js_main_init",
+      "label": "init()",
+      "file_type": "code",
+      "source_file": "js\\main.js",
+      "source_location": "L340"
+    },
+    {
+      "id": "scratch_debug_stats_php",
+      "label": "debug_stats.php",
+      "file_type": "code",
+      "source_file": "scratch\\debug_stats.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "scratch_migrate_duration_php",
+      "label": "migrate_duration.php",
+      "file_type": "code",
+      "source_file": "scratch\\migrate_duration.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "scratch_migrate_font_family_php",
+      "label": "migrate_font_family.php",
+      "file_type": "code",
+      "source_file": "scratch\\migrate_font_family.php",
+      "source_location": "L1"
+    }
+  ],
+  "edges": [
+    {
+      "source": "config_php",
+      "target": "queue_management_system_config_database",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "config.php",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "queue_management_system_config_database",
+      "target": "queue_management_system_config_database_getconnection",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "config.php",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "config_php",
+      "target": "queue_management_system_config_requireauth",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "config.php",
+      "source_location": "L30",
+      "weight": 1.0
+    },
+    {
+      "source": "config_php",
+      "target": "queue_management_system_config_requirerole",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "config.php",
+      "source_location": "L80",
+      "weight": 1.0
+    },
+    {
+      "source": "queue_management_system_config_requireauth",
+      "target": "queue_management_system_config_database_getconnection",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "config.php",
+      "source_location": "L54",
+      "weight": 1.0
+    },
+    {
+      "source": "queue_management_system_config_requirerole",
+      "target": "queue_management_system_config_requireauth",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "config.php",
+      "source_location": "L81",
+      "weight": 1.0
+    },
+    {
+      "source": "api_add_customer_php",
+      "target": "api_add_customer_getqueueposition",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api\\add_customer.php",
+      "source_location": "L99",
+      "weight": 1.0
+    },
+    {
+      "source": "api_complete_customer_php",
+      "target": "api_complete_customer_formatduration",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api\\complete_customer.php",
+      "source_location": "L103",
+      "weight": 1.0
+    },
+    {
+      "source": "api_get_stats_php",
+      "target": "api_get_stats_formatduration",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api\\get_stats.php",
+      "source_location": "L102",
+      "weight": 1.0
+    },
+    {
+      "source": "api_auth_login_php",
+      "target": "auth_login_logauthevent",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api\\auth\\login.php",
+      "source_location": "L88",
+      "weight": 1.0
+    },
+    {
+      "source": "js_display_js",
+      "target": "js_display_updatedisplaytime",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\display.js",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "js_display_js",
+      "target": "js_display_playnotificationsound",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\display.js",
+      "source_location": "L31",
+      "weight": 1.0
+    },
+    {
+      "source": "js_display_js",
+      "target": "js_display_updatedisplay",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\display.js",
+      "source_location": "L40",
+      "weight": 1.0
+    },
+    {
+      "source": "js_display_js",
+      "target": "js_display_startautorefresh",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\display.js",
+      "source_location": "L141",
+      "weight": 1.0
+    },
+    {
+      "source": "js_display_js",
+      "target": "js_display_style",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\display.js",
+      "source_location": "L156",
+      "weight": 1.0
+    },
+    {
+      "source": "js_display_updatedisplay",
+      "target": "js_display_playnotificationsound",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\display.js",
+      "source_location": "L65",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_js",
+      "target": "js_main_updatetime",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_js",
+      "target": "js_main_showtoast",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_js",
+      "target": "js_main_refreshstats",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_js",
+      "target": "js_main_updateservicemetrics",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L42",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_js",
+      "target": "js_main_refreshqueue",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L66",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_js",
+      "target": "js_main_updatequeuetable",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L79",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_js",
+      "target": "js_main_updatecounters",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L110",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_js",
+      "target": "js_main_changewindowstatus",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L139",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_js",
+      "target": "js_main_openaddwindowmodal",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L160",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_js",
+      "target": "js_main_closeaddwindowmodal",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L165",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_js",
+      "target": "js_main_submitnewwindow",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L169",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_js",
+      "target": "js_main_openeditservicesmodal",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L191",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_js",
+      "target": "js_main_closeeditservicesmodal",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L212",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_js",
+      "target": "js_main_submiteditservices",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L216",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_js",
+      "target": "js_main_callcustomer",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L243",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_js",
+      "target": "js_main_recallcustomer",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L250",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_js",
+      "target": "js_main_completecustomer",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L267",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_js",
+      "target": "js_main_filterqueue",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L274",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_js",
+      "target": "js_main_init",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L340",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_refreshstats",
+      "target": "js_main_updateservicemetrics",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L37",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_refreshqueue",
+      "target": "js_main_updatequeuetable",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L73",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_refreshqueue",
+      "target": "js_main_updatecounters",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L74",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_changewindowstatus",
+      "target": "js_main_showtoast",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L148",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_changewindowstatus",
+      "target": "js_main_refreshqueue",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L149",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_changewindowstatus",
+      "target": "js_main_refreshstats",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L149",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_submitnewwindow",
+      "target": "js_main_showtoast",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L171",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_submitnewwindow",
+      "target": "js_main_closeaddwindowmodal",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L181",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_submitnewwindow",
+      "target": "js_main_refreshqueue",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L182",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_submiteditservices",
+      "target": "js_main_showtoast",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L232",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_submiteditservices",
+      "target": "js_main_closeeditservicesmodal",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L233",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_submiteditservices",
+      "target": "js_main_refreshqueue",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L234",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_callcustomer",
+      "target": "js_main_refreshqueue",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L246",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_callcustomer",
+      "target": "js_main_refreshstats",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L246",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_callcustomer",
+      "target": "js_main_showtoast",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L247",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_recallcustomer",
+      "target": "js_main_showtoast",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L259",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_recallcustomer",
+      "target": "js_main_refreshqueue",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L260",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_completecustomer",
+      "target": "js_main_refreshqueue",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L270",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_completecustomer",
+      "target": "js_main_refreshstats",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L270",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_completecustomer",
+      "target": "js_main_showtoast",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L271",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_filterqueue",
+      "target": "js_main_refreshqueue",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L285",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_init",
+      "target": "js_main_refreshqueue",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L341",
+      "weight": 1.0
+    },
+    {
+      "source": "js_main_init",
+      "target": "js_main_refreshstats",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js\\main.js",
+      "source_location": "L342",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

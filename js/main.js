@@ -99,8 +99,9 @@ function updateQueueTable(customers) {
                 '<td class="px-3 py-2"><span class="px-2 py-1 rounded-full text-xs ' + statusClass + '">' + c.status + '</span></td>' +
                 '<td class="px-3 py-2">' + new Date(c.created_at).toLocaleTimeString() + '</td>' +
                 '<td class="px-3 py-2">' +
-                (c.status === 'waiting' ? '<button onclick="callCustomer(' + c.id + ')" class="text-green-600 mr-2">Call</button>' : '') +
-                (c.status === 'serving' ? '<button onclick="completeCustomer(' + c.id + ')" class="text-blue-600">Complete</button>' : '') +
+                (c.status === 'waiting' ? '<button onclick="callCustomer(' + c.id + ')" class="text-green-600 mr-2" title="Call Customer"><i class="fas fa-bullhorn"></i> Call</button>' : '') +
+                (c.status === 'serving' ? '<button onclick="recallCustomer(' + c.id + ')" class="text-yellow-600 mr-2" title="Recall (Announce Again)"><i class="fas fa-bell"></i></button>' : '') +
+                (c.status === 'serving' ? '<button onclick="completeCustomer(' + c.id + ')" class="text-blue-600" title="Complete Service">Complete</button>' : '') +
                 '</td></tr>';
     }
     table.innerHTML = html;
@@ -115,10 +116,6 @@ function updateCounters(counters) {
         var statusColor = c.status_text === 'Online' ? 'bg-green-50' : (c.status_text === 'On Break' ? 'bg-yellow-50' : 'bg-gray-50');
         
         var servicesText = c.active_services || 'None';
-        try {
-            var allAssigned = JSON.parse(c.service_types || '[]');
-            servicesText = allAssigned.join(', ');
-        } catch(e) {}
         
         html += '<div class="border rounded-lg p-4 mb-3 ' + statusColor + '">' +
                 '<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-2">' +
@@ -197,8 +194,7 @@ function openEditServicesModal(counterId) {
     
     document.getElementById('editServicesCounterId').value = counterId;
     
-    var assignedServices = [];
-    try { assignedServices = JSON.parse(counter.service_types || '[]'); } catch(e) {}
+    var assignedServices = counter.active_services ? counter.active_services.split(',') : [];
     
     var html = '';
     for (var i = 0; i < serviceTypesData.length; i++) {
@@ -249,6 +245,23 @@ async function callCustomer(id) {
         await fetch('api/call_customer.php', { method: 'POST', body: JSON.stringify({ customer_id: id }) });
         refreshQueue(); refreshStats();
     } catch (e) { showToast('Error calling customer', 'error'); }
+}
+
+async function recallCustomer(id) {
+    try {
+        var response = await fetch('api/recall_customer.php', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ customer_id: id }) 
+        });
+        var data = await response.json();
+        if (data.success) {
+            showToast('Customer recalled (re-announced)', 'success');
+            refreshQueue();
+        } else {
+            showToast(data.message || 'Error recalling customer', 'error');
+        }
+    } catch (e) { showToast('Error recalling customer', 'error'); }
 }
 
 async function completeCustomer(id) {
