@@ -9,7 +9,8 @@ try {
     $stmt = $conn->query("
         SELECT c.*, 
                ct.display_name as counter_name,
-               st.queue_prefix
+               st.queue_prefix,
+               st.name as service_name
         FROM customers c
         LEFT JOIN counters ct ON ct.id = c.counter_id
         LEFT JOIN service_types st ON st.code = c.service_type

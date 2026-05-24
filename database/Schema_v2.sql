@@ -91,7 +91,7 @@ CREATE TABLE `auth_logs` (
 CREATE TABLE `service_types` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(50) NOT NULL,
-  `code` varchar(10) NOT NULL,
+  `code` varchar(20) NOT NULL,
   `description` varchar(255) DEFAULT NULL,
   `queue_prefix` char(1) NOT NULL,
   `is_active` tinyint(1) DEFAULT 1,
@@ -105,7 +105,8 @@ INSERT INTO `service_types` (`name`, `code`, `description`, `queue_prefix`) VALU
 ('Insurance', 'insurance', 'UCBP Insurance services, claims, inquiries', 'I'),
 ('Benefits', 'benefits', 'SSS Benefits applications and inquiries', 'I'),
 ('ID Renewal', 'id_renewal', 'ID card renewal, updates, replacements', 'R'),
-('ATM Claim', 'atm_renewal', 'ATM card renewal, PIN issues, replacements', 'R');
+('ATM Claim', 'atm_renewal', 'ATM card renewal, PIN issues, replacements', 'R'),
+('Other', 'other', 'General inquiries and other services', 'O');
 
 -- --------------------------------------------------------
 -- Queue sequences for atomic queue number generation
@@ -120,7 +121,8 @@ CREATE TABLE `queue_sequences` (
 
 INSERT INTO `queue_sequences` (`prefix`, `current_value`) VALUES
 ('I', 0),
-('R', 0);
+('R', 0),
+('O', 0);
 
 -- --------------------------------------------------------
 -- Counters (Windows) table
@@ -132,6 +134,7 @@ CREATE TABLE `counters` (
   `display_name` varchar(50) DEFAULT NULL,
   `window_number` int(11) DEFAULT NULL,
   `is_online` tinyint(1) DEFAULT 1,
+  `status_text` varchar(20) DEFAULT 'Online',
   `avg_service_time` int(11) DEFAULT 0,
   `customers_served` int(11) DEFAULT 0,
   `last_status_change` timestamp NULL DEFAULT NULL,
@@ -189,6 +192,7 @@ CREATE TABLE `customers` (
   `wait_duration` int(11) DEFAULT NULL,
   `counter_id` int(11) DEFAULT NULL,
   `is_redistributed` tinyint(1) DEFAULT 0,
+  `is_follow_up` tinyint(1) DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `queue_number` (`queue_number`),
   KEY `idx_status` (`status`),
@@ -205,21 +209,32 @@ CREATE TABLE `customers` (
 CREATE TABLE `display_settings` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `company_name` varchar(100) DEFAULT 'Service Center',
+  `branch_name` varchar(100) DEFAULT 'Main Office',
+  `address` varchar(255) DEFAULT NULL,
   `welcome_message` text DEFAULT NULL,
   `refresh_interval` int(11) DEFAULT 10,
   `video_url` varchar(500) DEFAULT NULL,
   `video_type` enum('youtube','local','none') DEFAULT 'none',
   `video_volume` int(11) DEFAULT 50,
+  `poster_enabled` tinyint(1) DEFAULT 0,
+  `poster_interval` int(11) DEFAULT 10,
+  `poster_duration` int(11) DEFAULT 10,
+  `poster_images` text DEFAULT NULL,
+  `poster_announcements` text DEFAULT NULL,
+  `video_title` varchar(255) DEFAULT 'Citizen Services Overview',
+  `video_sponsor` varchar(255) DEFAULT 'Public Affairs Office',
+  `video_cta` varchar(255) DEFAULT NULL,
   `auto_play_video` tinyint(1) DEFAULT 1,
   `display_layout` enum('queue_only','video_queue','queue_video') DEFAULT 'video_queue',
+  `cutoff_time` varchar(10) DEFAULT '17:00',
   `active_announcement` text DEFAULT NULL,
   `company_logo` varchar(255) DEFAULT NULL,
   `theme_color` varchar(20) DEFAULT '#1e3a5f',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-INSERT INTO `display_settings` (`id`, `company_name`, `welcome_message`, `refresh_interval`, `display_layout`) VALUES
-(1, 'Manpower Agency', 'Welcome! Please have your queue ticket ready.', 10, 'video_queue');
+INSERT INTO `display_settings` (`id`, `company_name`, `branch_name`, `welcome_message`, `refresh_interval`, `video_url`, `video_type`, `video_title`, `video_sponsor`, `display_layout`) VALUES
+(1, 'Manpower Agency', 'Quezon City — Main Hall', 'Welcome! Please have your queue ticket ready.', 10, 'dQw4w9WgXcQ', 'youtube', 'Citizen Services Overview', 'Public Affairs Office', 'video_queue');
 
 -- --------------------------------------------------------
 -- Display announcements table

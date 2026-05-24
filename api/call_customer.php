@@ -59,6 +59,18 @@ try {
         throw new Exception('No counter is currently online');
     }
     
+    $stmt = $conn->prepare("SELECT current_customer_id FROM counters WHERE id = ?");
+    $stmt->execute([$counterId]);
+    $currentCustId = $stmt->fetchColumn();
+    if ($currentCustId) {
+        $stmt = $conn->prepare("SELECT status FROM customers WHERE id = ?");
+        $stmt->execute([$currentCustId]);
+        $currentStatus = $stmt->fetchColumn();
+        if ($currentStatus === 'serving') {
+            throw new Exception('Window is currently serving a customer. Complete or skip the current ticket first.');
+        }
+    }
+    
     $now = date('Y-m-d H:i:s');
     $stmt = $conn->prepare("
         UPDATE customers 

@@ -1,211 +1,272 @@
-<?php include 'config.php'; ?>
+<?php include 'config.php';
+try { $db = new Database(); $conn = $db->getConnection(); $s = $conn->query("SELECT * FROM display_settings LIMIT 1")->fetch(PDO::FETCH_ASSOC); } catch (Exception $e) { $s = []; }
+$company_name = htmlspecialchars($s['company_name'] ?? 'Service Center');
+$branch_name = htmlspecialchars($s['branch_name'] ?? '');
+$company_logo = htmlspecialchars($s['company_logo'] ?? '');
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Queue Management System</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23667eea'><path d='M3 3h18v2H3V3zm0 4h18v2H3V7zm0 4h18v2H3v-2zm0 4h12v2H3v-2zm14 0l3 3-3 3v-6z'/></svg>">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Operator Desk — <?php echo $company_name; ?></title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563eb'><path d='M3 3h18v2H3V3zm0 4h18v2H3V7zm0 4h18v2H3v-2zm0 4h12v2H3v-2zm14 0l3 3-3 3v-6z'/></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/design-system.css">
     <style>
-        body { font-family: 'Inter', system-ui, sans-serif; }
-        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .card { background: #fff; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06); border: 1px solid #f0f0f0; }
-        .card-hover { transition: transform 0.3s ease, box-shadow 0.3s ease; }
-        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,0.1); }
-        .queue-number { font-family: 'Courier New', monospace; font-weight: bold; }
-        .counter-offline { opacity: 0.6; background: repeating-linear-gradient(45deg, #fee2e2, #fee2e2 10px, #fecaca 10px, #fecaca 20px); }
-        .toast { animation: slideIn 0.3s ease-out; }
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        .pulse-dot { animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .filter-btn { padding: 0.5rem 1rem; border-radius: var(--radius); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer; transition: all 0.15s; }
+        .filter-btn.active { background: var(--primary); color: var(--primary-foreground); }
+        .filter-btn:not(.active) { background: var(--card); color: var(--muted); border: 1px solid var(--border); }
+        .filter-btn:not(.active):hover { background: var(--secondary); }
         .modal-overlay { backdrop-filter: blur(4px); }
-        .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 0.375rem; }
-        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-        button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid #667eea; outline-offset: 2px; border-radius: 0.375rem; }
-        .filter-btn:focus-visible { outline: 2px solid #667eea; outline-offset: 2px; }
+        .toast { animation: slideIn 300ms var(--ease-out-expo); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .skeleton { background: linear-gradient(90deg, var(--secondary) 25%, hsl(215 16% 92%) 50%, var(--secondary) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: var(--radius); }
+        .queue-table th { padding: 0.75rem 1rem; text-align: left; font-size: 0.625rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: var(--muted); background: var(--secondary); border-bottom: 1px solid var(--border); }
+        .queue-table td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.8125rem; }
+        .queue-table tr:hover td { background: var(--secondary); }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col">
-    <header class="gradient-bg text-white shadow-lg">
-        <div class="container mx-auto px-4 py-4">
-            <div class="flex justify-between items-center">
-                <div class="flex items-center">
-                    <h1 class="text-2xl md:text-3xl font-bold"><i class="fas fa-users mr-3"></i>Queue Management</h1>
-                    <span class="ml-4 text-sm bg-white bg-opacity-20 px-3 py-1 rounded-full flex items-center gap-1.5"><span class="inline-block w-2 h-2 rounded-full bg-green-300 pulse-dot"></span>Admin Panel</span>
-                </div>
-                <div class="flex items-center gap-4">
-                    <div class="text-right">
-                        <div id="current-time" class="text-lg md:text-xl font-mono"></div>
-                        <div class="text-sm opacity-80"><?php echo date('F j, Y'); ?></div>
+<body class="min-h-screen flex flex-col" style="background: var(--background);">
+    <!-- SiteNav -->
+    <nav class="sticky top-0 z-50" style="background: #b91c1c; color: white; border-bottom: 1px solid rgba(255,255,255,0.15);">
+        <div class="max-w-[1600px] mx-auto flex items-center justify-between px-6" style="height: 3.5rem;">
+            <div class="flex items-center gap-10">
+                <a href="display.php" class="flex items-center gap-3">
+                    <div class="relative w-7 h-7 grid place-items-center" style="background: var(--brand-gold); border-radius: 2px;">
+                        <?php if ($company_logo): ?><img src="<?php echo $company_logo; ?>" alt="" class="w-5 h-5 object-contain"><?php else: ?><span style="color: var(--primary); font-size: 11px; font-weight: 900; letter-spacing: -0.05em;">CQ</span><?php endif; ?>
                     </div>
-                    <button onclick="logout()" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1.5" title="Sign Out"><i class="fas fa-sign-out-alt"></i></button>
+                    <div class="flex flex-col leading-none">
+                        <span style="font-size: 20px; font-weight: 800; letter-spacing: -0.02em; color: white;"><?php echo $company_name; ?></span>
+                        <span style="font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.2em; opacity: 0.5;"><?php if ($branch_name) echo htmlspecialchars($branch_name) . ' · '; ?>Queue Management</span>
+                    </div>
+                </a>
+                <div class="hidden md:flex gap-1 text-[11px] font-semibold uppercase tracking-wider">
+                    <a href="display.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Live Display</a>
+                    <a href="kiosk.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Kiosk</a>
+                    <a href="index.php" class="px-3 py-1.5 rounded" style="background: rgba(255,255,255,0.1); color: white;">Operator</a>
+                    <a href="reports.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Analytics</a>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="hidden sm:flex items-center gap-2 px-3 py-1 rounded" style="background: rgba(255,255,255,0.1);">
+                    <div class="w-1.5 h-1.5 rounded-full" style="background: #34d399; animation: pulse-dot 2s infinite;"></div>
+                    <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em;">All Systems Operational</span>
+                </div>
+                <div class="flex items-center gap-2 pl-3" style="border-left: 1px solid rgba(255,255,255,0.15);">
+                    <div class="w-7 h-7 rounded-full grid place-items-center text-[10px] font-bold" style="background: rgba(255,255,255,0.15);">AD</div>
+                    <div class="hidden sm:flex flex-col leading-none">
+                        <span style="font-size: 11px; font-weight: 600;">Admin</span>
+                        <span style="font-size: 9px; opacity: 0.5; text-transform: uppercase; letter-spacing: 0.15em;">Supervisor</span>
+                    </div>
+                    <button onclick="logout()" class="ml-2 px-2 py-1 rounded text-[10px]" style="background: rgba(255,255,255,0.1);" title="Sign Out"><i class="fas fa-sign-out-alt"></i></button>
                 </div>
             </div>
         </div>
-    </header>
+    </nav>
 
-    <main class="container mx-auto px-4 py-6 flex-grow">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-6">
-            <div class="card card-hover p-4 md:p-6 border-t-4 border-yellow-400">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-yellow-100 text-yellow-600 mr-3 md:mr-4"><i class="fas fa-clock text-xl md:text-2xl"></i></div>
-                    <div><h3 class="text-2xl md:text-3xl font-bold text-gray-800" id="waiting-count">0</h3><p class="text-gray-600 text-sm">Waiting</p></div>
-                </div>
+    <main class="flex-1 w-full max-w-[1440px] mx-auto p-8 grid grid-cols-12 gap-8">
+        <!-- Main Column -->
+        <section class="col-span-12 lg:col-span-8 flex flex-col gap-6">
+            <div class="flex items-baseline justify-between">
+                <h2 class="text-[11px] font-bold uppercase tracking-[0.2em]" style="color: var(--muted);">Operator Console &middot; Main Desk</h2>
+                <span class="font-mono text-[10px]" style="color: var(--muted);" id="sessionTime">SESSION --</span>
             </div>
-            <div class="card card-hover p-4 md:p-6 border-t-4 border-blue-400">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-blue-100 text-blue-600 mr-3 md:mr-4"><i class="fas fa-user-check text-xl md:text-2xl"></i></div>
-                    <div><h3 class="text-2xl md:text-3xl font-bold text-gray-800" id="serving-count">0</h3><p class="text-gray-600 text-sm">Serving</p></div>
-                </div>
-            </div>
-            <div class="card card-hover p-4 md:p-6 border-t-4 border-green-400">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-green-100 text-green-600 mr-3 md:mr-4"><i class="fas fa-check-circle text-xl md:text-2xl"></i></div>
-                    <div><h3 class="text-2xl md:text-3xl font-bold text-gray-800" id="completed-count">0</h3><p class="text-gray-600 text-sm">Completed</p></div>
-                </div>
-            </div>
-            <div class="card card-hover p-4 md:p-6 border-t-4 border-purple-400">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-purple-100 text-purple-600 mr-3 md:mr-4"><i class="fas fa-chart-line text-xl md:text-2xl"></i></div>
-                    <div><h3 class="text-2xl md:text-3xl font-bold text-gray-800" id="today-count">0</h3><p class="text-gray-600 text-sm">Today's Total</p></div>
-                </div>
-            </div>
-        </div>
 
-        <div class="card p-5 mb-6">
-            <h3 class="text-lg font-semibold text-gray-700 mb-4"><i class="fas fa-chart-bar mr-2 text-blue-500"></i>Service Metrics</h3>
-            <div id="serviceMetrics" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-1 space-y-6">
-                <div class="card p-5 card-hover">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold text-gray-800"><i class="fas fa-desktop mr-2 text-purple-500"></i>Window Management</h2>
-                        <button onclick="openAddWindowModal()" class="bg-purple-100 text-purple-600 hover:bg-purple-200 px-3 py-1 rounded text-sm font-semibold transition"><i class="fas fa-plus mr-1"></i> Add Window</button>
+            <!-- Now Serving -->
+            <div class="animate-entry card rounded-xl p-8 shadow-sm" style="border: 1px solid var(--border);">
+                <div class="flex items-start justify-between gap-6 flex-wrap">
+                    <div>
+                        <span class="text-[11px] font-bold uppercase tracking-[0.2em]" style="color: var(--muted);">You are serving</span>
+                        <div class="text-7xl font-extrabold tracking-tighter tabular-nums mt-2" id="servingNumber" style="color: var(--primary);">---</div>
+                        <p class="text-sm mt-2" style="color: var(--muted);" id="servingInfo">No active customer</p>
                     </div>
-                    <div id="countersStatus" class="space-y-4"></div>
-                </div>
-            </div>
-
-            <div class="lg:col-span-2 space-y-6">
-                <div class="card p-5 card-hover">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
-                        <h2 class="text-xl font-bold text-gray-800"><i class="fas fa-list mr-2 text-blue-500"></i>Queue List</h2>
-                        <div class="flex flex-wrap gap-2">
-                            <button onclick="refreshQueue()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition text-sm"><i class="fas fa-sync-alt mr-2"></i>Refresh</button>
-                            <button onclick="openAnnouncementModal()" class="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition text-sm"><i class="fas fa-bullhorn mr-2"></i>Announcements</button>
-                            <a href="reports.php" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition text-sm"><i class="fas fa-chart-bar mr-2"></i>Reports</a>
-                            <a href="settings.php" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition text-sm"><i class="fas fa-cog mr-2"></i>Settings</a>
-                        </div>
-                    </div>
-                    <div class="flex flex-wrap gap-2 mb-4">
-                        <button onclick="filterQueue('all')" class="filter-btn active px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium" data-filter="all">All</button>
-                        <button onclick="filterQueue('waiting')" class="filter-btn px-4 py-2 rounded-lg bg-white text-gray-600 border border-gray-200 text-sm hover:bg-gray-50" data-filter="waiting">Waiting</button>
-                        <button onclick="filterQueue('serving')" class="filter-btn px-4 py-2 rounded-lg bg-white text-gray-600 border border-gray-200 text-sm hover:bg-gray-50" data-filter="serving">Serving</button>
-                        <button onclick="filterQueue('completed')" class="filter-btn px-4 py-2 rounded-lg bg-white text-gray-600 border border-gray-200 text-sm hover:bg-gray-50" data-filter="completed">Completed</button>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full table-auto text-sm">
-                            <thead>
-                                <tr class="bg-gray-50 border-b border-gray-200">
-                                    <th class="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wider">Queue No.</th>
-                                    <th class="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wider">Customer</th>
-                                    <th class="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wider">Service</th>
-                                    <th class="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wider">Status</th>
-                                    <th class="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wider">Time</th>
-                                    <th class="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="queueTable" class="divide-y divide-gray-100"></tbody>
-                        </table>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="callNext()" class="px-5 py-3 rounded text-[11px] font-bold uppercase tracking-widest" style="background: var(--primary); color: var(--primary-foreground);">Complete &amp; Next</button>
+                        <button onclick="skipCustomer()" class="px-5 py-3 border rounded text-[11px] font-bold uppercase tracking-widest" style="border-color: var(--border); background: var(--card);">Skip</button>
+                        <button onclick="noShow()" class="px-5 py-3 border rounded text-[11px] font-bold uppercase tracking-widest" style="border-color: var(--border); background: var(--card); color: var(--destructive);">No-Show</button>
                     </div>
                 </div>
+            </div>
 
-                <div class="card p-5 card-hover">
-                    <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-history mr-2 text-gray-500"></i>Redistribution History</h2>
-                    <div id="redistributionLogs" class="space-y-2 max-h-48 overflow-y-auto text-sm"></div>
+            <!-- Follow-Up Queue -->
+            <div id="followUpPanel" class="animate-entry card rounded-xl p-5 shadow-sm" style="border: 2px solid var(--brand-gold); display: none;">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-flag" style="color: var(--brand-gold);"></i>
+                        <h3 class="text-xs font-bold uppercase tracking-widest">Follow-Up Queue</h3>
+                    </div>
+                    <span class="text-[10px] font-mono" style="color: var(--muted);"><span id="followUpCount">0</span> pending</span>
+                </div>
+                <div id="followUpList" class="divide-y divide-border">
+                    <!-- Injected by JS -->
                 </div>
             </div>
-        </div>
+
+            <!-- KPI row -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="card p-4">
+                    <div class="text-[10px] font-bold uppercase tracking-widest" style="color: var(--muted);">Waiting</div>
+                    <div class="text-3xl font-extrabold tracking-tight mt-1" id="waiting-count" style="color: #d97706;">0</div>
+                </div>
+                <div class="card p-4">
+                    <div class="text-[10px] font-bold uppercase tracking-widest" style="color: var(--muted);">Serving</div>
+                    <div class="text-3xl font-extrabold tracking-tight mt-1" id="serving-count" style="color: var(--primary);">0</div>
+                </div>
+                <div class="card p-4">
+                    <div class="text-[10px] font-bold uppercase tracking-widest" style="color: var(--muted);">Completed</div>
+                    <div class="text-3xl font-extrabold tracking-tight mt-1" id="completed-count" style="color: var(--success);">0</div>
+                </div>
+                <div class="card p-4">
+                    <div class="text-[10px] font-bold uppercase tracking-widest" style="color: var(--muted);">Today</div>
+                    <div class="text-3xl font-extrabold tracking-tight mt-1" id="today-count" style="color: var(--foreground);">0</div>
+                </div>
+            </div>
+
+            <!-- Queue Table -->
+            <div class="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+                <div class="flex items-center justify-between p-5 border-b border-border" style="background: hsl(215 20% 94% / 0.6);">
+                    <h3 class="text-xs font-bold uppercase tracking-widest">Active Waiting List</h3>
+                    <span class="text-[10px] font-medium uppercase tracking-tighter font-mono" style="color: var(--muted);"><span id="queueCount">0</span> pending</span>
+                </div>
+                <div class="p-4 border-b border-border flex flex-wrap gap-2" style="background: var(--secondary);">
+                    <button onclick="filterQueue('all')" class="filter-btn active" data-filter="all">All</button>
+                    <button onclick="filterQueue('waiting')" class="filter-btn" data-filter="waiting">Waiting</button>
+                    <button onclick="filterQueue('serving')" class="filter-btn" data-filter="serving">Serving</button>
+                    <button onclick="filterQueue('completed')" class="filter-btn" data-filter="completed">Completed</button>
+                    <button onclick="filterQueue('follow_up')" class="filter-btn" data-filter="follow_up">Follow-up</button>
+                    <div class="ml-auto flex gap-2">
+                        <button onclick="openAnnouncementModal()" class="btn btn-ghost text-[10px] py-1 px-2"><i class="fas fa-bullhorn mr-1"></i>Announce</button>
+                        <button onclick="refreshQueue()" class="btn btn-ghost text-[10px] py-1 px-2"><i class="fas fa-sync-alt mr-1"></i>Refresh</button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full queue-table">
+                        <thead>
+                            <tr><th>Queue No.</th><th>Customer</th><th>Service</th><th>Status</th><th>Time</th><th>Actions</th></tr>
+                        </thead>
+                        <tbody id="queueTable"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Redistribution History -->
+            <div class="card p-6 animate-entry" style="animation-delay: 250ms;">
+                <h3 class="text-xs font-bold uppercase tracking-widest mb-4" style="color: var(--muted);">Redistribution History</h3>
+                <div id="redistributionLogs" class="space-y-2 max-h-48 overflow-y-auto civic-scrollbar text-sm"></div>
+            </div>
+        </section>
+
+        <!-- Sidebar -->
+        <aside class="col-span-12 lg:col-span-4 flex flex-col gap-6">
+            <h2 class="text-[11px] font-bold uppercase tracking-[0.2em]" style="color: var(--muted);">Counter Status</h2>
+            <div class="bg-card border border-border rounded-xl shadow-sm divide-y divide-border/60" id="countersStatus">
+                <!-- Injected by JS -->
+            </div>
+
+            <!-- Session totals -->
+            <div class="relative overflow-hidden rounded-xl p-6" style="background: var(--surface-dark); color: var(--surface-dark-foreground);">
+                <div class="absolute inset-0 bg-grid" style="opacity: 0.3;"></div>
+                <div class="relative">
+                    <h4 class="text-[10px] font-bold uppercase tracking-widest mb-4" style="color: rgba(255,255,255,0.5);">Session totals</h4>
+                    <div class="grid grid-cols-2 gap-4" id="sessionTotals">
+                        <div><div class="text-2xl font-bold tracking-tight tabular-nums" id="sessionServed">0</div><div class="text-[9px] font-medium uppercase tracking-wider" style="color: rgba(255,255,255,0.4);">Served</div></div>
+                        <div><div class="text-2xl font-bold tracking-tight tabular-nums" id="sessionNoshows">0</div><div class="text-[9px] font-medium uppercase tracking-wider" style="color: rgba(255,255,255,0.4);">No-shows</div></div>
+                        <div><div class="text-2xl font-bold tracking-tight tabular-nums" id="sessionAvgHandle">0:00</div><div class="text-[9px] font-medium uppercase tracking-wider" style="color: rgba(255,255,255,0.4);">Avg. handle</div></div>
+                        <div><div class="text-2xl font-bold tracking-tight tabular-nums" id="sessionIdle">--m</div><div class="text-[9px] font-medium uppercase tracking-wider" style="color: rgba(255,255,255,0.4);">Idle</div></div>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="openAddWindowModal()" class="btn btn-secondary w-full text-[11px]"><i class="fas fa-plus mr-2"></i>Add Window</button>
+        </aside>
     </main>
 
-    <footer class="bg-gray-800 text-white py-4 mt-auto">
-        <div class="container mx-auto px-4 text-center text-sm">
-            <p>&copy; <?php echo date('Y'); ?> Queue Management System - Manpower Agency Edition</p>
+    <!-- StatusFooter -->
+    <footer class="sticky bottom-0 left-0 w-full p-6 flex justify-between items-center" style="background: hsl(210 30% 97% / 0.8); backdrop-filter: blur(12px); pointer-events: none;">
+        <div class="flex items-center gap-6">
+            <div class="flex flex-col">
+                <span class="text-[9px] font-bold uppercase tracking-widest" style="color: var(--muted);">Terminal ID</span>
+                <span class="text-[11px] font-mono" style="color: var(--foreground);">DESKTOP-MAIN</span>
+            </div>
+            <div class="flex flex-col">
+                <span class="text-[9px] font-bold uppercase tracking-widest" style="color: var(--muted);">Last Sync</span>
+                <span class="text-[11px] font-mono tabular-nums" id="footerTime" style="color: var(--foreground);">--:--:--</span>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 px-3 py-1 rounded shadow-sm" style="background: var(--card); border: 1px solid var(--border);">
+            <div class="w-1.5 h-1.5 rounded-full" style="background: var(--primary);"></div>
+            <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em;">v4.2.0-stable</span>
         </div>
     </footer>
 
+    <!-- Modals -->
     <div id="announcementModal" class="fixed inset-0 bg-black bg-opacity-50 hidden modal-overlay z-50 flex items-center justify-center p-4">
         <div class="card w-full max-w-lg max-h-screen overflow-y-auto">
             <div class="p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-bold text-gray-800">Manage Announcements</h3>
-                    <button onclick="closeAnnouncementModal()" class="text-gray-400 hover:text-gray-600 transition-colors"><i class="fas fa-times text-xl"></i></button>
+                    <h3 class="text-lg font-bold" style="color: var(--foreground);">Manage Announcements</h3>
+                    <button onclick="closeAnnouncementModal()" class="btn btn-ghost p-1"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="mb-6">
-                    <h4 class="font-semibold text-gray-700 mb-2">Create Announcement</h4>
+                    <h4 class="label-md mb-2">Create Announcement</h4>
                     <div class="space-y-3">
-                        <input type="text" id="announcementTitle" class="w-full px-4 py-2 border rounded-lg" placeholder="Title (optional)">
-                        <textarea id="announcementMessage" class="w-full px-4 py-2 border rounded-lg" rows="2" placeholder="Announcement message"></textarea>
+                        <input type="text" id="announcementTitle" class="w-full px-4 py-2 rounded" style="border: 1px solid var(--border);" placeholder="Title (optional)">
+                        <textarea id="announcementMessage" class="w-full px-4 py-2 rounded" style="border: 1px solid var(--border);" rows="2" placeholder="Announcement message"></textarea>
                         <div class="flex gap-3">
-                            <select id="announcementType" class="flex-1 px-4 py-2 border rounded-lg">
+                            <select id="announcementType" class="flex-1 px-4 py-2 rounded" style="border: 1px solid var(--border);">
                                 <option value="info">Info</option>
                                 <option value="warning">Warning</option>
                                 <option value="urgent">Urgent</option>
                             </select>
-                            <button onclick="addAnnouncement()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"><i class="fas fa-plus mr-2"></i>Add</button>
+                            <button onclick="addAnnouncement()" class="btn btn-primary">Add</button>
                         </div>
                     </div>
                 </div>
-                <div class="mb-6">
-                    <h4 class="font-semibold text-gray-700 mb-2">Quick Templates</h4>
-                    <div id="presetAnnouncements" class="space-y-2"></div>
-                </div>
                 <div>
-                    <h4 class="font-semibold text-gray-700 mb-2">Active Announcements</h4>
+                    <h4 class="label-md mb-2">Active Announcements</h4>
                     <div id="activeAnnouncements" class="space-y-2"></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Add Window Modal -->
     <div id="addWindowModal" class="fixed inset-0 bg-black bg-opacity-50 hidden modal-overlay z-50 flex items-center justify-center p-4">
         <div class="card w-full max-w-md">
             <div class="p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-bold text-gray-800">Add New Window</h3>
-                    <button onclick="closeAddWindowModal()" class="text-gray-400 hover:text-gray-600 transition-colors"><i class="fas fa-times text-xl"></i></button>
+                    <h3 class="text-lg font-bold" style="color: var(--foreground);">Add New Window</h3>
+                    <button onclick="closeAddWindowModal()" class="btn btn-ghost p-1"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Window Name</label>
-                        <input type="text" id="newWindowName" class="w-full px-4 py-2 border rounded-lg" placeholder="e.g. Window 3">
-                    </div>
-                    <button onclick="submitNewWindow()" class="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition">Add Window</button>
+                    <div><label class="label-md block mb-1">Window Name</label><input type="text" id="newWindowName" class="w-full px-4 py-2 rounded" style="border: 1px solid var(--border);" placeholder="e.g. Window 3"></div>
+                    <button onclick="submitNewWindow()" class="btn btn-primary w-full">Add Window</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Edit Services Modal -->
     <div id="editServicesModal" class="fixed inset-0 bg-black bg-opacity-50 hidden modal-overlay z-50 flex items-center justify-center p-4">
         <div class="card w-full max-w-md">
             <div class="p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-bold text-gray-800">Edit Window Services</h3>
-                    <button onclick="closeEditServicesModal()" class="text-gray-400 hover:text-gray-600 transition-colors"><i class="fas fa-times text-xl"></i></button>
+                    <h3 class="text-lg font-bold" style="color: var(--foreground);">Edit Window Services</h3>
+                    <button onclick="closeEditServicesModal()" class="btn btn-ghost p-1"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="space-y-4">
                     <input type="hidden" id="editServicesCounterId">
-                    <div id="servicesCheckboxes" class="space-y-2 max-h-60 overflow-y-auto border rounded p-3 bg-gray-50">
-                        <!-- Checkboxes populated by JS -->
+                    <div id="servicesCheckboxes" class="space-y-2 max-h-60 overflow-y-auto border rounded p-3" style="border-color: var(--border); background: var(--secondary);"></div>
+                    <button onclick="submitEditServices()" class="btn btn-primary w-full">Save Services</button>
+                    <hr style="border-color: var(--border);">
+                    <h4 class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--muted);">Add New Service</h4>
+                    <div class="grid grid-cols-3 gap-2">
+                        <input type="text" id="newServiceName" class="w-full px-3 py-2 text-xs rounded" style="border:1px solid var(--border);" placeholder="Name">
+                        <input type="text" id="newServiceCode" class="w-full px-3 py-2 text-xs rounded" style="border:1px solid var(--border);" placeholder="Code">
+                        <input type="text" id="newServicePrefix" class="w-full px-3 py-2 text-xs rounded" style="border:1px solid var(--border);" placeholder="Prefix (e.g. O)">
                     </div>
-                    <button onclick="submitEditServices()" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">Save Services</button>
+                    <button onclick="addNewService()" class="btn btn-secondary w-full text-[11px]"><i class="fas fa-plus mr-1"></i>Add Service</button>
                 </div>
             </div>
         </div>
@@ -213,6 +274,35 @@
 
     <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
 
-    <script src="js/main.js?v=3"></script>
+    <script src="js/main.js?v=10"></script>
+    <script>
+        function updateFooterTime() {
+            var el = document.getElementById('footerTime');
+            if (!el) return;
+            var d = new Date();
+            el.textContent = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') + ':' + String(d.getSeconds()).padStart(2,'0');
+        }
+        setInterval(updateFooterTime, 200);
+        updateFooterTime();
+
+        // Session time
+        var sessionStart = Date.now();
+        setInterval(function() {
+            var el = document.getElementById('sessionTime');
+            if (!el) return;
+            var sec = Math.floor((Date.now() - sessionStart) / 1000);
+            var m = Math.floor(sec / 60);
+            var s = sec % 60;
+            el.textContent = 'SESSION ' + m + 'm ' + String(s).padStart(2,'0') + 's';
+        }, 1000);
+
+        function logout() {
+            if (confirm('Sign out of Operator Console?')) {
+                sessionStorage.removeItem('auth_token');
+                localStorage.removeItem('auth_token');
+                window.location.href = 'login.php';
+            }
+        }
+    </script>
 </body>
 </html>

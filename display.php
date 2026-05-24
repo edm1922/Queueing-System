@@ -6,413 +6,620 @@ try {
     $stmt = $conn->query("SELECT * FROM display_settings LIMIT 1");
     $settings = $stmt->fetch(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
-    $settings = ['company_name' => 'Service Center', 'welcome_message' => 'Welcome to our Service Center', 'cutoff_time' => '17:00:00'];
+    $settings = ['company_name' => 'Service Center', 'branch_name' => 'Main Office', 'address' => '', 'welcome_message' => 'Welcome', 'cutoff_time' => '17:00:00', 'company_logo' => '', 'video_url' => 'aqz-KE-bpKQ', 'video_type' => 'youtube', 'video_title' => 'Citizen Services Overview', 'video_sponsor' => 'Public Affairs Office', 'video_cta' => '', 'video_volume' => 50, 'poster_duration' => 10, 'poster_images' => '[]'];
 }
+function getYoutubeId($url) {
+    if (!$url) return 'aqz-KE-bpKQ';
+    $parsed = parse_url($url);
+    if (isset($parsed['query'])) { parse_str($parsed['query'], $q); if (!empty($q['v'])) return $q['v']; }
+    $path = $parsed['path'] ?? $url;
+    $path = ltrim($path, '/');
+    if (str_starts_with($path, 'embed/')) $path = substr($path, 6);
+    return preg_match('/^[a-zA-Z0-9_-]{11}$/', $path) ? $path : $url;
+}
+$company_name = htmlspecialchars($settings['company_name'] ?? 'Service Center');
+$branch_name = htmlspecialchars($settings['branch_name'] ?? 'Main Office');
+$address = htmlspecialchars($settings['address'] ?? '');
+$company_logo = htmlspecialchars($settings['company_logo'] ?? '');
 $cutoff = $settings['cutoff_time'] ?? '17:00:00';
 $cutoff_formatted = date("g:i A", strtotime($cutoff));
+$welcome = addslashes($settings['welcome_message'] ?? 'Welcome! Please have your queue ticket ready.');
+$video_id = getYoutubeId($settings['video_url'] ?? '');
+$video_volume = intval($settings['video_volume'] ?? 50);
+$duck_volume = max(1, intval($video_volume * 0.15));
+$poster_duration = intval($settings['poster_duration'] ?? 10);
+$poster_images_raw = $settings['poster_images'] ?? '[]';
+$poster_images = json_decode($poster_images_raw, true) ?: [];
+$poster_announcements_raw = $settings['poster_announcements'] ?? '[]';
+$poster_announcements = json_decode($poster_announcements_raw, true) ?: [];
+
+// Merge images and announcements into a unified poster array, interleaving them
+$mergedPosters = [];
+$imgCount = count($poster_images);
+$annCount = count($poster_announcements);
+$maxCount = max($imgCount, $annCount);
+for ($i = 0; $i < $maxCount; $i++) {
+    if ($i < $imgCount) {
+        $mergedPosters[] = ['type' => 'image', 'src' => $poster_images[$i]];
+    }
+    if ($i < $annCount) {
+        $mergedPosters[] = ['type' => 'announcement', 'title' => $poster_announcements[$i]['title'] ?? '', 'body' => $poster_announcements[$i]['body'] ?? '', 'bg' => $poster_announcements[$i]['bg'] ?? '#1e3a5f', 'fg' => $poster_announcements[$i]['fg'] ?? '#ffffff'];
+    }
+}
+$mergedPostersJson = json_encode($mergedPosters);
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Queue Display - <?php echo htmlspecialchars($settings['company_name'] ?? 'Service Center'); ?></title>
+    <title>Live Display — <?php echo $company_name; ?></title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563eb'><path d='M3 3h18v2H3V3zm0 4h18v2H3V7zm0 4h18v2H3v-2zm0 4h12v2H3v-2zm14 0l3 3-3 3v-6z'/></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link id="dynamicFont" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Roboto:wght@400;700&family=Outfit:wght@400;700&family=Montserrat:wght@400;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
-    <link href="css/display.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/design-system.css">
+    <script src="https://www.youtube.com/iframe_api"></script>
     <style>
-        :root {
-            --primary-color: <?php echo $settings['theme_color'] ?? '#1e3a5f'; ?>;
-        }
-        body { 
-            background: linear-gradient(135deg, var(--primary-color) 0%, #2d5a87 50%, var(--primary-color) 100%); 
-            font-family: 'Inter', sans-serif; 
-            overflow-x: hidden; 
-        }
-        .queue-number { font-family: 'Courier New', monospace; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
-        .window-card { background: linear-gradient(145deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%); backdrop-filter: blur(10px); border: 2px solid rgba(255,255,255,0.2); }
-        .window-offline { background: repeating-linear-gradient(45deg, rgba(239,68,68,0.3), rgba(239,68,68,0.3) 10px, rgba(127,29,29,0.5) 10px, rgba(127,29,29,0.5) 20px); border: 2px dashed rgba(239,68,68,0.8); }
-        .pulse-glow { animation: pulseGlow 2s infinite; }
-        @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 20px rgba(250, 204, 21, 0.5); } 50% { box-shadow: 0 0 40px rgba(250, 204, 21, 0.8), 0 0 60px rgba(250, 204, 21, 0.4); } }
-        .flip-in { animation: flipIn 0.6s ease-in-out; }
-        @keyframes flipIn { from { transform: rotateX(90deg) scale(0.8); opacity: 0; } to { transform: rotateX(0deg) scale(1); opacity: 1; } }
-        .marquee { overflow: hidden; white-space: nowrap; }
-        .marquee-inner { display: inline-block; white-space: nowrap; animation: marqueeScroll 30s linear infinite; }
-        .marquee-inner > span { display: inline-block; padding-right: 80px; }
-        @keyframes marqueeScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-        .alert-warning { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
-        .alert-urgent { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); animation: urgentPulse 1s infinite; }
-        @keyframes urgentPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
-        .bulletin-item { background: rgba(255,255,255,0.1); border-left: 8px solid #3b82f6; transition: all 0.3s ease; }
-        .bulletin-item:hover { transform: translateX(5px); }
-        .bulletin-info { border-left-color: #60a5fa; background: rgba(30, 64, 175, 0.2); }
-        .bulletin-warning { border-left-color: #fbbf24; background: rgba(146, 64, 14, 0.25); }
-        .bulletin-urgent { border-left-color: #f87171; background: rgba(153, 27, 27, 0.3); animation: urgentPulse 2s infinite; }
-        .fade-transition { transition: opacity 0.5s ease-in-out; }
+        .now-serving-card { min-height: 260px; }
+        .now-serving-card .num { font-size: 100px; line-height: 0.9; }
+        @media (min-width: 768px) { .now-serving-card .num { font-size: 120px; } }
+        @keyframes flipIn { 0% { transform: translateY(-20px) scale(0.9); opacity: 0; } 50% { transform: translateY(10px) scale(1.05); } 100% { transform: translateY(0) scale(1); opacity: 1; } }
+        .flip-in { animation: flipIn 0.6s var(--ease-out-expo); }
+        .history-card { flex-shrink: 0; width: 10rem; }
+        @media (prefers-reduced-motion: reduce) { .flip-in, .animate-entry { animation: none !important; } }
+        #posterPanel { display: none; flex-direction: column; background: #000; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+        #posterPanel.active { display: flex; }
+        #nextUpList { max-height: 240px; overflow-y: auto; }
+        @media (min-width: 768px) { #nextUpList { max-height: 360px; } }
+
     </style>
+    <script>
+        function toggleDisplayMode() {
+            var entering = !document.body.classList.contains('display-mode');
+            document.body.classList.toggle('display-mode');
+            var label = document.getElementById('displayModeLabel');
+            var icon = document.getElementById('displayModeIcon');
+            if (entering) {
+                label.textContent = 'Exit';
+                icon.innerHTML = '&#9633;';
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen();
+                } else if (document.documentElement.webkitRequestFullscreen) {
+                    document.documentElement.webkitRequestFullscreen();
+                }
+            } else {
+                label.textContent = 'Display';
+                icon.innerHTML = '&#9632;';
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+            }
+        }
+        function updateClock() {
+            var now = new Date();
+            var h = now.getHours();
+            var ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12 || 12;
+            var m = String(now.getMinutes()).padStart(2, '0');
+            var s = String(now.getSeconds()).padStart(2, '0');
+            var el = document.getElementById('liveClock');
+            if (el) el.textContent = h + ':' + m + ':' + s + ' ' + ampm;
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+    </script>
 </head>
-<body class="text-white min-h-screen">
-    <div id="alertBanner" class="hidden">
-        <div class="alert-warning py-3 px-4 text-center">
-            <div class="flex items-center justify-center gap-3"><i class="fas fa-exclamation-triangle text-2xl"></i><span id="alertMessage" class="text-lg font-semibold"></span></div>
-        </div>
-    </div>
+<body class="min-h-screen flex flex-col" style="background: var(--background); color: var(--foreground);">
+    <style>
+        body.display-mode .nav-links,
+        body.display-mode .nav-status,
+        body.display-mode .sub-header { display: none !important; }
+        body.display-mode .company-name { font-size: 28px; }
+        body.display-mode .company-sub { font-size: 11px; }
+        body.display-mode .now-serving-card .num { font-size: 130px; }
+        body.display-mode .now-serving-card .window-label { font-size: 22px !important; padding: 6px 16px !important; border-radius: 8px !important; background: rgba(0,0,0,0.06) !important; }
+        body.display-mode .now-serving-card .now-serving-tag { font-size: 16px !important; }
+        body.display-mode .now-serving-card .card-footer { font-size: 16px !important; }
+        body.display-mode .now-serving-card .live-badge { font-size: 14px !important; }
+        body.display-mode #nextUpList { max-height: 360px !important; }
+        body.display-mode #posterPanel { border-width: 2px !important; }
+        body.display-mode #posterLabel { font-size: 11px !important; }
+        body.display-mode #posterCountdownSide { font-size: 12px !important; }
+        @media (min-width: 768px) {
+            body.display-mode .now-serving-card .num { font-size: 150px; }
+            body.display-mode .now-serving-card .window-label { font-size: 26px !important; padding: 8px 20px !important; }
+            body.display-mode .now-serving-card .now-serving-tag { font-size: 18px !important; }
+            body.display-mode .now-serving-card .card-footer { font-size: 18px !important; }
+            body.display-mode #nextUpList { max-height: 480px !important; }
+        }
+        #siteNav { cursor: pointer; }
+    </style>
 
-    <div class="bg-black bg-opacity-40 py-4">
-        <div class="container mx-auto px-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                    <div id="logoContainer" class="mr-4">
-                        <?php if (!empty($settings['company_logo'])): ?>
-                            <img src="<?php echo htmlspecialchars($settings['company_logo']); ?>" alt="Logo" class="h-16 w-auto object-contain" id="companyLogoImg">
-                        <?php else: ?>
-                            <i class="fas fa-building text-4xl text-yellow-400" id="companyLogoIcon"></i>
-                        <?php endif; ?>
+    <!-- SiteNav -->
+    <nav id="siteNav" class="sticky top-0 z-50" style="background: #b91c1c; color: white; border-bottom: 1px solid rgba(255,255,255,0.15);" onclick="toggleDisplayMode();">
+        <div class="max-w-[1600px] mx-auto flex items-center justify-between px-6" style="height: 3.5rem;">
+            <div class="flex items-center gap-10">
+                <a href="display.php" class="flex items-center gap-3">
+                    <div class="relative w-7 h-7 grid place-items-center" style="background: var(--brand-gold); border-radius: 2px;">
+                        <?php if ($company_logo): ?><img src="<?php echo $company_logo; ?>" alt="" class="w-5 h-5 object-contain"><?php else: ?><span style="color: var(--primary); font-size: 11px; font-weight: 900; letter-spacing: -0.05em;">CQ</span><?php endif; ?>
                     </div>
-                    <div><h1 class="text-2xl md:text-3xl font-bold" id="companyName"><?php echo htmlspecialchars($settings['company_name'] ?? 'Service Center'); ?></h1><p class="text-sm opacity-80">Queue Management System</p></div>
+                    <div class="flex flex-col leading-none">
+                        <span class="company-name" style="font-size: 20px; font-weight: 800; letter-spacing: -0.02em; color: white;"><?php echo $company_name; ?></span>
+                        <span class="company-sub" style="font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.2em; opacity: 0.5;"><?php if ($branch_name) echo htmlspecialchars($branch_name) . ' · '; ?>Queue Management</span>
+                    </div>
+                </a>
+                <div class="hidden md:flex gap-1 text-[11px] font-semibold uppercase tracking-wider nav-links">
+                    <a href="display.php" class="px-3 py-1.5 rounded" style="background: rgba(255,255,255,0.1); color: white;">Live Display</a>
+                    <a href="kiosk.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Kiosk</a>
+                    <a href="index.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Operator</a>
+                    <a href="reports.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Analytics</a>
                 </div>
-                
-                <div class="text-right">
-                    <div id="currentTime" class="text-2xl md:text-3xl font-mono font-bold text-yellow-300"></div>
-                    <div id="currentDate" class="text-sm opacity-80"></div>
+            </div>
+            <div class="flex items-center gap-4">
+                <span id="liveClock" class="font-mono text-xl font-bold tracking-wider" style="color: white;">--:--:--</span>
+                <div class="hidden sm:flex items-center gap-2 px-3 py-1 rounded nav-status" style="background: rgba(255,255,255,0.1);">
+                    <div class="w-1.5 h-1.5 rounded-full" style="background: #34d399; animation: pulse-dot 2s infinite;"></div>
+                    <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em;">All Systems Operational</span>
                 </div>
+                <button onclick="event.stopPropagation(); toggleDisplayMode();" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[10px] font-bold uppercase tracking-widest" style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.2);">
+                    <span id="displayModeIcon">&#9632;</span>
+                    <span id="displayModeLabel">Display</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sub-header bar -->
+    <div class="sub-header" style="background: var(--card); border-bottom: 1px solid var(--border);">
+        <div class="max-w-[1600px] mx-auto px-6 flex items-center justify-between flex-wrap gap-3" style="padding-top: 0.75rem; padding-bottom: 0.75rem;">
+            <div class="flex items-center gap-4">
+                <span style="font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.15em; color: var(--muted);"><?php echo $branch_name; ?></span>
+                <?php if ($address): ?><span style="font-size: 10px; font-family: var(--font-mono); color: var(--muted);"><?php echo $address; ?></span><span style="height: 0.75rem; width: 1px; background: var(--border);"></span><?php endif; ?>
+                <span style="font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.15em; color: var(--muted);">Cutoff <?php echo $cutoff_formatted; ?></span>
+            </div>
+            <div class="flex items-center gap-6" style="font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.15em; color: var(--muted);">
+                <span>Wait · <span class="font-bold" style="color: var(--foreground);" id="statWait">--m</span></span>
+                <span>Active Windows · <span class="font-bold" style="color: var(--foreground);" id="statWindows">0</span></span>
+                <span>Tickets Today · <span class="font-bold" style="color: var(--foreground);" id="statTickets">0</span></span>
             </div>
         </div>
     </div>
 
-    <div class="bg-blue-900 py-3 overflow-hidden">
-        <div class="container mx-auto px-4">
-            <div class="overflow-hidden flex items-center">
-                <i class="fas fa-bullhorn mr-4 text-yellow-400 flex-shrink-0"></i>
-                <div id="announcementTicker" class="marquee text-lg font-medium flex-1">
-                    <div class="marquee-inner" id="tickerInner">
-                        <span><?php echo htmlspecialchars($settings['welcome_message'] ?? 'Welcome to our Service Center! Please have your queue ticket ready.'); ?></span>
-                        <span><?php echo htmlspecialchars($settings['welcome_message'] ?? 'Welcome to our Service Center! Please have your queue ticket ready.'); ?></span>
-                    </div>
+    <main class="flex-1 w-full max-w-[1600px] mx-auto px-6 py-6 grid grid-cols-12 gap-6">
+        <!-- Left Column -->
+        <section class="col-span-12 lg:col-span-8 flex flex-col gap-6">
+            <!-- Now Serving -->
+            <div id="windowsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Injected by JS -->
+            </div>
+
+            <!-- Sponsored Media Panel -->
+            <div id="mediaPanel" class="rounded-md overflow-hidden shadow-lg" style="background: var(--surface-dark); color: var(--surface-dark-foreground); border: 1px solid rgba(0,0,0,0.2);">
+                <div class="flex items-center justify-between px-4 py-2" style="background: rgba(0,0,0,0.3); border-bottom: 1px solid rgba(255,255,255,0.05);">
+                    <span id="mediaLabel" class="text-[9px] font-mono uppercase tracking-widest" style="color: rgba(255,255,255,0.5);">VIDEO</span>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="container mx-auto px-4 py-6">
-        <div id="displayArea" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div id="windowsContainer" class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Windows will be injected dynamically here -->
-            </div>
-
-            <div class="lg:col-span-1">
-                <div class="window-card rounded-2xl p-4 h-full flex flex-col">
-                    <div class="flex items-center mb-4">
-                        <i class="fas fa-list-ol text-xl mr-3 text-yellow-400"></i>
-                        <h3 class="text-xl font-bold uppercase tracking-wider">Waiting Queue</h3>
+                <div class="relative" style="aspect-ratio: 16 / 9; background: black;">
+                    <div id="mediaSlideContainer" class="absolute inset-0 w-full h-full">
+                        <div id="mediaVideo" class="absolute inset-0 w-full h-full"></div>
                     </div>
-                    <div id="waitingQueueList" class="flex-grow overflow-y-auto pr-2 custom-scrollbar" style="max-height: 500px;">
-                        <div class="text-center py-10 opacity-50">
-                            <i class="fas fa-users text-5xl mb-4"></i>
-                            <p>No customers waiting</p>
+                    <div class="absolute inset-0 pointer-events-none" style="background: linear-gradient(to top, rgba(0,0,0,0.85), transparent 60%);"></div>
+                    <div class="absolute bottom-0 left-0 right-0 p-4 flex items-end justify-between gap-4 pointer-events-none">
+                        <div>
+                            <span id="mediaSponsor" class="inline-block text-[9px] font-bold uppercase tracking-widest mb-1" style="color: var(--brand-gold);">Public Affairs Office</span>
+                            <h4 id="mediaTitle" class="text-base font-semibold leading-tight max-w-md">Citizen Services Overview</h4>
+                            <p id="mediaCta" class="text-[11px] mt-1" style="color: rgba(255,255,255,0.7);"></p>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="mt-6 bg-black bg-opacity-40 rounded-xl p-6 border-t-4 border-yellow-500 shadow-2xl">
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center">
-                    <i class="fas fa-history text-2xl mr-4 text-yellow-400"></i>
-                    <h3 class="text-2xl font-bold uppercase tracking-widest text-yellow-400">Recently Called</h3>
+            <!-- Alert Marquee -->
+            <div id="alertBar" class="alert-marquee-wrap" style="display: none; background: var(--primary); color: var(--primary-foreground); border-radius: var(--radius); border: 1px solid hsl(215 60% 25%); padding: 0.625rem 1.25rem; align-items: center; gap: 1.25rem; overflow: hidden;">
+                <span class="shrink-0 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm" style="background: var(--brand-gold); color: var(--primary);">Advisory</span>
+                <div id="tickerScroller" class="overflow-hidden flex-1" style="white-space:nowrap;">
+                    <span id="announcementTicker" style="display:inline-block;font-size:0.8125rem;font-weight:500;padding-right:50px;"><?php echo $welcome; ?> &nbsp;&bull;&bull;&bull;&nbsp; <?php echo $welcome; ?></span>
                 </div>
-                <div class="text-xs opacity-60 italic uppercase tracking-tighter">Sequence of calls</div>
             </div>
-            <div id="recentlyCalledHistory" class="flex flex-row overflow-x-auto gap-4 py-2 custom-scrollbar">
-                <div class="text-center w-full py-10 opacity-30 italic">No recent calls to display</div>
+        </section>
+
+        <!-- Right Column -->
+        <aside class="col-span-12 lg:col-span-4 flex flex-col gap-6" style="height:100%;">
+            <!-- Queue Next Up -->
+            <div style="flex-shrink:0; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);">
+                <div class="flex items-center justify-between px-4 py-3 border-b border-border" style="background: hsl(215 20% 94% / 0.6); border-radius: var(--radius) var(--radius) 0 0;">
+                    <div class="flex items-center gap-2">
+                        <div class="w-1.5 h-1.5 rounded-full" style="background: var(--success); animation: pulse-dot 2s infinite;"></div>
+                        <span class="text-[11px] font-bold uppercase tracking-widest">Queue · Next Up</span>
+                    </div>
+                    <span class="text-[10px] font-mono" style="color: var(--muted);"><span id="waitingCount">0</span> ahead</span>
+                </div>
+                <ul id="nextUpList" class="divide-y divide-border civic-scrollbar">
+                    <!-- Injected by JS -->
+                </ul>
+            </div>
+
+            <!-- Follow-Up Tickets -->
+            <div id="followUpPanel" style="flex-shrink:0; background: var(--primary); color: var(--primary-foreground); border: 1px solid hsl(215 60% 25%); border-radius: var(--radius); display: none;">
+                <div class="flex items-center justify-between px-4 py-3" style="background: rgba(0,0,0,0.2); border-bottom: 1px solid hsl(215 60% 25%); border-radius: var(--radius) var(--radius) 0 0;">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-flag text-xs" style="color: var(--brand-gold);"></i>
+                        <span class="text-[10px] font-bold uppercase tracking-widest">Follow-up · Return customers</span>
+                    </div>
+                    <span class="text-[10px] font-mono" style="color: rgba(255,255,255,0.5);"><span id="followUpCount">0</span> pending</span>
+                </div>
+                <ul id="followUpList" class="divide-y divide-y civic-scrollbar" style="border-color: hsl(215 60% 25%);">
+                    <!-- Injected by JS -->
+                </ul>
+            </div>
+
+            <!-- Poster Panel (image + announcement) -->
+            <div id="posterPanel" style="flex:1; min-height:0; display:none; flex-direction:column; background:#000; border-radius:var(--radius); overflow:hidden; border:1px solid var(--border);">
+                <div class="flex items-center justify-between px-4 py-2" style="background:rgba(0,0,0,0.3); border-bottom:1px solid rgba(255,255,255,0.05); flex-shrink:0;">
+                    <span id="posterLabel" class="text-[9px] font-mono uppercase tracking-widest" style="color:rgba(255,255,255,0.5);">POSTER</span>
+                    <span id="posterCountdownSide" class="text-[10px] font-bold font-mono uppercase tracking-widest" style="color:var(--brand-gold);display:none;">--</span>
+                </div>
+                <img id="posterDisplayImg" src="" alt="" style="width:100%; flex:1; min-height:0; object-fit:cover; display:none;">
+                <div id="posterAnnContent" style="flex:1; min-height:0; display:none; flex-direction:column; align-items:center; justify-content:center; padding:2rem; text-align:center; overflow:hidden;"></div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- StatusFooter -->
+    <footer class="sticky bottom-0 left-0 w-full p-6 flex justify-between items-center" style="background: hsl(210 30% 97% / 0.8); backdrop-filter: blur(12px); pointer-events: none;">
+        <div class="flex items-center gap-6">
+            <div class="flex flex-col">
+                <span class="text-[9px] font-bold uppercase tracking-widest" style="color: var(--muted);">Terminal ID</span>
+                <span class="text-[11px] font-mono" style="color: var(--foreground);">DISPLAY-MAIN</span>
+            </div>
+            <div class="flex flex-col">
+                <span class="text-[9px] font-bold uppercase tracking-widest" style="color: var(--muted);">Last Sync</span>
+                <span class="text-[11px] font-mono tabular-nums" id="footerTime" style="color: var(--foreground);">--:--:--</span>
             </div>
         </div>
-
-
-    </div>
-
-    <footer class="bg-black bg-opacity-40 py-4 mt-6">
-        <div class="container mx-auto px-4 text-center"><p class="text-sm opacity-70"><i class="fas fa-heart text-red-400 mr-1"></i>Thank you for your patience • Your turn will be called when ready</p></div>
+        <div class="flex items-center gap-2 px-3 py-1 rounded shadow-sm" style="background: var(--card); border: 1px solid var(--border);">
+            <div class="w-1.5 h-1.5 rounded-full" style="background: var(--primary);"></div>
+            <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em;">v4.2.0-stable</span>
+        </div>
     </footer>
 
-    <audio id="notificationSound" preload="auto" loop><source src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3" type="audio/mpeg"></audio>
+    <audio id="notificationSound" preload="auto"><source src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3" type="audio/mpeg"></audio>
 
     <script>
-        var lastCallInfo = {}; // Stores {queue_number, called_at} per window
-        var cutoffFormatted = "<?php echo $cutoff_formatted; ?>";
-        var announcementsPool = [];
-        var currentAnnIndex = 0;
-        var annTimer = null;
-        
-        function updateDisplayTime() {
-            var now = new Date();
-            var timeEl = document.getElementById('currentTime');
-            var dateEl = document.getElementById('currentDate');
-            if (timeEl) timeEl.textContent = now.toLocaleTimeString();
-            if (dateEl) dateEl.textContent = now.toLocaleDateString() + " • Cut-off: " + cutoffFormatted;
+        var lastCallInfo = {};
+        var welcomeMsg = "<?php echo $welcome; ?>";
+        var ytPlayer = null;
+        var posterSlides = <?php echo $mergedPostersJson; ?>;
+        var posterDuration = <?php echo $poster_duration; ?> * 1000;
+        var posterIdx = 0;
+        var posterTimer = null;
+        var lastSettingsHash = '';
+        var windowHistory = {};  // tracks previous window state for live alert generation
+        var marqueeStep = null;  // interval handle for JS-powered marquee scroll
+
+        function onYouTubeIframeAPIReady() {
+            ytPlayer = new YT.Player('mediaVideo', {
+                height: '100%', width: '100%',
+                videoId: '<?php echo $video_id; ?>',
+                playerVars: { autoplay: 1, mute: 0, controls: 0, rel: 0, modestbranding: 1, playsinline: 1 },
+                events: { onReady: function(e) { e.target.setVolume(<?php echo $video_volume; ?>); e.target.playVideo(); } }
+            });
         }
 
-        setInterval(updateDisplayTime, 1000); updateDisplayTime();
+        function updateFooterTime() {
+            var el = document.getElementById('footerTime');
+            if (!el) return;
+            var d = new Date();
+            var pad = function(n,w){w=w||2;return String(n).padStart(w,'0');};
+            el.textContent = pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+        }
+        setInterval(updateFooterTime, 200);
+        updateFooterTime();
 
-        function playNotificationSound() { 
-            var audio = document.getElementById('notificationSound'); 
-            if (audio) { audio.currentTime = 0; audio.play().catch(function(e) {}); } 
+        function duckVolume() {
+            if (ytPlayer && typeof ytPlayer.setVolume === 'function') { ytPlayer.setVolume(<?php echo $duck_volume; ?>); }
+        }
+        function restoreVolume() {
+            if (ytPlayer && typeof ytPlayer.setVolume === 'function') { ytPlayer.setVolume(<?php echo $video_volume; ?>); }
+        }
+
+        function playNotificationSound() {
+            var a = document.getElementById('notificationSound');
+            if (a) { a.currentTime = 0; a.play().catch(function() {}); }
         }
 
         function announceNumber(number, windowNum) {
             if (!window.speechSynthesis) return;
-            
-            // Cancel any pending speech
             window.speechSynthesis.cancel();
-            
-            // Format number for clearer speech (e.g. "R001" -> "R, 0, 0, 1")
-            var spokenNumber = number.split('').join(', ');
-            var text = "Now serving, ticket number " + spokenNumber + ", at Window " + windowNum;
-            
-            var utterance = new SpeechSynthesisUtterance(text);
-            utterance.rate = 0.85; // Slightly slower for better clarity in public spaces
-            utterance.pitch = 1.1; // Friendly tone
-            utterance.volume = 1.0;
-            
-            // Wait a tiny bit for the notification chime to play its initial peak
-            setTimeout(() => {
-                window.speechSynthesis.speak(utterance);
-            }, 800);
+            var spoken = number.split('').join(', ');
+            var u = new SpeechSynthesisUtterance('Now serving, ticket number ' + spoken + ', at Window ' + windowNum);
+            u.rate = 0.85; u.pitch = 1.1; u.volume = 1.0;
+            duckVolume();
+            u.onend = function() { restoreVolume(); };
+            setTimeout(function() { window.speechSynthesis.speak(u); }, 800);
         }
 
-        async function updateDisplay() {
-            try {
-                var response = await fetch('api/get_display_data.php');
-                var data = await response.json();
+        function showNextPoster() {
+            if (posterSlides.length === 0) return;
+            var panel = document.getElementById('posterPanel');
+            var img = document.getElementById('posterDisplayImg');
+            var ann = document.getElementById('posterAnnContent');
+            var countdown = document.getElementById('posterCountdownSide');
+            if (!panel) return;
+            var slide = posterSlides[posterIdx];
+            panel.style.display = 'flex';
+            if (countdown) {
+                countdown.textContent = (posterIdx + 1) + ' / ' + posterSlides.length;
+                countdown.style.display = 'block';
+            }
+            if (slide.type === 'image') {
+                img.src = slide.src;
+                img.style.display = 'block';
+                if (ann) ann.style.display = 'none';
+                document.getElementById('posterLabel').textContent = 'POSTER';
+            } else {
+                img.style.display = 'none';
+                if (ann) {
+                    ann.style.display = 'flex';
+                    ann.style.background = slide.bg;
+                    ann.style.color = slide.fg;
+                    ann.innerHTML = (slide.title ? '<div style="font-size:1.5rem;font-weight:800;letter-spacing:-0.02em;margin-bottom:0.5rem;line-height:1.2;">' + escapeHtml(slide.title) + '</div>' : '') +
+                        (slide.body ? '<div style="font-size:1rem;line-height:1.5;opacity:0.9;max-width:90%;">' + escapeHtml(slide.body) + '</div>' : '');
+                }
+                document.getElementById('posterLabel').textContent = 'ANNOUNCEMENT';
+            }
+            posterIdx = (posterIdx + 1) % posterSlides.length;
+            if (posterTimer) clearTimeout(posterTimer);
+            posterTimer = setTimeout(showNextPoster, posterDuration);
+        }
+
+        function escapeHtml(str) {
+            var d = document.createElement('div');
+            d.appendChild(document.createTextNode(str));
+            return d.innerHTML;
+        }
+
+        function startPosterRotation() {
+            if (posterSlides.length === 0) return;
+            showNextPoster();
+        }
+
+        function makeNowServingCard(w, idx) {
+            var active = Number(w.is_online) !== 0 && w.status_text !== 'Offline' && w.status_text !== 'On Break';
+            var liveBadge = active ? '<span class="live-badge text-[11px] font-bold uppercase tracking-widest px-3 py-1 rounded-sm" style="background: var(--brand-gold); color: #b91c1c;">Live</span>' : '';
+            var statusLabel = '<span class="window-label font-mono text-lg font-bold uppercase tracking-widest px-4 py-1.5 rounded-lg" style="color: ' + (active ? '#b91c1c' : '#374151') + '; background: ' + (active ? 'rgba(185,28,28,0.08)' : 'rgba(0,0,0,0.04)') + ';">WINDOW ' + w.window_number + '</span>';
+            var numColor = active ? '#b91c1c' : 'var(--foreground)';
+            var bgStyle = active ? 'background: white; color: #111827; border: 1px solid #e5e7eb;' : 'background: var(--card); border: 1px solid var(--border);';
+            var serviceColor = active ? '#6b7280' : 'var(--muted)';
+            return '<div id="window' + w.window_number + 'Card" class="animate-entry now-serving-card relative overflow-hidden rounded-md flex flex-col justify-between p-6" style="' + bgStyle + 'min-height:260px;animation-delay:' + (idx * 100) + 'ms;">' +
+                '<div class="flex items-center justify-between">' + statusLabel + liveBadge + '</div>' +
+                '<div class="flex-1 flex flex-col items-center justify-center">' +
+                    '<div id="window' + w.window_number + 'Serving" class="num font-extrabold tracking-tighter leading-none tabular-nums flip-in" style="color: ' + numColor + ';">---</div>' +
+                    '<span class="now-serving-tag text-sm font-bold uppercase tracking-[0.3em] mt-3" style="color: ' + serviceColor + ';">Now Serving</span>' +
+                '</div>' +
+                '<div class="card-footer flex items-center justify-between text-sm font-mono uppercase tracking-widest" style="color: ' + serviceColor + ';">' +
+                    '<span id="window' + w.window_number + 'Service">--</span>' +
+                    '<span id="window' + w.window_number + 'Status">--</span>' +
+                '</div>' +
+            '</div>';
+        }
+
+        function updateDisplay() {
+            fetch('api/get_display_data.php').then(function(r){return r.json();}).then(function(data) {
                 if (data.error) return;
-                
-                // Update Theme, Logo, and Font
-                if (data.settings.theme_color) {
-                    document.documentElement.style.setProperty('--primary-color', data.settings.theme_color);
+
+                // Auto-reload on settings change (cross-device)
+                if (data.settings_hash && lastSettingsHash && data.settings_hash !== lastSettingsHash) {
+                    location.reload();
+                    return;
                 }
-                
-                
-                const logoContainer = document.getElementById('logoContainer');
-                if (logoContainer) {
-                    if (data.settings.company_logo) {
-                        logoContainer.innerHTML = `<img src="${data.settings.company_logo}" alt="Logo" class="h-16 w-auto object-contain" id="companyLogoImg">`;
-                    } else {
-                        logoContainer.innerHTML = `<i class="fas fa-building text-4xl text-yellow-400" id="companyLogoIcon"></i>`;
-                    }
-                }
-                
-                const companyNameEl = document.getElementById('companyName');
-                if (companyNameEl) companyNameEl.textContent = data.settings.company_name;
-                
+                if (data.settings_hash) lastSettingsHash = data.settings_hash;
+
+                // Now Serving cards
                 var wc = document.getElementById('windowsContainer');
                 var windowsData = data.windows || [];
-                
-                // If container is empty or number of windows changed, clear and re-render
                 if (wc && (wc.children.length === 0 || wc.children.length !== windowsData.length)) {
-                    wc.innerHTML = '';
+                    wc.innerHTML = windowsData.map(function(w, i) { return makeNowServingCard(w, i); }).join('');
+                }
+                for (var i = 0; i < windowsData.length; i++) updateWindow(windowsData[i], data);
+
+                // Stats in sub-header
+                if (document.getElementById('statWindows')) document.getElementById('statWindows').textContent = windowsData.length;
+                var activeW = windowsData.filter(function(w){return w.is_online===1&&w.status_text!=='Offline'&&w.status_text!=='On Break';}).length;
+                if (document.getElementById('statWindowsActive')) document.getElementById('statWindowsActive').textContent = activeW;
+                if (document.getElementById('statTickets')) document.getElementById('statTickets').textContent = data.stats_today || 0;
+                if (document.getElementById('statWait')) document.getElementById('statWait').textContent = data.avg_wait || '--m';
+
+                // Live alert marquee — dynamic state messages + DB announcements
+                var alertBar = document.getElementById('alertBar');
+                var ticker = document.getElementById('announcementTicker');
+                var scroller = document.getElementById('tickerScroller');
+                if (alertBar && ticker && scroller) {
+                    var dynMsgs = [];
+                    var windows = data.windows || [];
+                    var waitingCount = data.waiting_count || 0;
+                    var offlineCount = 0;
+
+                    // Per-window status messages
+                    for (var wi = 0; wi < windows.length; wi++) {
+                        var w = windows[wi];
+                        if (Number(w.is_online) === 0 || w.status_text === 'Offline') {
+                            offlineCount++;
+                            dynMsgs.push('Window ' + w.window_number + ' is currently offline');
+                        } else if (w.status_text === 'On Break') {
+                            dynMsgs.push('Window ' + w.window_number + ' is on break, please wait patiently');
+                        } else if (w.queue_number) {
+                            dynMsgs.push('Window ' + w.window_number + ' is now serving Ticket ' + w.queue_number);
+                        }
+                    }
+
+                    // All windows offline
+                    if (windows.length > 0 && offlineCount === windows.length) {
+                        dynMsgs = ['Currently all windows are offline. Please wait for assistance.'];
+                    }
+
+                    // High density
+                    if (waitingCount >= 10) {
+                        dynMsgs.push('Due to the high volume of inquiries, please wait patiently. ' + waitingCount + ' customers ahead.');
+                    }
+
+                    // Cutoff approaching (within 60 minutes)
+                    if (data.settings && data.settings.cutoff_time) {
+                        var parts = data.settings.cutoff_time.split(':');
+                        var now = new Date();
+                        var cutoffDate = new Date();
+                        cutoffDate.setHours(parseInt(parts[0], 10), parseInt(parts[1] || 0, 10), parseInt(parts[2] || 0, 10));
+                        var diffMin = (cutoffDate - now) / 60000;
+                        if (diffMin > 0 && diffMin <= 60) {
+                            dynMsgs.push('Last ticket issuance ends at ' + data.settings.cutoff_time_formatted + '. Please queue now.');
+                        }
+                    }
+
+                    // Merge with DB announcements
+                    var dbAnn = data.announcements || [];
+                    var allMsgs = dynMsgs.concat(dbAnn.map(function(a){return a.message;}));
+
+                    if (allMsgs.length > 0) {
+                        alertBar.style.display = 'flex';
+                        var text = allMsgs.join(' &nbsp;&bull;&bull;&bull;&nbsp; ');
+                        if (ticker.getAttribute('data-text') !== text) {
+                            ticker.setAttribute('data-text', text);
+                            ticker.innerHTML = text + ' &nbsp;&bull;&bull;&bull;&nbsp; ' + text;
+                            scroller.scrollLeft = 0;
+                        }
+                    } else {
+                        alertBar.style.display = 'none';
+                    }
                 }
 
-                for (var i = 0; i < windowsData.length; i++) {
-                    var w = windowsData[i];
-                    var cardId = 'window' + w.window_number + 'Card';
-                    
-                    if (!document.getElementById(cardId)) {
-                        var isBlue = (i % 2 !== 0);
-                        var primaryColor = isBlue ? 'blue-300' : 'yellow-300';
-                        var newHtml = `
-                            <div id="${cardId}" class="window-card rounded-2xl p-6 text-center">
-                                <div class="flex justify-between items-center mb-4">
-                                    <h3 class="text-xl font-bold">WINDOW ${w.window_number}</h3>
-                                    <span id="window${w.window_number}Status" class="px-3 py-1 rounded-full text-sm"><i class="fas fa-circle text-xs mr-1"></i>Loading</span>
-                                </div>
-                                <div id="window${w.window_number}Services" class="text-sm mb-4 opacity-80 h-5 overflow-hidden">Loading services...</div>
-                                <div class="bg-black bg-opacity-30 rounded-xl p-6 mb-4">
-                                    <div class="text-${primaryColor} text-lg mb-2 uppercase font-bold">Now Serving</div>
-                                    <div id="window${w.window_number}Serving" class="text-7xl font-bold queue-number text-${primaryColor}">---</div>
-                                </div>
-                                <div class="bg-black bg-opacity-20 rounded-lg p-4 mb-4">
-                                    <div class="text-green-300 text-sm mb-1 uppercase font-bold">Next In Line</div>
-                                    <div id="window${w.window_number}Next" class="text-4xl font-bold queue-number">---</div>
-                                </div>
-                                <div class="bg-black bg-opacity-10 rounded-lg p-3">
-                                    <div class="text-xs opacity-60 uppercase mb-2 border-b border-white border-opacity-10 pb-1">Previous Calls</div>
-                                    <div id="window${w.window_number}History" class="flex justify-center gap-3 text-lg font-bold opacity-80">---</div>
-                                </div>
-                            </div>
-                        `;
-                        if (wc) wc.insertAdjacentHTML('beforeend', newHtml);
+                // Next Up list
+                var nextUpList = document.getElementById('nextUpList');
+                var waitingQueue = data.waiting_queue || [];
+                if (nextUpList) {
+                    if (waitingQueue.length > 0) {
+                        var nextHtml = '';
+                        for (var i = 0; i < Math.min(waitingQueue.length, 10); i++) {
+                            var q = waitingQueue[i];
+                            var bg = i === 0 ? 'background: hsl(42 70% 52% / 0.1);' : '';
+                            nextHtml += '<li class="flex items-center justify-between px-4 py-3" style="' + bg + '">' +
+                                '<div class="flex items-center gap-4">' +
+                                    '<span class="text-[10px] font-mono w-6 tabular-nums" style="color: var(--muted);">' + String(i + 1).padStart(2,'0') + '</span>' +
+                                    '<div class="flex flex-col">' +
+                                        '<span class="font-mono text-sm font-bold tracking-tight">' + q.queue_number + '</span>' +
+                                        '<span class="text-[10px] uppercase tracking-wider" style="color: var(--muted);">' + (q.service_type || '') + '</span>' +
+                                    '</div>' +
+                                '</div>' +
+                            '</li>';
+                        }
+                        nextUpList.innerHTML = nextHtml;
+                    } else {
+                        nextUpList.innerHTML = '<li class="p-8 text-center text-sm" style="color: var(--muted);">No customers waiting</li>';
                     }
-                    updateWindow(w.window_number, w, data);
                 }
-                
-                updateWaitingQueue(data.waiting_queue || []);
-                updateAnnouncements(data.announcements || []);
-                updateRecentCalledHistory(data.recent_called_history || []);
-            } catch (error) { console.error('Display Error:', error); }
+                if (document.getElementById('waitingCount')) document.getElementById('waitingCount').textContent = waitingQueue.length;
+
+                // Follow-Up list
+                var followUpList = document.getElementById('followUpList');
+                var followUpPanel = document.getElementById('followUpPanel');
+                var followUpData = data.follow_up_tickets || [];
+                if (followUpList && followUpPanel) {
+                    if (followUpData.length > 0) {
+                        followUpPanel.style.display = 'block';
+                        var fuHtml = '';
+                        for (var i = 0; i < Math.min(followUpData.length, 10); i++) {
+                            var f = followUpData[i];
+                            fuHtml += '<li class="flex items-center justify-between px-4 py-3" style="border-color: hsl(215 60% 25%);">' +
+                                '<div class="flex items-center gap-4">' +
+                                    '<span class="text-[10px] font-mono w-6 tabular-nums" style="color: rgba(255,255,255,0.5);">' + String(i + 1).padStart(2,'0') + '</span>' +
+                                    '<div class="flex flex-col">' +
+                                        '<span class="font-mono text-sm font-bold tracking-tight" style="color: var(--brand-gold);">' + f.queue_number + '</span>' +
+                                        '<span class="text-[10px] uppercase tracking-wider" style="color: rgba(255,255,255,0.5);">' + (f.service_type || '') + '</span>' +
+                                    '</div>' +
+                                '</div>' +
+                            '</li>';
+                        }
+                        followUpList.innerHTML = fuHtml;
+                        if (document.getElementById('followUpCount')) document.getElementById('followUpCount').textContent = followUpData.length;
+                    } else {
+                        followUpPanel.style.display = 'none';
+                    }
+                }
+            }).catch(function(e) { console.error('Display Error:', e); });
         }
 
-        function updateWindow(windowNum, windowData, fullData) {
-            var isOffline = !(windowData && windowData.is_online);
-            var statusText = (windowData && windowData.status_text) ? windowData.status_text : (isOffline ? 'Offline' : 'Online');
-            
-            var card = document.getElementById('window' + windowNum + 'Card');
-            var serving = document.getElementById('window' + windowNum + 'Serving');
-            var next = document.getElementById('window' + windowNum + 'Next');
-            var status = document.getElementById('window' + windowNum + 'Status');
-            var servicesEl = document.getElementById('window' + windowNum + 'Services');
-            
-            if (!card || !serving || !next || !status) return;
-            
-            if (servicesEl) {
-                servicesEl.textContent = (windowData && windowData.active_services_names) ? windowData.active_services_names : 'No active services';
-            }
+        function updateWindow(w, fullData) {
+            var isOffline = !(w && Number(w.is_online));
+            var statusText = (w && w.status_text) ? w.status_text : (isOffline ? 'Offline' : 'Online');
+            var card = document.getElementById('window' + w.window_number + 'Card');
+            var serving = document.getElementById('window' + w.window_number + 'Serving');
+            var service = document.getElementById('window' + w.window_number + 'Service');
+            var status = document.getElementById('window' + w.window_number + 'Status');
+            if (!card || !serving) return;
 
-            if (statusText === 'On Break') {
-                card.classList.remove('window-offline'); card.classList.add('window-card');
-                status.innerHTML = '<i class="fas fa-pause-circle text-xs mr-1"></i>On Break';
-                status.className = 'px-3 py-1 rounded-full text-sm bg-yellow-200 text-yellow-800';
+            if (isOffline || statusText === 'Offline') {
                 serving.textContent = '---';
-                next.textContent = 'Unavailable'; 
+                if (service) service.textContent = 'Offline';
+                if (status) status.textContent = '---';
+                card.style.opacity = '0.5';
                 return;
-            } else if (isOffline) {
-                card.classList.remove('window-card'); card.classList.add('window-offline');
-                status.innerHTML = '<i class="fas fa-circle text-xs mr-1"></i>Offline';
-                status.className = 'px-3 py-1 rounded-full text-sm bg-red-200 text-red-800';
+            } else if (statusText === 'On Break') {
                 serving.textContent = '---';
-                next.textContent = 'Unavailable'; 
+                if (service) service.textContent = 'On Break';
+                if (status) status.textContent = '---';
+                card.style.opacity = '0.7';
                 return;
             }
-            
-            card.classList.remove('window-offline'); card.classList.add('window-card');
-            status.innerHTML = '<i class="fas fa-circle text-xs mr-1"></i>Online';
-            status.className = 'px-3 py-1 rounded-full text-sm bg-green-200 text-green-800';
-            
-            var newServing = (windowData && windowData.queue_number) ? windowData.queue_number : '---';
-            var calledAt = (windowData && windowData.called_at) ? windowData.called_at : '';
-            
-            if (!lastCallInfo[windowNum]) {
-                lastCallInfo[windowNum] = { queue_number: '', called_at: '' };
-            }
+            card.style.opacity = '1';
 
-            if (newServing !== '---' && (newServing !== lastCallInfo[windowNum].queue_number || calledAt !== lastCallInfo[windowNum].called_at)) {
+            var newServing = (w && w.queue_number) ? w.queue_number : '---';
+            var calledAt = (w && w.called_at) ? w.called_at : '';
+            if (!lastCallInfo[w.window_number]) lastCallInfo[w.window_number] = { queue_number: '', called_at: '' };
+
+            if (newServing !== '---' && (newServing !== lastCallInfo[w.window_number].queue_number || calledAt !== lastCallInfo[w.window_number].called_at)) {
                 serving.textContent = newServing;
-                lastCallInfo[windowNum] = { queue_number: newServing, called_at: calledAt };
-                
+                serving.className = 'num font-extrabold tracking-tighter leading-none tabular-nums flip-in';
+                setTimeout(function() { serving.className = 'num font-extrabold tracking-tighter leading-none tabular-nums'; }, 600);
+                lastCallInfo[w.window_number] = { queue_number: newServing, called_at: calledAt };
                 playNotificationSound();
-                announceNumber(newServing, windowNum);
+                announceNumber(newServing, w.window_number);
             } else if (newServing === '---') {
                 serving.textContent = '---';
-                lastCallInfo[windowNum] = { queue_number: '---', called_at: '' };
+                lastCallInfo[w.window_number] = { queue_number: '---', called_at: '' };
             }
-            
-            var serviceType = (windowData && windowData.active_services) ? windowData.active_services.split(',') : [];
-            var nextCustomer = null;
-            if (fullData.next_by_service) {
-                for (var i = 0; i < fullData.next_by_service.length; i++) {
-                    if (serviceType.indexOf(fullData.next_by_service[i].service_type) !== -1) {
-                        nextCustomer = fullData.next_by_service[i];
-                        break;
-                    }
-                }
-            }
-            next.textContent = (nextCustomer && nextCustomer.queue_number) ? nextCustomer.queue_number : '---';
-            
-            var waitCount = 0;
-            var q = fullData.waiting_queue || [];
-            for (var j = 0; j < q.length; j++) {
-                if (serviceType.indexOf(q[j].service_type) !== -1) waitCount++;
-            }
-            // waiting.textContent = waitCount; // Feature removed as requested
 
-            // Update Window History (3 previous calls)
-            var historyEl = document.getElementById('window' + windowNum + 'History');
-            if (historyEl && fullData.recent_called_history) {
-                var currentNum = (windowData && windowData.queue_number) ? windowData.queue_number : null;
-                var history = fullData.recent_called_history
-                    .filter(h => h.window_number == windowNum && h.queue_number !== currentNum)
-                    .slice(0, 3);
-                
-                if (history.length > 0) {
-                    historyEl.innerHTML = history.map(h => `<span class="px-2 py-0.5 bg-white bg-opacity-5 rounded">${h.queue_number}</span>`).join('');
-                } else {
-                    historyEl.innerHTML = '<span class="text-xs opacity-40 italic">No history</span>';
-                }
-            }
+            var svc = (w && w.active_services) ? w.active_services.split(',').join(', ') : '--';
+            if (service) service.textContent = svc || '--';
+            if (status) status.textContent = statusText === 'Online' ? 'Desk Active' : statusText;
         }
 
-        function updateWaitingQueue(queue) {
-            var list = document.getElementById('waitingQueueList');
-            if (!list) return;
-            if (!queue || queue.length === 0) { 
-                list.innerHTML = '<div class="text-center py-10 opacity-50"><i class="fas fa-users text-5xl mb-4"></i><p>No customers waiting</p></div>'; 
-                return; 
-            }
-            
-            var html = '<div class="grid grid-cols-2 gap-3">';
-            for (var i = 0; i < queue.length; i++) {
-                html += '<div class="bg-white bg-opacity-10 border border-white border-opacity-10 rounded-lg p-3 text-center">' +
-                        '<div class="text-xs opacity-60 uppercase mb-1">' + (queue[i].service_type || 'Queue') + '</div>' +
-                        '<div class="text-2xl font-bold text-yellow-300 font-mono">' + queue[i].queue_number + '</div>' +
-                        '</div>';
-            }
-            html += '</div>';
-            list.innerHTML = html;
-        }
+        // Media Panel — YouTube always plays, poster overlays on timer
+        var mediaLabel = document.getElementById('mediaLabel');
+        document.getElementById('mediaSponsor').textContent = '<?php echo addslashes($settings['video_sponsor'] ?: 'Public Affairs Office'); ?>';
+        document.getElementById('mediaTitle').textContent = '<?php echo addslashes($settings['video_title'] ?: 'Citizen Services Overview'); ?>';
+        document.getElementById('mediaCta').textContent = '<?php echo addslashes($settings['video_cta'] ?? ''); ?>';
 
+        startPosterRotation();
 
-
-        function updateAnnouncements(announcements) {
-            var inner = document.getElementById('tickerInner');
-            if (!inner) return;
-            
-            var text;
-            if (!announcements || announcements.length === 0) {
-                text = "<?php echo addslashes($settings['welcome_message'] ?? 'Welcome to our Service Center! Please have your queue ticket ready.'); ?>";
-            } else {
-                text = announcements.map(a => a.message).join(' ••• ');
-            }
-            
-            // Only update if content actually changed (prevents animation restart)
-            if (inner.getAttribute('data-text') === text) return;
-            inner.setAttribute('data-text', text);
-            
-            inner.innerHTML = '<span>' + text + '</span><span>' + text + '</span>';
-        }
-
-        function updateRecentCalledHistory(history) {
-            var container = document.getElementById('recentlyCalledHistory');
-            if (!container) return;
-            
-            if (!history || history.length === 0) {
-                container.innerHTML = '<div class="text-center w-full py-10 opacity-30 italic">No recent calls to display</div>';
-                return;
-            }
-            
-            var html = '';
-            for (var i = 0; i < history.length; i++) {
-                var h = history[i];
-                var isNewest = (i === 0);
-                var newestClass = isNewest ? 'border-yellow-400 bg-yellow-400 bg-opacity-20 scale-105 shadow-yellow-500/20' : 'border-white border-opacity-10 bg-white bg-opacity-5';
-                
-                // Fix for possible invalid date format in some browsers
-                var callTime = h.called_at ? h.called_at.replace(/-/g, '/') : null;
-                var timeStr = callTime ? new Date(callTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '--:--';
-                
-                html += `
-                    <div class="flex-shrink-0 w-48 p-4 rounded-xl border-2 ${newestClass} transition-all duration-500">
-                        <div class="text-xs opacity-60 uppercase mb-1">${h.display_name || 'Window ' + h.window_number}</div>
-                        <div class="text-3xl font-bold text-yellow-300 font-mono">${h.queue_number}</div>
-                        <div class="text-[10px] opacity-40 mt-2 italic">${timeStr}</div>
-                    </div>
-                `;
-            }
-            container.innerHTML = html;
-        }
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'cq_settings_updated') location.reload();
+        });
 
         setInterval(updateDisplay, 3000);
         updateDisplay();
+
+        // JS-powered marquee scroll (replaces CSS animation for reliability)
+        function scrollMarquee() {
+            var s = document.getElementById('tickerScroller');
+            if (!s || s.scrollWidth === 0) return;
+            if (s.scrollLeft >= Math.ceil(s.scrollWidth / 2)) {
+                s.scrollLeft = 0;
+            } else {
+                s.scrollLeft += 1;
+            }
+        }
+        marqueeStep = setInterval(scrollMarquee, 40);
     </script>
 </body>
 </html>

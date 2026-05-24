@@ -1,254 +1,375 @@
-<?php include 'config.php'; ?>
+<?php include 'config.php';
+try { $db = new Database(); $conn = $db->getConnection(); $s = $conn->query("SELECT * FROM display_settings LIMIT 1")->fetch(PDO::FETCH_ASSOC); } catch (Exception $e) { $s = []; }
+$company_name = htmlspecialchars($s['company_name'] ?? 'Service Center');
+$branch_name = htmlspecialchars($s['branch_name'] ?? '');
+$company_logo = htmlspecialchars($s['company_logo'] ?? '');
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Settings - Queue Management System</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23667eea'><path d='M3 3h18v2H3V3zm0 4h18v2H3V7zm0 4h18v2H3v-2zm0 4h12v2H3v-2zm14 0l3 3-3 3v-6z'/></svg>">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Settings — <?php echo $company_name; ?></title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563eb'><path d='M3 3h18v2H3V3zm0 4h18v2H3V7zm0 4h18v2H3v-2zm0 4h12v2H3v-2zm14 0l3 3-3 3v-6z'/></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/design-system.css">
     <style>
-        body { font-family: 'Inter', system-ui, sans-serif; }
-        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid #667eea; outline-offset: 2px; border-radius: 0.375rem; }
+        .input-field { width: 100%; padding: 0.625rem 1rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.875rem; background: var(--card); transition: border-color 0.15s; }
+        .input-field:focus { outline: none; border-color: var(--ring); box-shadow: 0 0 0 3px hsl(215 60% 18% / 0.15); }
+        select.input-field { cursor: pointer; }
+        .ann-item { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 1rem; transition: all 0.15s; }
+        .ann-item:hover { background: var(--secondary); }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
-    <header class="gradient-bg text-white shadow-lg">
-        <div class="container mx-auto px-4 py-4">
-            <div class="flex justify-between items-center">
-                <div class="flex items-center gap-4">
-                    <a href="index.php" class="text-white hover:text-gray-200"><i class="fas fa-arrow-left text-xl"></i></a>
-                    <h1 class="text-2xl font-bold"><i class="fas fa-cog mr-3"></i>Display Settings</h1>
+<body class="min-h-screen flex flex-col" style="background: var(--background);">
+    <nav class="sticky top-0 z-50" style="background: #b91c1c; color: white; border-bottom: 1px solid rgba(255,255,255,0.15);">
+        <div class="max-w-[1600px] mx-auto flex items-center justify-between px-6" style="height: 3.5rem;">
+            <div class="flex items-center gap-10">
+                <a href="display.php" class="flex items-center gap-3">
+                    <div class="relative w-7 h-7 grid place-items-center" style="background: var(--brand-gold); border-radius: 2px;">
+                        <?php if ($company_logo): ?><img src="<?php echo $company_logo; ?>" alt="" class="w-5 h-5 object-contain"><?php else: ?><span style="color: var(--primary); font-size: 11px; font-weight: 900; letter-spacing: -0.05em;">CQ</span><?php endif; ?>
+                    </div>
+                    <div class="flex flex-col leading-none">
+                        <span style="font-size: 20px; font-weight: 800; letter-spacing: -0.02em; color: white;"><?php echo $company_name; ?></span>
+                        <span style="font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.2em; opacity: 0.5;">Settings</span>
+                    </div>
+                </a>
+                <div class="hidden md:flex gap-1 text-[11px] font-semibold uppercase tracking-wider">
+                    <a href="index.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Operator</a>
+                    <a href="display.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Live Display</a>
+                    <a href="kiosk.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Kiosk</a>
+                    <a href="reports.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Analytics</a>
                 </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <span style="font-size: 10px; font-family: var(--font-mono); opacity: 0.7;">ADMIN</span>
             </div>
         </div>
-    </header>
+    </nav>
 
-    <main class="container mx-auto px-4 py-8 max-w-4xl">
-        <form id="settingsForm" class="space-y-6">
-            <div class="card p-5">
-                <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-building mr-2 text-blue-500"></i>Company Information</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div><label class="block text-sm font-medium text-gray-700 mb-2">Company Name</label><input type="text" id="companyName" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"></div>
-                    <div><label class="block text-sm font-medium text-gray-700 mb-2">Company Logo URL</label><input type="text" id="companyLogo" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="https://example.com/logo.png"></div>
-                </div>
-            </div>
-
-            <div class="card p-5">
-                <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-clock mr-2 text-red-500"></i>Queue Settings</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Cut-off Time (When queueing closes)</label>
-                        <input type="time" id="cutoffTime" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+    <main class="flex-1 w-full max-w-4xl mx-auto p-8">
+        <form id="settingsForm" class="space-y-6" enctype="multipart/form-data">
+            <div class="card p-6 animate-entry">
+                <h2 class="text-xs font-bold uppercase tracking-widest mb-4" style="color: var(--muted);">Company Information</h2>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div><label class="label-md block mb-1.5">Company Name</label><input type="text" id="companyName" class="input-field"></div>
+                        <div><label class="label-md block mb-1.5">Company Logo URL</label><input type="text" id="companyLogo" class="input-field" placeholder="https://example.com/logo.png"></div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div><label class="label-md block mb-1.5">Branch / Office Name</label><input type="text" id="branchName" class="input-field" placeholder="e.g. Quezon City — Main Hall"></div>
+                        <div><label class="label-md block mb-1.5">Address</label><input type="text" id="address" class="input-field" placeholder="e.g. 123 Roxas Blvd, Quezon City"></div>
                     </div>
                 </div>
             </div>
 
-            <div class="card p-5 mb-6">
-            <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-bullhorn mr-2 text-yellow-500"></i>Announcement Ticker Message</h2>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Message</label>
-                    <input type="text" id="annMsg" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Enter message to scroll on top...">
+            <div class="card p-6 animate-entry" style="animation-delay: 80ms;">
+                <h2 class="text-xs font-bold uppercase tracking-widest mb-4" style="color: var(--muted);">Queue Settings</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div><label class="label-md block mb-1.5">Cut-off Time</label><input type="time" id="cutoffTime" class="input-field"></div>
+                    <div><label class="label-md block mb-1.5">Welcome Message</label><input type="text" id="welcomeMessage" class="input-field" placeholder="Welcome! Please have your queue ticket ready."></div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Show For (Duration)</label>
-                    <select id="annDurationPreset" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <option value="60">1 Hour</option>
-                        <option value="240">4 Hours</option>
-                        <option value="480">8 Hours</option>
-                        <option value="1440">24 Hours</option>
-                        <option value="10080">1 Week</option>
-                        <option value="0">Forever</option>
+            </div>
+
+            <div class="card p-6 animate-entry" style="animation-delay: 100ms;">
+                <h2 class="text-xs font-bold uppercase tracking-widest mb-4" style="color: var(--muted);">Media Panel</h2>
+                <p class="text-[11px] mb-4" style="color: var(--muted);">Configure the YouTube video shown on the Live Display. Changes take effect on page reload.</p>
+
+                <h3 class="text-[10px] font-bold uppercase tracking-wider mb-3" style="color: var(--brand-gold);">YouTube Video</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div><label class="label-md block mb-1.5">YouTube Video ID</label><input type="text" id="videoUrl" class="input-field" placeholder="e.g. aqz-KE-bpKQ"></div>
+                    <div><label class="label-md block mb-1.5">Video Type</label><select id="videoType" class="input-field"><option value="youtube">YouTube</option><option value="none">None</option></select></div>
+                    <div><label class="label-md block mb-1.5">Title</label><input type="text" id="videoTitle" class="input-field" placeholder="Citizen Services Overview"></div>
+                    <div><label class="label-md block mb-1.5">Sponsor</label><input type="text" id="videoSponsor" class="input-field" placeholder="Public Affairs Office"></div>
+                    <div class="md:col-span-2"><label class="label-md block mb-1.5">Call-to-action (optional)</label><input type="text" id="videoCta" class="input-field" placeholder=""></div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="label-md block mb-1.5">Media Volume</label>
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-volume-down text-sm" style="color: var(--muted);"></i>
+                            <input type="range" id="videoVolume" min="0" max="100" value="50" class="flex-1" style="accent-color: var(--brand-gold);">
+                            <span id="volumeDisplay" class="font-mono text-xs tabular-nums" style="color: var(--muted);">50%</span>
+                        </div>
+                        <p class="text-[10px] mt-1" style="color: var(--muted);">Ducks to ~15% when a number is called</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card p-6 animate-entry" style="animation-delay: 110ms;">
+                <h2 class="text-xs font-bold uppercase tracking-widest mb-4" style="color: var(--muted);">Poster Display</h2>
+                <p class="text-[11px] mb-4" style="color: var(--muted);">Posters appear in the right panel of the Live Display.</p>
+
+                <div class="mb-5 max-w-xs">
+                    <label class="label-md block mb-1.5">Display Duration</label>
+                    <select id="posterDuration" class="input-field">
+                        <option value="5">5 seconds</option>
+                        <option value="10" selected>10 seconds</option>
+                        <option value="15">15 seconds</option>
+                        <option value="30">30 seconds</option>
                     </select>
                 </div>
-                <div class="flex items-end">
-                    <button type="button" onclick="addAnnouncement()" class="w-full px-6 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 font-bold"><i class="fas fa-paper-plane mr-2"></i>Post</button>
+
+                <div>
+                    <label class="label-md block mb-2">Poster Images</label>
+                    <div class="flex items-center gap-3 mb-3">
+                        <input type="file" id="posterUpload" class="input-field" multiple accept="image/*">
+                        <button type="button" onclick="uploadPosters()" class="btn btn-primary whitespace-nowrap"><i class="fas fa-upload mr-1"></i> Upload</button>
+                    </div>
+                    <p class="text-[10px] mb-3" style="color: var(--muted);">Supported: JPG, PNG, GIF, WebP.</p>
+                    <div id="posterGallery" class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <!-- Injected by JS -->
+                    </div>
+                </div>
+
+                <div class="h-px my-5" style="background: var(--border);"></div>
+
+                <div>
+                    <label class="label-md block mb-3">Announcement Posters</label>
+                    <p class="text-[10px] mb-3" style="color: var(--muted);">Create text-based announcement posters that rotate alongside image posters.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                        <div class="md:col-span-2">
+                            <label class="label-md block mb-1.5">Title</label>
+                            <input type="text" id="annPosterTitle" class="input-field" placeholder="e.g. Holiday Schedule">
+                        </div>
+                        <div>
+                            <label class="label-md block mb-1.5">Background</label>
+                            <input type="color" id="annPosterBg" class="input-field h-10 p-1" value="#1e3a5f">
+                        </div>
+                        <div>
+                            <label class="label-md block mb-1.5">Text Color</label>
+                            <input type="color" id="annPosterFg" class="input-field h-10 p-1" value="#ffffff">
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="label-md block mb-1.5">Body Message</label>
+                        <textarea id="annPosterBody" class="input-field" rows="3" placeholder="Enter the announcement message..."></textarea>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button type="button" onclick="addAnnouncementPoster()" class="btn btn-primary"><i class="fas fa-plus-circle mr-1"></i> Add to Rotation</button>
+                        <span class="text-[10px]" style="color: var(--muted);">Preview:</span>
+                        <div id="annPosterPreview" style="width:100px;height:56px;border-radius:4px;overflow:hidden;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;text-align:center;padding:4px;"></div>
+                    </div>
+                    <div id="annPosterList" class="flex flex-wrap gap-3 mt-4">
+                        <!-- Injected by JS -->
+                    </div>
                 </div>
             </div>
-        </div>
 
-
-                <div id="announcementList" class="space-y-3">
-                    <div class="text-center py-4 text-gray-500">Loading announcements...</div>
-                </div>
-            </div>
-
-            <div class="flex justify-end gap-4">
-                <button type="button" onclick="window.location.href='index.php'" class="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-100">Cancel</button>
-                <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"><i class="fas fa-save mr-2"></i>Save Settings</button>
+            <div class="flex justify-end gap-3 animate-entry" style="animation-delay: 120ms;">
+                <button type="button" onclick="window.location.href='index.php'" class="btn btn-secondary">Cancel</button>
+                <button type="submit" id="saveBtn" class="btn btn-primary"><i class="fas fa-save mr-2" id="saveIcon"></i><span id="saveText">Save Settings</span></button>
             </div>
         </form>
     </main>
 
-    <div id="toast" class="fixed bottom-4 right-4 hidden px-6 py-3 rounded-lg shadow-lg z-50"></div>
+    <div id="toast" class="fixed bottom-4 right-4 hidden px-6 py-3 rounded-xl shadow-lg z-50 text-white text-sm font-medium"></div>
 
     <script>
+        var posterImages = [];
+        var annPosters = [];
+
         async function loadSettings() {
             try {
-                const response = await fetch('api/settings/index.php');
-                const data = await response.json();
+                var res = await fetch('api/settings/index.php');
+                var data = await res.json();
                 if (data.success) {
-                    const s = data.data;
+                    var s = data.data;
                     document.getElementById('companyName').value = s.company_name || '';
+                    document.getElementById('branchName').value = s.branch_name || '';
+                    document.getElementById('address').value = s.address || '';
                     document.getElementById('cutoffTime').value = s.cutoff_time || '17:00';
                     document.getElementById('companyLogo').value = s.company_logo || '';
+                    document.getElementById('welcomeMessage').value = s.welcome_message || '';
+                    document.getElementById('videoUrl').value = s.video_url || '';
+                    document.getElementById('videoType').value = s.video_type || 'youtube';
+                    document.getElementById('videoTitle').value = s.video_title || 'Citizen Services Overview';
+                    document.getElementById('videoSponsor').value = s.video_sponsor || 'Public Affairs Office';
+                    document.getElementById('videoCta').value = s.video_cta || '';
+                    var vol = s.video_volume || 50;
+                    document.getElementById('videoVolume').value = vol;
+                    document.getElementById('volumeDisplay').textContent = vol + '%';
+                    if (s.poster_duration) document.getElementById('posterDuration').value = s.poster_duration;
+                    posterImages = Array.isArray(s.poster_images) ? s.poster_images : [];
+                    renderPosterGallery();
+                    annPosters = Array.isArray(s.poster_announcements) ? s.poster_announcements : [];
+                    renderAnnouncementPosters();
                 }
-            } catch (error) { showToast('Failed to load settings', 'error'); }
+            } catch (e) { console.error('Load error:', e); showToast('Failed to load settings', 'error'); }
         }
+
 
         document.getElementById('settingsForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const data = {
+            var btn = document.getElementById('saveBtn');
+            var icon = document.getElementById('saveIcon');
+            var txt = document.getElementById('saveText');
+            btn.disabled = true;
+            icon.className = 'fas fa-spinner fa-spin mr-2';
+            txt.textContent = 'Saving...';
+            var data = {
                 company_name: document.getElementById('companyName').value,
+                branch_name: document.getElementById('branchName').value,
+                address: document.getElementById('address').value,
                 cutoff_time: document.getElementById('cutoffTime').value,
                 company_logo: document.getElementById('companyLogo').value,
-                auto_play_video: 1
+                welcome_message: document.getElementById('welcomeMessage').value,
+                auto_play_video: 1,
+                video_url: document.getElementById('videoUrl').value,
+                video_type: document.getElementById('videoType').value,
+                video_title: document.getElementById('videoTitle').value,
+                video_sponsor: document.getElementById('videoSponsor').value,
+                video_cta: document.getElementById('videoCta').value,
+                video_volume: parseInt(document.getElementById('videoVolume').value),
+                poster_duration: parseInt(document.getElementById('posterDuration').value),
+                poster_images: JSON.stringify(posterImages),
+                poster_announcements: JSON.stringify(annPosters)
             };
             try {
-                const response = await fetch('api/settings/index.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-                const result = await response.json();
-                showToast(result.success ? 'Settings saved successfully' : result.message || 'Failed to save settings', result.success ? 'success' : 'error');
-            } catch (error) { showToast('Failed to save settings', 'error'); }
-        });
-
-        function showToast(message, type) {
-            const toast = document.getElementById('toast');
-            toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`;
-            toast.textContent = message;
-            toast.classList.remove('hidden');
-            setTimeout(() => toast.classList.add('hidden'), 3000);
-        }
-
-        async function loadAnnouncements() {
-            try {
-                const response = await fetch('api/announcement/index.php?active=0');
-                const result = await response.json();
-                if (result.success) {
-                    const list = document.getElementById('announcementList');
-                    if (result.data.length === 0) {
-                        list.innerHTML = '<div class="text-center py-4 text-gray-500 italic">No announcements found</div>';
-                        return;
-                    }
-                    list.innerHTML = result.data.map(a => {
-                        const now = new Date();
-                        const start = a.starts_at ? new Date(a.starts_at) : null;
-                        const end = a.expires_at ? new Date(a.expires_at) : null;
-                        let status = 'Active';
-                        let statusColor = 'text-green-600 bg-green-100';
-                        
-                        if (start && start > now) { status = 'Scheduled'; statusColor = 'text-blue-600 bg-blue-100'; }
-                        else if (end && end < now) { status = 'Expired'; statusColor = 'text-gray-600 bg-gray-100'; }
-                        
-                        return `
-                            <div class="flex items-center justify-between p-4 border border-gray-100 rounded-lg bg-gray-50 hover:bg-white transition shadow-sm">
-                                <div class="flex-grow">
-                                    <div class="flex items-center gap-3 mb-1">
-                                        <span class="px-2 py-0.5 rounded text-xs font-bold ${statusColor}">${status}</span>
-                                        <span class="text-xs font-bold text-gray-400 uppercase">${a.type}</span>
-                                    </div>
-                                    <p class="text-gray-800 font-medium">${a.message}</p>
-                                    <div class="text-xs text-gray-400 mt-1">
-                                        Expires: <span class="font-bold text-red-500">${end ? end.toLocaleString() : 'Never'}</span>
-                                    </div>
-                                </div>
-                                <button type="button" onclick="deleteAnnouncement(${a.id})" class="ml-4 p-2 text-red-500 hover:bg-red-50 rounded-full transition"><i class="fas fa-trash-alt"></i></button>
-                            </div>
-                        `;
-                    }).join('');
-                }
-            } catch (error) { console.error('Error loading announcements:', error); }
-        }
-
-        async function addAnnouncement() {
-            var message = document.getElementById('annMsg').value;
-            if (!message) return;
-            
-            var presetMinutes = parseInt(document.getElementById('annDurationPreset').value);
-            var expiresAt = null;
-            if (presetMinutes > 0) {
-                var d = new Date();
-                d.setMinutes(d.getMinutes() + presetMinutes);
-                // Format to MySQL DATETIME (YYYY-MM-DD HH:mm:ss)
-                expiresAt = d.getFullYear() + '-' + 
-                           String(d.getMonth() + 1).padStart(2, '0') + '-' + 
-                           String(d.getDate()).padStart(2, '0') + ' ' + 
-                           String(d.getHours()).padStart(2, '0') + ':' + 
-                           String(d.getMinutes()).padStart(2, '0') + ':' + 
-                           String(d.getSeconds()).padStart(2, '0');
-            }
-
-            var data = {
-                message: message,
-                type: 'info',
-                font_family: 'Inter',
-                priority: 0,
-                starts_at: null,
-                expires_at: expiresAt,
-                display_duration: 10,
-                is_preset: 0
-            };
-            
-            try {
-                const response = await fetch('api/announcement/index.php', {
+                var res = await fetch('api/settings/index.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
-                const result = await response.json();
+                var result = await res.json();
                 if (result.success) {
-                    showToast('Announcement added successfully', 'success');
-                    document.getElementById('annMsg').value = '';
-                    loadAnnouncements();
-                } else { showToast(result.message, 'error'); }
-            } catch (error) { showToast('Failed to add announcement', 'error'); }
-        }
+                    try { localStorage.setItem('cq_settings_updated', Date.now().toString()); } catch(e) {}
+                }
+                showToast(result.success ? 'Settings saved successfully' : result.message || 'Failed to save settings', result.success ? 'success' : 'error');
+            } catch (e) { console.error('Save error:', e); showToast('Failed to save settings: ' + e.message, 'error'); }
+            icon.className = 'fas fa-save mr-2';
+            txt.textContent = 'Save Settings';
+            btn.disabled = false;
+        });
 
-        async function deleteAnnouncement(id) {
-            if (!confirm('Are you sure you want to delete this announcement?')) return;
-            try {
-                // Try DELETE first
-                const response = await fetch(`api/announcement/index.php?id=${id}`, { method: 'DELETE' });
-                
-                // If DELETE is blocked or fails (e.g. 405), try POST with _method fallback
-                if (!response.ok && response.status === 405) {
-                    throw new Error('Method not allowed');
-                }
-                
-                const result = await response.json();
-                if (result.success) {
-                    showToast('Announcement deleted', 'success');
-                    loadAnnouncements();
-                } else {
-                    showToast(result.message || 'Failed to delete announcement', 'error');
-                }
-            } catch (error) { 
-                console.warn('DELETE failed, trying POST fallback...', error);
-                try {
-                    const response = await fetch('api/announcement/index.php', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ _method: 'DELETE', id: id })
-                    });
-                    const result = await response.json();
-                    if (result.success) {
-                        showToast('Announcement deleted', 'success');
-                        loadAnnouncements();
-                    } else {
-                        showToast(result.message || 'Failed to delete announcement', 'error');
-                    }
-                } catch (err) {
-                    console.error('All delete methods failed:', err);
-                    showToast('Failed to delete: ' + err.message, 'error');
-                }
-            }
+        function showToast(message, type) {
+            var toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'fixed bottom-4 right-4 px-6 py-3 rounded-xl shadow-lg z-50 text-white text-sm font-medium ' + (type === 'success' ? 'bg-emerald-600' : 'bg-red-600');
+            toast.classList.remove('hidden');
+            setTimeout(function() { toast.classList.add('hidden'); }, 3000);
         }
 
         loadSettings();
-        loadAnnouncements();
+
+        function updateAnnPreview() {
+            var el = document.getElementById('annPosterPreview');
+            var title = document.getElementById('annPosterTitle').value;
+            var body = document.getElementById('annPosterBody').value;
+            var bg = document.getElementById('annPosterBg').value;
+            var fg = document.getElementById('annPosterFg').value;
+            el.style.background = bg;
+            el.style.color = fg;
+            el.textContent = (title || body || 'Preview').substring(0, 30);
+        }
+        document.getElementById('annPosterTitle').addEventListener('input', updateAnnPreview);
+        document.getElementById('annPosterBody').addEventListener('input', updateAnnPreview);
+        document.getElementById('annPosterBg').addEventListener('input', updateAnnPreview);
+        document.getElementById('annPosterFg').addEventListener('input', updateAnnPreview);
+
+        function renderAnnouncementPosters() {
+            var el = document.getElementById('annPosterList');
+            if (!el) return;
+            if (annPosters.length === 0) {
+                el.innerHTML = '<span class="text-[10px]" style="color: var(--muted);">No announcement posters created</span>';
+                return;
+            }
+            el.innerHTML = annPosters.map(function(p, i) {
+                return '<div style="width:160px;height:90px;border-radius:6px;overflow:hidden;border:1px solid var(--border);position:relative;cursor:pointer;background:' + p.bg + ';color:' + p.fg + ';display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px;text-align:center;" onclick="removeAnnouncementPoster(' + i + ')">' +
+                    '<div style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.5);color:white;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:10px;">&times;</div>' +
+                    (p.title ? '<div style="font-size:10px;font-weight:700;line-height:1.2;margin-bottom:2px;">' + p.title.substring(0, 30) + '</div>' : '') +
+                    (p.body ? '<div style="font-size:7px;line-height:1.2;opacity:0.85;">' + p.body.substring(0, 50) + '</div>' : '') +
+                '</div>';
+            }).join('');
+        }
+
+        function addAnnouncementPoster() {
+            var title = document.getElementById('annPosterTitle').value.trim();
+            var body = document.getElementById('annPosterBody').value.trim();
+            if (!title && !body) { showToast('Enter a title or message', 'error'); return; }
+            annPosters.push({
+                title: title,
+                body: body,
+                bg: document.getElementById('annPosterBg').value,
+                fg: document.getElementById('annPosterFg').value
+            });
+            renderAnnouncementPosters();
+            document.getElementById('annPosterTitle').value = '';
+            document.getElementById('annPosterBody').value = '';
+            updateAnnPreview();
+            showToast('Announcement poster added', 'success');
+        }
+
+        function removeAnnouncementPoster(idx) {
+            if (!confirm('Remove this announcement poster?')) return;
+            annPosters.splice(idx, 1);
+            renderAnnouncementPosters();
+        }
+
+        document.getElementById('videoVolume').addEventListener('input', function() {
+            document.getElementById('volumeDisplay').textContent = this.value + '%';
+        });
+
+        function renderPosterGallery() {
+            var el = document.getElementById('posterGallery');
+            if (!el) return;
+            if (posterImages.length === 0) {
+                el.innerHTML = '<div class="col-span-full text-center py-8 text-sm" style="color: var(--muted);">No posters uploaded yet</div>';
+                return;
+            }
+            el.innerHTML = posterImages.map(function(src, i) {
+                return '<div class="relative group rounded-md overflow-hidden border border-border" style="aspect-ratio: 16/9;">' +
+                    '<img src="' + src + '" class="w-full h-full object-cover">' +
+                    '<div class="absolute inset-0 flex items-center justify-center" style="background: rgba(0,0,0,0); transition: background 0.2s;">' +
+                        '<div class="flex gap-2">' +
+                            '<button type="button" onclick="removePoster(' + i + ')" class="bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-700"><i class="fas fa-trash-alt text-xs"></i></button>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        }
+
+        async function uploadPosters() {
+            var input = document.getElementById('posterUpload');
+            if (!input.files.length) return;
+            var fd = new FormData();
+            for (var i = 0; i < input.files.length; i++) {
+                fd.append('poster_images[]', input.files[i]);
+            }
+            try {
+                var res = await fetch('api/settings/index.php', { method: 'POST', body: fd });
+                var result = await res.json();
+                if (result.success) {
+                    showToast('Posters uploaded', 'success');
+                    input.value = '';
+                    await loadSettings();
+                } else {
+                    showToast(result.message || 'Upload failed', 'error');
+                }
+            } catch (e) { showToast('Upload error: ' + e.message, 'error'); }
+        }
+
+        async function removePoster(idx) {
+            if (!confirm('Remove this poster image?')) return;
+            try {
+                var res = await fetch('api/settings/index.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ remove_poster: idx })
+                });
+                var result = await res.json();
+                if (result.success) {
+                    showToast('Poster removed', 'success');
+                    await loadSettings();
+                } else {
+                    showToast(result.message || 'Failed to remove', 'error');
+                }
+            } catch (e) { showToast('Error: ' + e.message, 'error'); }
+        }
+
     </script>
 </body>
 </html>

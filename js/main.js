@@ -2,22 +2,18 @@ var currentFilter = 'all';
 var countersData = [];
 var serviceTypesData = [];
 
-function updateTime() {
-    var el = document.getElementById('current-time');
-    if (el) el.textContent = new Date().toLocaleTimeString();
-}
-setInterval(updateTime, 1000);
-updateTime();
+// time updated inline on each page
 
 function showToast(message, type) {
     var container = document.getElementById('toastContainer');
     if (!container) return;
     var toast = document.createElement('div');
-    var bg = 'bg-blue-500';
-    if (type === 'success') bg = 'bg-green-500';
-    if (type === 'error') bg = 'bg-red-500';
-    if (type === 'warning') bg = 'bg-yellow-500';
-    toast.className = 'toast ' + bg + ' text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 mb-2';
+    var bg = '#2563eb';
+    if (type === 'success') bg = '#059669';
+    if (type === 'error') bg = '#dc2626';
+    if (type === 'warning') bg = '#d97706';
+    toast.className = 'toast text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-3 mb-2 text-sm font-medium';
+    toast.style.background = bg;
     toast.innerHTML = '<span>' + message + '</span>';
     container.appendChild(toast);
     setTimeout(function() { toast.remove(); }, 4000);
@@ -33,8 +29,13 @@ async function refreshStats() {
             document.getElementById('serving-count').textContent = (stats.serving !== undefined) ? stats.serving : 0;
             document.getElementById('completed-count').textContent = (stats.completed !== undefined) ? stats.completed : 0;
             document.getElementById('today-count').textContent = (stats.today_total !== undefined) ? stats.today_total : 0;
-            
             updateServiceMetrics(res.data.by_service || []);
+
+            // Session totals
+            var timings = res.data.timings || {};
+            if (document.getElementById('sessionServed')) document.getElementById('sessionServed').textContent = stats.completed || 0;
+            if (document.getElementById('sessionNoshows')) document.getElementById('sessionNoshows').textContent = stats.cancelled || 0;
+            if (document.getElementById('sessionAvgHandle')) document.getElementById('sessionAvgHandle').textContent = timings.avg_service_formatted || '0:00';
         }
     } catch (e) { console.error('Stats Error:', e); }
 }
@@ -43,21 +44,21 @@ function updateServiceMetrics(metrics) {
     var container = document.getElementById('serviceMetrics');
     if (!container) return;
     if (!metrics || metrics.length === 0) {
-        container.innerHTML = '<div class="col-span-full text-center py-4 text-gray-400 italic">No service data for today</div>';
+        container.innerHTML = '<div class="col-span-full text-center py-6" style="color: var(--color-muted); font-style: italic; font-size: 0.875rem;">No service data for today</div>';
         return;
     }
     var html = '';
     for (var i = 0; i < metrics.length; i++) {
         var m = metrics[i];
-        html += '<div class="bg-gray-50 rounded-lg p-3 border border-gray-100">' +
-                '<div class="flex justify-between items-center mb-2">' +
-                '<span class="font-bold text-sm text-gray-700">' + m.service_name + '</span>' +
-                '<span class="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full font-bold">' + m.queue_prefix + '</span>' +
+        html += '<div class="rounded-xl p-4" style="background: var(--color-secondary);">' +
+                '<div class="flex justify-between items-center mb-3">' +
+                '<span class="text-sm font-bold" style="color: var(--color-fg);">' + m.service_name + '</span>' +
+                '<span class="badge badge-primary text-[10px]">' + m.queue_prefix + '</span>' +
                 '</div>' +
-                '<div class="grid grid-cols-3 gap-1 text-center">' +
-                '<div><div class="text-xs text-gray-400">Wait</div><div class="font-bold text-yellow-600">' + m.waiting + '</div></div>' +
-                '<div><div class="text-xs text-gray-400">Srv</div><div class="font-bold text-blue-600">' + m.serving + '</div></div>' +
-                '<div><div class="text-xs text-gray-400">Done</div><div class="font-bold text-green-600">' + m.completed + '</div></div>' +
+                '<div class="grid grid-cols-3 gap-2 text-center">' +
+                '<div><div class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--color-muted);">Wait</div><div class="text-lg font-extrabold" style="color: #d97706;">' + m.waiting + '</div></div>' +
+                '<div><div class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--color-muted);">Srv</div><div class="text-lg font-extrabold" style="color: var(--color-primary);">' + m.serving + '</div></div>' +
+                '<div><div class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--color-muted);">Done</div><div class="text-lg font-extrabold" style="color: var(--color-success);">' + m.completed + '</div></div>' +
                 '</div></div>';
     }
     container.innerHTML = html;
@@ -68,14 +69,14 @@ function showSkeleton() {
     if (!table) return;
     var sk = '';
     for (var i = 0; i < 4; i++) {
-        sk += '<tr><td colspan="6" class="px-4 py-3"><div class="skeleton h-5 w-16 mb-1"></div></td></tr>' +
-              '<tr class="' + (i % 2 === 0 ? 'bg-gray-50' : '') + '">' +
-              '<td class="px-4 py-3"><div class="skeleton h-5 w-20"></div></td>' +
-              '<td class="px-4 py-3"><div class="skeleton h-5 w-32"></div></td>' +
-              '<td class="px-4 py-3"><div class="skeleton h-5 w-24"></div></td>' +
-              '<td class="px-4 py-3"><div class="skeleton h-5 w-16"></div></td>' +
-              '<td class="px-4 py-3"><div class="skeleton h-5 w-16"></div></td>' +
-              '<td class="px-4 py-3"><div class="skeleton h-5 w-20"></div></td>' +
+        sk += '<tr><td colspan="6"><div class="skeleton" style="height:1rem;width:6rem;margin:0.5rem 1rem;"></div></td></tr>' +
+              '<tr>' +
+              '<td><div class="skeleton" style="height:1rem;width:5rem;margin:0.5rem 1rem;"></div></td>' +
+              '<td><div class="skeleton" style="height:1rem;width:8rem;margin:0.5rem 1rem;"></div></td>' +
+              '<td><div class="skeleton" style="height:1rem;width:6rem;margin:0.5rem 1rem;"></div></td>' +
+              '<td><div class="skeleton" style="height:1rem;width:4rem;margin:0.5rem 1rem;"></div></td>' +
+              '<td><div class="skeleton" style="height:1rem;width:4rem;margin:0.5rem 1rem;"></div></td>' +
+              '<td><div class="skeleton" style="height:1rem;width:5rem;margin:0.5rem 1rem;"></div></td>' +
               '</tr>';
     }
     table.innerHTML = sk;
@@ -91,6 +92,7 @@ async function refreshQueue() {
             if (data.counters) countersData = data.counters;
             updateQueueTable(data.customers || []);
             updateCounters(data.counters || []);
+            updateServingDisplay(data.customers || []);
         }
     } catch (e) { console.error('Queue Error:', e); }
 }
@@ -98,37 +100,51 @@ async function refreshQueue() {
 function updateQueueTable(customers) {
     var table = document.getElementById('queueTable');
     if (!table) return;
-    var filtered = currentFilter === 'all' ? customers : customers.filter(function(c) { return c.status === currentFilter; });
+    var filtered;
+    if (currentFilter === 'all') {
+        filtered = customers;
+    } else if (currentFilter === 'follow_up') {
+        filtered = customers.filter(function(c) { return c.is_follow_up == 1; });
+    } else {
+        filtered = customers.filter(function(c) { return c.status === currentFilter; });
+    }
     if (filtered.length === 0) {
-        table.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No customers</td></tr>';
+        table.innerHTML = '<tr><td colspan="6" style="padding:2rem;text-align:center;color:var(--color-muted);">No customers</td></tr>';
         return;
     }
     var html = '';
     for (var i = 0; i < filtered.length; i++) {
         var c = filtered[i];
-        var rowBg = (i % 2 === 0) ? '' : ' bg-gray-50';
-        var statusClass = 'bg-gray-100 text-gray-800';
-        if (c.status === 'waiting') statusClass = 'bg-yellow-100 text-yellow-800';
-        if (c.status === 'serving') statusClass = 'bg-blue-100 text-blue-800';
-        if (c.status === 'completed') statusClass = 'bg-green-100 text-green-800';
-        
+        var statusClass = 'badge';
+        if (c.status === 'waiting') statusClass += ' badge-primary';
+        if (c.status === 'serving') statusClass += ' badge-online';
+        if (c.status === 'completed') statusClass += ' badge';
+        var followUpBadge = c.is_follow_up == 1 ? '<span class="badge badge-break ml-1"><i class="fas fa-flag mr-0.5"></i>FU</span>' : '';
+        var statusHtml = '<span class="' + statusClass + '">' + c.status + '</span>' + followUpBadge;
         var actions = '';
         if (c.status === 'waiting') {
-            actions = '<button onclick="callCustomer(' + c.id + ')" class="inline-flex items-center gap-1 bg-green-50 text-green-700 hover:bg-green-100 px-2.5 py-1.5 rounded-lg text-xs font-medium transition" title="Call Customer"><i class="fas fa-bullhorn text-xs"></i> Call</button>';
+            actions = '<button onclick="callCustomer(' + c.id + ')" class="btn btn-primary text-[10px] py-1 px-2.5"><i class="fas fa-bullhorn text-xs mr-1"></i>Call</button>';
         } else if (c.status === 'serving') {
-            actions = '<button onclick="recallCustomer(' + c.id + ')" class="inline-flex items-center gap-1 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 px-2.5 py-1.5 rounded-lg text-xs font-medium transition mr-1" title="Recall (Announce Again)"><i class="fas fa-bell text-xs"></i></button>' +
-                      '<button onclick="completeCustomer(' + c.id + ')" class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg text-xs font-medium transition" title="Complete Service"><i class="fas fa-check text-xs"></i> Complete</button>';
+            actions = '<button onclick="recallCustomer(' + c.id + ')" class="btn btn-secondary text-[10px] py-1 px-2 mr-1" title="Re-announce"><i class="fas fa-bell text-xs"></i></button>' +
+                      '<button onclick="completeCustomer(' + c.id + ')" class="btn btn-primary text-[10px] py-1 px-2.5"><i class="fas fa-check text-xs mr-1"></i>Complete</button>';
         }
-        
-        html += '<tr class="hover:bg-gray-100' + rowBg + ' transition-colors">' +
-                '<td class="px-4 py-3 font-bold text-gray-900">' + c.queue_number + '</td>' +
-                '<td class="px-4 py-3 text-gray-700">' + c.name + '</td>' +
-                '<td class="px-4 py-3 text-gray-600">' + c.service_type + '</td>' +
-                '<td class="px-4 py-3"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' + statusClass + '">' + c.status + '</span></td>' +
-                '<td class="px-4 py-3 text-gray-500 text-xs">' + new Date(c.created_at).toLocaleTimeString() + '</td>' +
-                '<td class="px-4 py-3">' + actions + '</td></tr>';
+        if (c.status === 'serving' || c.status === 'completed') {
+            if (c.is_follow_up == 1) {
+                actions += '<button onclick="toggleFollowUp(' + c.id + ')" class="btn btn-ghost text-[10px] py-1 px-2 ml-1" title="Remove follow-up mark" style="color:var(--color-destructive);"><i class="fas fa-flag"></i></button>';
+            } else {
+                actions += '<button onclick="toggleFollowUp(' + c.id + ')" class="btn btn-ghost text-[10px] py-1 px-2 ml-1" title="Mark incomplete — needs follow-up"><i class="fas fa-flag"></i></button>';
+            }
+        }
+        html += '<tr>' +
+                '<td class="font-bold font-mono" style="color: var(--color-fg);">' + c.queue_number + '</td>' +
+                '<td style="color: var(--color-fg);">' + c.name + '</td>' +
+                '<td style="color: var(--color-muted);">' + (c.service_name || c.service_type) + '</td>' +
+                '<td>' + statusHtml + '</td>' +
+                '<td class="font-mono text-xs" style="color: var(--color-muted);">' + new Date(c.created_at).toLocaleTimeString() + '</td>' +
+                '<td>' + actions + '</td></tr>';
     }
     table.innerHTML = html;
+    renderFollowUpList(customers);
 }
 
 function updateCounters(counters) {
@@ -137,39 +153,111 @@ function updateCounters(counters) {
     var html = '';
     for (var i = 0; i < counters.length; i++) {
         var c = counters[i];
-        var borderColor = 'border-l-green-400';
-        var statusColor = 'bg-white';
-        var dotColor = 'text-green-500';
+        var dotClass = 'status-dot online';
+        var statusBadge = 'badge badge-online';
         if (c.status_text === 'On Break') {
-            borderColor = 'border-l-yellow-400';
-            statusColor = 'bg-yellow-50';
-            dotColor = 'text-yellow-500';
+            dotClass = 'status-dot break';
+            statusBadge = 'badge badge-break';
         } else if (c.status_text === 'Offline') {
-            borderColor = 'border-l-gray-300';
-            statusColor = 'bg-gray-50';
-            dotColor = 'text-gray-400';
+            dotClass = 'status-dot offline';
+            statusBadge = 'badge badge-offline';
         }
-        
         var servicesText = c.active_services || 'None';
-        
-        html += '<div class="rounded-lg p-4 mb-3 border border-l-4 ' + borderColor + ' ' + statusColor + '">' +
-                '<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-2">' +
-                    '<div class="flex items-center gap-2"><span class="inline-block w-2 h-2 rounded-full ' + dotColor + '"></span><div class="font-bold text-lg text-gray-900">' + c.display_name + '</div></div>' +
-                    '<div class="flex items-center gap-2 mt-2 md:mt-0">' +
-                        '<select onchange="changeWindowStatus(' + c.id + ', this.value)" class="text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">' +
-                            '<option value="Online" ' + (c.status_text === 'Online' ? 'selected' : '') + '>Online</option>' +
-                            '<option value="On Break" ' + (c.status_text === 'On Break' ? 'selected' : '') + '>On Break</option>' +
-                            '<option value="Offline" ' + (c.status_text === 'Offline' ? 'selected' : '') + '>Offline</option>' +
-                        '</select>' +
-                        '<button onclick="openEditServicesModal(' + c.id + ')" class="inline-flex items-center justify-center w-8 h-8 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition" title="Edit Services"><i class="fas fa-edit text-xs"></i></button>' +
-                        '<button onclick="deleteWindow(' + c.id + ')" class="inline-flex items-center justify-center w-8 h-8 text-red-500 hover:bg-red-50 rounded-lg transition" title="Delete Window"><i class="fas fa-trash text-xs"></i></button>' +
+        html += '<div class="p-4">' +
+                '<div class="flex items-start justify-between mb-3">' +
+                    '<div>' +
+                        '<div class="flex items-center gap-2 mb-1">' +
+                            '<span class="' + dotClass + '"></span>' +
+                            '<span class="text-sm font-bold" style="color: var(--color-fg);">' + c.display_name + '</span>' +
+                        '</div>' +
+                        '<div class="text-xs" style="color: var(--color-muted);"><i class="fas fa-tags mr-1"></i> ' + servicesText + '</div>' +
                     '</div>' +
+                    '<span class="' + statusBadge + '">' + c.status_text + '</span>' +
                 '</div>' +
-                '<div class="text-sm text-gray-500 ml-4"><i class="fas fa-tags mr-1.5 text-gray-400"></i> ' + servicesText + '</div>' +
-                '<div class="text-sm ml-4 mt-1">' + (c.current_customer_name ? 'Serving: <span class="font-semibold text-blue-600">' + c.current_queue_number + '</span>' : '<span class="text-gray-400">Available</span>') + '</div>' +
+                '<div class="flex items-center gap-2 mb-2">' +
+                    '<select onchange="changeWindowStatus(' + c.id + ', this.value)" class="text-xs px-2 py-1.5 rounded" style="border:1px solid var(--color-border);background:var(--color-card);">' +
+                        '<option value="Online" ' + (c.status_text === 'Online' ? 'selected' : '') + '>Online</option>' +
+                        '<option value="On Break" ' + (c.status_text === 'On Break' ? 'selected' : '') + '>On Break</option>' +
+                        '<option value="Offline" ' + (c.status_text === 'Offline' ? 'selected' : '') + '>Offline</option>' +
+                    '</select>' +
+                    '<button onclick="openEditServicesModal(' + c.id + ')" class="btn btn-ghost text-[10px] py-1 px-2" title="Edit Services"><i class="fas fa-edit"></i></button>' +
+                    '<button onclick="deleteWindow(' + c.id + ')" class="btn btn-ghost text-[10px] py-1 px-2" style="color:var(--color-destructive);" title="Delete"><i class="fas fa-trash"></i></button>' +
+                '</div>' +
+                '<div class="text-xs" style="color: var(--color-muted);">' +
+                    (c.current_customer_name ? '<span style="color:var(--color-primary);">Serving: <strong>' + c.current_queue_number + '</strong></span>' : '<span>Available</span>') +
+                '</div>' +
                 '</div>';
     }
     container.innerHTML = html;
+}
+
+function updateServingDisplay(customers) {
+    var num = document.getElementById('servingNumber');
+    var info = document.getElementById('servingInfo');
+    if (!num) return;
+    var serving = null;
+    for (var i = 0; i < customers.length; i++) {
+        if (customers[i].status === 'serving') { serving = customers[i]; break; }
+    }
+    if (serving) {
+        num.textContent = serving.queue_number;
+        if (info) info.textContent = (serving.name || '') + ' — ' + (serving.service_name || serving.service_type || '');
+    } else {
+        num.textContent = '---';
+        if (info) info.textContent = 'No active customer';
+    }
+}
+
+async function callNext() {
+    try {
+        var r = await fetch('api/get_queue.php');
+        var d = await r.json();
+        if (!d.success) return;
+        var serving = null;
+        for (var i = 0; i < d.customers.length; i++) { if (d.customers[i].status === 'serving') { serving = d.customers[i]; break; } }
+        if (serving) {
+            await fetch('api/complete_customer.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customer_id: serving.id }) });
+        }
+        var waiting = null;
+        for (var i = 0; i < d.customers.length; i++) { if (d.customers[i].status === 'waiting' && d.customers[i].is_follow_up != 1) { waiting = d.customers[i]; break; } }
+        if (waiting) {
+            await fetch('api/call_customer.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customer_id: waiting.id }) });
+        }
+        refreshQueue(); refreshStats();
+    } catch (e) { showToast('Error in Complete & Next', 'error'); }
+}
+
+async function skipCustomer() {
+    try {
+        var r = await fetch('api/get_queue.php');
+        var d = await r.json();
+        if (!d.success) return;
+        var serving = null;
+        for (var i = 0; i < d.customers.length; i++) { if (d.customers[i].status === 'serving') { serving = d.customers[i]; break; } }
+        if (serving) {
+            await fetch('api/cancel_customer.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customer_id: serving.id, reason: 'skipped' }) });
+        }
+        refreshQueue(); refreshStats();
+    } catch (e) { showToast('Error skipping customer', 'error'); }
+}
+
+async function noShow() {
+    try {
+        var r = await fetch('api/get_queue.php');
+        var d = await r.json();
+        if (!d.success) return;
+        var serving = null;
+        for (var i = 0; i < d.customers.length; i++) { if (d.customers[i].status === 'serving') { serving = d.customers[i]; break; } }
+        if (serving) {
+            await fetch('api/cancel_customer.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customer_id: serving.id, reason: 'no-show' }) });
+        }
+        var waiting = null;
+        for (var i = 0; i < d.customers.length; i++) { if (d.customers[i].status === 'waiting' && d.customers[i].is_follow_up != 1) { waiting = d.customers[i]; break; } }
+        if (waiting) {
+            await fetch('api/call_customer.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customer_id: waiting.id }) });
+        }
+        refreshQueue(); refreshStats();
+    } catch (e) { showToast('Error in No-Show', 'error'); }
 }
 
 async function changeWindowStatus(counterId, status) {
@@ -195,11 +283,11 @@ async function changeWindowStatus(counterId, status) {
 
 function openAddWindowModal() {
     document.getElementById('newWindowName').value = '';
-    document.getElementById('addWindowModal').classList.remove('hidden');
+    document.getElementById('addWindowModal').style.display = 'flex';
 }
 
 function closeAddWindowModal() {
-    document.getElementById('addWindowModal').classList.add('hidden');
+    document.getElementById('addWindowModal').style.display = 'none';
 }
 
 async function submitNewWindow() {
@@ -226,7 +314,6 @@ async function submitNewWindow() {
 
 function deleteWindow(counterId) {
     if (!confirm('Are you sure you want to delete this window? This action cannot be undone.')) return;
-    
     var xhr = new XMLHttpRequest();
     xhr.open('POST', 'api/counter/delete_window.php', true);
     xhr.setRequestHeader('Content-Type', 'application/json');
@@ -250,26 +337,23 @@ function deleteWindow(counterId) {
 function openEditServicesModal(counterId) {
     var counter = countersData.find(c => c.id == counterId);
     if (!counter) return;
-    
     document.getElementById('editServicesCounterId').value = counterId;
-    
     var assignedServices = counter.active_services ? counter.active_services.split(',') : [];
-    
     var html = '';
     for (var i = 0; i < serviceTypesData.length; i++) {
         var s = serviceTypesData[i];
         var isChecked = assignedServices.includes(s.code) ? 'checked' : '';
-        html += '<label class="flex items-center space-x-3 p-2 hover:bg-white rounded cursor-pointer">' +
-                '<input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600 service-cb" value="' + s.code + '" ' + isChecked + '>' +
-                '<span class="text-gray-700">' + s.name + '</span>' +
+        html += '<label class="flex items-center gap-3 p-2 rounded cursor-pointer hover:bg-white transition-colors">' +
+                '<input type="checkbox" class="service-cb" value="' + s.code + '" ' + isChecked + ' style="accent-color:var(--color-primary);">' +
+                '<span class="text-sm" style="color:var(--color-fg);">' + s.name + '</span>' +
                 '</label>';
     }
     document.getElementById('servicesCheckboxes').innerHTML = html;
-    document.getElementById('editServicesModal').classList.remove('hidden');
+    document.getElementById('editServicesModal').style.display = 'flex';
 }
 
 function closeEditServicesModal() {
-    document.getElementById('editServicesModal').classList.add('hidden');
+    document.getElementById('editServicesModal').style.display = 'none';
 }
 
 async function submitEditServices() {
@@ -279,7 +363,6 @@ async function submitEditServices() {
     for (var i = 0; i < checkboxes.length; i++) {
         services.push(checkboxes[i].value);
     }
-    
     try {
         var response = await fetch('api/counter/update_services.php', {
             method: 'POST',
@@ -299,6 +382,31 @@ async function submitEditServices() {
     }
 }
 
+async function addNewService() {
+    var name = document.getElementById('newServiceName').value.trim();
+    var code = document.getElementById('newServiceCode').value.trim();
+    var prefix = document.getElementById('newServicePrefix').value.trim().toUpperCase();
+    if (!name || !code || !prefix) { showToast('Name, code, and prefix are required', 'error'); return; }
+    try {
+        var response = await fetch('api/service/add.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: name, code: code, prefix: prefix })
+        });
+        var data = await response.json();
+        if (data.success) {
+            showToast('Service added successfully', 'success');
+            document.getElementById('newServiceName').value = '';
+            document.getElementById('newServiceCode').value = '';
+            document.getElementById('newServicePrefix').value = '';
+            refreshQueue();
+            closeEditServicesModal();
+        } else {
+            showToast(data.message || 'Failed to add service', 'error');
+        }
+    } catch (e) { showToast('Error adding service', 'error'); }
+}
+
 async function callCustomer(id) {
     try {
         await fetch('api/call_customer.php', { method: 'POST', body: JSON.stringify({ customer_id: id }) });
@@ -308,10 +416,10 @@ async function callCustomer(id) {
 
 async function recallCustomer(id) {
     try {
-        var response = await fetch('api/recall_customer.php', { 
-            method: 'POST', 
+        var response = await fetch('api/recall_customer.php', {
+            method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ customer_id: id }) 
+            body: JSON.stringify({ customer_id: id })
         });
         var data = await response.json();
         if (data.success) {
@@ -336,9 +444,9 @@ function filterQueue(filter) {
     for (var i = 0; i < btns.length; i++) {
         var btn = btns[i];
         if (btn.getAttribute('data-filter') === filter) {
-            btn.className = 'filter-btn active px-4 py-2 rounded-lg bg-blue-100 text-blue-700 text-sm';
+            btn.className = 'filter-btn active';
         } else {
-            btn.className = 'filter-btn px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm';
+            btn.className = 'filter-btn';
         }
     }
     refreshQueue();
@@ -352,14 +460,12 @@ if (customerForm) {
         var serviceTypeInput = document.getElementById('serviceType');
         var name = nameInput ? nameInput.value.trim() : '';
         var serviceType = serviceTypeInput ? serviceTypeInput.value : '';
-        
         if (!name || !serviceType) return;
         var submitBtn = document.getElementById('submitBtn');
         if (submitBtn) {
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Adding...';
         }
-        
         try {
             var response = await fetch('api/add_customer.php', {
                 method: 'POST',
@@ -370,16 +476,12 @@ if (customerForm) {
             if (data.success) {
                 var resDiv = document.getElementById('queueResult');
                 if (resDiv) resDiv.classList.remove('hidden');
-                
                 var genQ = document.getElementById('generatedQueue');
                 if (genQ) genQ.textContent = data.queue_number;
-                
                 var qPos = document.getElementById('queuePosition');
                 if (qPos) qPos.textContent = 'Position in queue: ' + (data.data.queue_position || '--');
-                
                 if (nameInput) nameInput.value = '';
                 if (serviceTypeInput) serviceTypeInput.value = '';
-                
                 refreshQueue(); refreshStats();
                 showToast('Queue number ' + data.queue_number + ' generated', 'success');
             } else {
@@ -388,7 +490,6 @@ if (customerForm) {
         } catch (e) {
             showToast('Error adding customer', 'error');
         }
-        
         if (submitBtn) {
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="fas fa-ticket-alt mr-2"></i>Generate Queue Number';
@@ -396,13 +497,71 @@ if (customerForm) {
     });
 }
 
-function logout() {
-    if (!confirm('Sign out of Queue Management System?')) return;
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_data');
-    sessionStorage.removeItem('auth_token');
-    sessionStorage.removeItem('user_data');
-    window.location.href = 'login.php';
+function renderFollowUpList(allCustomers) {
+    var el = document.getElementById('followUpList');
+    if (!el) return;
+    var followUps = allCustomers.filter(function(c) { return c.is_follow_up == 1; });
+    if (followUps.length === 0) {
+        el.innerHTML = '<div class="text-center py-6 text-sm" style="color: var(--muted);">No follow-up tickets</div>';
+        document.getElementById('followUpPanel').style.display = 'none';
+        return;
+    }
+    document.getElementById('followUpPanel').style.display = 'block';
+    document.getElementById('followUpCount').textContent = followUps.length;
+    var html = '';
+    for (var i = 0; i < followUps.length; i++) {
+        var c = followUps[i];
+        var statusLabel = c.status === 'serving' ? ' (being served)' : c.status === 'completed' ? '' : '';
+        html += '<div class="flex items-center justify-between p-3 border-b border-border">' +
+                '<div class="flex items-center gap-3">' +
+                    '<span class="text-[10px] font-mono w-5 tabular-nums" style="color:var(--muted);">' + (i+1) + '</span>' +
+                    '<div class="flex flex-col">' +
+                        '<span class="font-mono text-sm font-bold tracking-tight" style="color:var(--brand-gold);">' + c.queue_number + '</span>' +
+                        '<span class="text-[10px] uppercase tracking-wider" style="color:var(--muted);">' + (c.service_name || c.service_type) + statusLabel + '</span>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="flex gap-1">' +
+                    '<button onclick="serveFollowUp(' + c.id + ')" class="btn btn-primary text-[10px] py-1 px-2.5"><i class="fas fa-arrow-right text-xs mr-1"></i>Serve</button>' +
+                    '<button onclick="toggleFollowUp(' + c.id + ')" class="btn btn-ghost text-[10px] py-1 px-2" title="Remove" style="color:var(--destructive);"><i class="fas fa-times"></i></button>' +
+                '</div>' +
+                '</div>';
+    }
+    el.innerHTML = html;
+}
+
+async function toggleFollowUp(id) {
+    try {
+        var response = await fetch('api/toggle_followup.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ customer_id: id })
+        });
+        var data = await response.json();
+        if (data.success) {
+            showToast(data.message, data.is_follow_up ? 'warning' : 'success');
+            refreshQueue();
+        } else {
+            showToast(data.message || 'Failed to toggle follow-up', 'error');
+        }
+    } catch (e) { showToast('Error toggling follow-up', 'error'); }
+}
+
+async function serveFollowUp(id) {
+    if (!confirm('Serve this follow-up ticket now?')) return;
+    try {
+        var response = await fetch('api/serve_followup.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ customer_id: id })
+        });
+        var data = await response.json();
+        if (data.success) {
+            showToast('Follow-up ticket served', 'success');
+            refreshQueue(); refreshStats();
+        } else {
+            showToast(data.message || 'Failed to serve follow-up', 'error');
+        }
+    } catch (e) { showToast('Error serving follow-up', 'error'); }
 }
 
 function init() {

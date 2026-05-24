@@ -10,15 +10,24 @@ try {
     
     $stmt = $conn->query("SELECT * FROM display_settings LIMIT 1");
     $settings = $stmt->fetch(PDO::FETCH_ASSOC);
+    $cutoffRaw = $settings['cutoff_time'] ?? '17:00:00';
     $data['settings'] = [
         'company_name' => $settings['company_name'] ?? 'Service Center',
         'welcome_message' => $settings['welcome_message'] ?? 'Welcome',
         'company_logo' => $settings['company_logo'] ?? null,
-        'theme_color' => $settings['theme_color'] ?? '#1e3a5f'
+        'theme_color' => $settings['theme_color'] ?? '#1e3a5f',
+        'cutoff_time' => $cutoffRaw,
+        'cutoff_time_formatted' => date('g:i A', strtotime($cutoffRaw))
     ];
     
+    $settingsHashFields = [];
+    foreach (['company_name','branch_name','address','welcome_message','video_url','video_type','video_title','video_sponsor','video_cta','video_volume','cutoff_time','company_logo','poster_duration','poster_images','poster_announcements'] as $f) {
+        $settingsHashFields[$f] = $settings[$f] ?? '';
+    }
+    $data['settings_hash'] = md5(json_encode($settingsHashFields));
+    
     $stmt = $conn->query("
-        SELECT c.id, c.display_name, c.is_online, c.status_text, c.window_number,
+        SELECT c.id, c.display_name, c.is_online, c.window_number, c.status_text,
                cust.id as customer_id, cust.queue_number, cust.name as customer_name, 
                cust.service_type, cust.called_at,
                (SELECT GROUP_CONCAT(csa.service_type) FROM counter_service_assignments csa WHERE csa.counter_id = c.id AND csa.is_active = 1) as active_services,
@@ -35,11 +44,18 @@ try {
         FROM customers c
         JOIN service_types st ON st.code = c.service_type
         WHERE c.status = 'waiting' AND DATE(c.created_at) = CURDATE()
-        GROUP BY c.service_type
         ORDER BY c.created_at ASC
     ");
-    $data['next_by_service'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+    $allWaiting = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $data['next_by_service'] = [];
+    $seenServices = [];
+    foreach ($allWaiting as $row) {
+        if (!isset($seenServices[$row['service_type']])) {
+            $seenServices[$row['service_type']] = true;
+            $data['next_by_service'][] = $row;
+        }
+    }
+
     $stmt = $conn->query("
         SELECT COUNT(*) as count 
         FROM customers 
@@ -94,6 +110,15 @@ try {
     ");
     $data['recent_called_history'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
+    $stmt = $conn->query("
+        SELECT id, queue_number, name, service_type, created_at
+        FROM customers
+        WHERE is_follow_up = 1 AND status = 'completed' AND DATE(created_at) = CURDATE()
+        ORDER BY completed_at DESC
+        LIMIT 20
+    ");
+    $data['follow_up_tickets'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
     echo json_encode($data);
     
 } catch (Exception $e) {
