@@ -8,6 +8,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+requireRole(['admin', 'supervisor', 'staff']);
+
 try {
     $input = file_get_contents('php://input');
     $data = json_decode($input, true);
@@ -18,6 +20,7 @@ try {
     
     $customerId = $data['customer_id'] ?? null;
     $reason = $data['reason'] ?? '';
+    $remark = $data['remark'] ?? null;
     
     if (!$customerId) {
         throw new Exception('customer_id is required');
@@ -45,10 +48,11 @@ try {
         UPDATE customers 
         SET status = 'cancelled', 
             completed_at = ?,
-            service_duration = TIMESTAMPDIFF(SECOND, served_at, ?)
+            service_duration = TIMESTAMPDIFF(SECOND, served_at, ?),
+            remark = COALESCE(?, remark)
         WHERE id = ?
     ");
-    $stmt->execute([$now, $now, $customerId]);
+    $stmt->execute([$now, $now, $remark, $customerId]);
     
     if ($customer['status'] === 'serving') {
         $stmt = $conn->prepare("UPDATE counters SET current_customer_id = NULL WHERE current_customer_id = ?");

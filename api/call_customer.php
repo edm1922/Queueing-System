@@ -8,6 +8,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+requireRole(['admin', 'supervisor', 'staff']);
+
 try {
     $input = file_get_contents('php://input');
     $data = json_decode($input, true);
@@ -59,19 +61,26 @@ try {
         throw new Exception('No counter is currently online');
     }
     
+    $now = date('Y-m-d H:i:s');
+    
     $stmt = $conn->prepare("SELECT current_customer_id FROM counters WHERE id = ?");
     $stmt->execute([$counterId]);
     $currentCustId = $stmt->fetchColumn();
     if ($currentCustId) {
-        $stmt = $conn->prepare("SELECT status FROM customers WHERE id = ?");
+        $stmt = $conn->prepare("SELECT status, DATE(created_at) as created_date FROM customers WHERE id = ?");
         $stmt->execute([$currentCustId]);
-        $currentStatus = $stmt->fetchColumn();
-        if ($currentStatus === 'serving') {
-            throw new Exception('Window is currently serving a customer. Complete or skip the current ticket first.');
+        $currentCust = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($currentCust && $currentCust['status'] === 'serving') {
+            if ($currentCust['created_date'] !== date('Y-m-d')) {
+                $stmt = $conn->prepare("UPDATE customers SET status = 'completed', completed_at = ? WHERE id = ?");
+                $stmt->execute([$now, $currentCustId]);
+                $stmt = $conn->prepare("UPDATE counters SET customers_served = customers_served + 1 WHERE current_customer_id = ?");
+                $stmt->execute([$currentCustId]);
+            } else {
+                throw new Exception('Window is currently serving a customer. Complete or skip the current ticket first.');
+            }
         }
     }
-    
-    $now = date('Y-m-d H:i:s');
     $stmt = $conn->prepare("
         UPDATE customers 
         SET status = 'serving', 

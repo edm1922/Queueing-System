@@ -31,6 +31,7 @@ try {
             'data' => $settings
         ]);
     } else {
+        requireRole(['admin']);
         $data = [];
         $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
 

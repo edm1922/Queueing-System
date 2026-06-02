@@ -2,6 +2,8 @@
 header('Content-Type: application/json');
 include '../../config.php';
 
+requireRole(['admin', 'supervisor', 'staff']);
+
 try {
     $db = new Database();
     $conn = $db->getConnection();
@@ -9,13 +11,30 @@ try {
     $from = $_GET['from'] ?? date('Y-m-d');
     $to = $_GET['to'] ?? date('Y-m-d');
     $serviceType = $_GET['service_type'] ?? null;
+    $serviceTypesMulti = $_GET['service_types'] ?? null;
+    $counterId = isset($_GET['counter_id']) ? intval($_GET['counter_id']) : 0;
     
     $where = "WHERE DATE(c.created_at) BETWEEN ? AND ?";
     $params = [$from, $to];
     
-    if ($serviceType) {
+    $codes = $serviceTypesMulti ? array_map('trim', explode(',', $serviceTypesMulti)) : [];
+    if ($serviceTypesMulti) {
+        $placeholders = implode(',', array_fill(0, count($codes), '?'));
+        $where .= " AND c.service_type IN ($placeholders)";
+        $params = array_merge($params, $codes);
+    } elseif ($serviceType) {
         $where .= " AND c.service_type = ?";
         $params[] = $serviceType;
+    }
+    if ($serviceTypesMulti && $counterId > 0 && in_array('custom', $codes)) {
+        $customOverride = " AND (c.service_type != 'custom' OR c.counter_id = ?)";
+        $customParams = [$counterId];
+    } elseif ($counterId) {
+        $customOverride = " AND c.counter_id = ?";
+        $customParams = [$counterId];
+    } else {
+        $customOverride = '';
+        $customParams = [];
     }
     
     $sql = "SELECT c.*, 
@@ -24,11 +43,11 @@ try {
             FROM customers c
             LEFT JOIN counters ct ON ct.id = c.counter_id
             LEFT JOIN service_types st ON st.code = c.service_type
-            $where
+            $where $customOverride
             ORDER BY c.created_at DESC";
     
     $stmt = $conn->prepare($sql);
-    $stmt->execute($params);
+    $stmt->execute(array_merge($params, $customParams));
     $customers = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     $totalServed = count(array_filter($customers, fn($c) => $c['status'] === 'completed'));
@@ -43,6 +62,17 @@ try {
     $hoursInRange = $days * 8;
     $customersPerHour = $hoursInRange > 0 ? round($totalServed / $hoursInRange, 1) : 0;
     
+    $bySvcWhere = "WHERE DATE(c.created_at) BETWEEN ? AND ? AND c.status = 'completed'";
+    $bySvcParams = [$from, $to];
+    if ($serviceTypesMulti) {
+        $codes = array_map('trim', explode(',', $serviceTypesMulti));
+        $placeholders = implode(',', array_fill(0, count($codes), '?'));
+        $bySvcWhere .= " AND c.service_type IN ($placeholders)";
+        $bySvcParams = array_merge($bySvcParams, $codes);
+    } elseif ($serviceType) {
+        $bySvcWhere .= " AND c.service_type = ?";
+        $bySvcParams[] = $serviceType;
+    }
     $stmt = $conn->prepare("
         SELECT c.service_type,
                st.name as service_name,
@@ -51,11 +81,10 @@ try {
                AVG(c.service_duration) as avg_service
         FROM customers c
         LEFT JOIN service_types st ON st.code = c.service_type
-        WHERE DATE(c.created_at) BETWEEN ? AND ?
-        AND c.status = 'completed'
+        $bySvcWhere $customOverride
         GROUP BY c.service_type, st.name
     ");
-    $stmt->execute([$from, $to]);
+    $stmt->execute(array_merge($bySvcParams, $customParams));
     $byService = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     foreach ($byService as &$service) {
@@ -64,16 +93,72 @@ try {
         $service['avg_service'] = (int)($service['avg_service'] ?? 0);
     }
     
+    $hourlyWhere = "WHERE DATE(c.created_at) BETWEEN ? AND ?";
+    $hourlyParams = [$from, $to];
+    if ($serviceTypesMulti) {
+        $codes = array_map('trim', explode(',', $serviceTypesMulti));
+        $placeholders = implode(',', array_fill(0, count($codes), '?'));
+        $hourlyWhere .= " AND c.service_type IN ($placeholders)";
+        $hourlyParams = array_merge($hourlyParams, $codes);
+    } elseif ($serviceType) {
+        $hourlyWhere .= " AND c.service_type = ?";
+        $hourlyParams[] = $serviceType;
+    }
     $stmt = $conn->prepare("
         SELECT HOUR(c.created_at) as hour,
                COUNT(*) as count
         FROM customers c
-        WHERE DATE(c.created_at) BETWEEN ? AND ?
+        $hourlyWhere $customOverride
         GROUP BY HOUR(c.created_at)
         ORDER BY hour
     ");
-    $stmt->execute([$from, $to]);
+    $stmt->execute(array_merge($hourlyParams, $customParams));
     $hourly = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Purpose breakdown
+    $purposeWhere = "WHERE DATE(c.created_at) BETWEEN ? AND ? AND c.purpose IS NOT NULL";
+    $purposeParams = [$from, $to];
+    if ($serviceTypesMulti) {
+        $codes = array_map('trim', explode(',', $serviceTypesMulti));
+        $placeholders = implode(',', array_fill(0, count($codes), '?'));
+        $purposeWhere .= " AND c.service_type IN ($placeholders)";
+        $purposeParams = array_merge($purposeParams, $codes);
+    } elseif ($serviceType) {
+        $purposeWhere .= " AND c.service_type = ?";
+        $purposeParams[] = $serviceType;
+    }
+    $stmt = $conn->prepare("
+        SELECT c.purpose, COUNT(*) as count
+        FROM customers c
+        $purposeWhere $customOverride
+        GROUP BY c.purpose
+        ORDER BY count DESC
+    ");
+    $stmt->execute(array_merge($purposeParams, $customParams));
+    $purposeBreakdown = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Company breakdown (top 10)
+    $companyWhere = "WHERE DATE(c.created_at) BETWEEN ? AND ? AND c.company_name IS NOT NULL AND c.company_name != ''";
+    $companyParams = [$from, $to];
+    if ($serviceTypesMulti) {
+        $codes = array_map('trim', explode(',', $serviceTypesMulti));
+        $placeholders = implode(',', array_fill(0, count($codes), '?'));
+        $companyWhere .= " AND c.service_type IN ($placeholders)";
+        $companyParams = array_merge($companyParams, $codes);
+    } elseif ($serviceType) {
+        $companyWhere .= " AND c.service_type = ?";
+        $companyParams[] = $serviceType;
+    }
+    $stmt = $conn->prepare("
+        SELECT c.company_name, COUNT(*) as count
+        FROM customers c
+        $companyWhere $customOverride
+        GROUP BY c.company_name
+        ORDER BY count DESC
+        LIMIT 10
+    ");
+    $stmt->execute(array_merge($companyParams, $customParams));
+    $companyBreakdown = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     if (isset($_GET['export']) && $_GET['export'] === 'excel') {
         header('Content-Type: text/csv; charset=utf-8');
@@ -114,6 +199,8 @@ try {
             ],
             'by_service' => $byService,
             'hourly' => $hourly,
+            'purpose_breakdown' => $purposeBreakdown,
+            'company_breakdown' => $companyBreakdown,
             'date_range' => ['from' => $from, 'to' => $to]
         ]
     ]);

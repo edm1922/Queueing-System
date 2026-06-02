@@ -8,6 +8,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+requireRole(['admin', 'supervisor', 'staff']);
+
 try {
     $input = file_get_contents('php://input');
     $data = json_decode($input, true);
@@ -28,8 +30,8 @@ try {
     
     $conn->beginTransaction();
     
-    // Get counter status
-    $stmt = $conn->prepare("SELECT is_online FROM counters WHERE id = ?");
+    // Get counter
+    $stmt = $conn->prepare("SELECT * FROM counters WHERE id = ?");
     $stmt->execute([$counterId]);
     $counter = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -39,8 +41,29 @@ try {
     
     $isOnline = $counter['is_online'];
     
-    // Delete existing primary assignments
-    $stmt = $conn->prepare("DELETE FROM counter_service_assignments WHERE counter_id = ? AND is_primary = 1");
+    // Check for cross-counter conflicts: services already assigned (primary) to another counter
+    $checkServices = array_filter($services, function($s) { return !in_array($s, ['other', 'custom']); });
+    if (!empty($checkServices)) {
+        $placeholders = implode(',', array_fill(0, count($checkServices), '?'));
+        $stmt = $conn->prepare("
+            SELECT csa.service_type, ct.display_name as window_name
+            FROM counter_service_assignments csa
+            JOIN counters ct ON ct.id = csa.counter_id
+            WHERE csa.service_type IN ($placeholders)
+            AND csa.counter_id != ?
+            AND csa.is_primary = 1
+        ");
+        $params = array_merge(array_values($checkServices), [$counterId]);
+        $stmt->execute($params);
+        $conflicts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        if (!empty($conflicts)) {
+            $msgs = array_map(function($c) { return $c['service_type'] . ' (' . $c['window_name'] . ')'; }, $conflicts);
+            throw new Exception('Cannot assign: ' . implode(', ', $msgs) . ' already assigned to another window');
+        }
+    }
+    
+    // Delete all existing assignments for this counter (primary + redistributed)
+    $stmt = $conn->prepare("DELETE FROM counter_service_assignments WHERE counter_id = ?");
     $stmt->execute([$counterId]);
     
     // Insert new assignments

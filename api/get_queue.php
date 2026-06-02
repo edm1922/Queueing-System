@@ -2,34 +2,58 @@
 header('Content-Type: application/json');
 include '../config.php';
 
+requireRole(['admin', 'supervisor', 'staff']);
+
 try {
     $db = new Database();
     $conn = $db->getConnection();
+    $counterId = isset($_GET['counter_id']) ? intval($_GET['counter_id']) : 0;
     
-    $stmt = $conn->query("
-        SELECT c.*, 
-               ct.display_name as counter_name,
-               st.queue_prefix,
-               st.name as service_name
-        FROM customers c
-        LEFT JOIN counters ct ON ct.id = c.counter_id
-        LEFT JOIN service_types st ON st.code = c.service_type
-        WHERE DATE(c.created_at) = CURDATE()
-        ORDER BY 
-            FIELD(c.status, 'serving', 'waiting', 'completed', 'cancelled'),
-            c.created_at ASC
-    ");
+    if ($counterId) {
+        $stmt = $conn->prepare("
+            SELECT c.*, 
+                   ct.display_name as counter_name,
+                   st.queue_prefix,
+                   st.name as service_name
+            FROM customers c
+            LEFT JOIN counters ct ON ct.id = c.counter_id
+            LEFT JOIN service_types st ON st.code = c.service_type
+            WHERE DATE(c.created_at) = CURDATE()
+            AND (c.service_type IN (
+                    SELECT service_type FROM counter_service_assignments WHERE counter_id = ? AND is_active = 1
+                ) OR c.service_type = 'custom')
+            ORDER BY 
+                FIELD(c.status, 'serving', 'waiting', 'completed', 'cancelled'),
+                c.created_at ASC
+        ");
+        $stmt->execute([$counterId]);
+    } else {
+        $stmt = $conn->query("
+            SELECT c.*, 
+                   ct.display_name as counter_name,
+                   st.queue_prefix,
+                   st.name as service_name
+            FROM customers c
+            LEFT JOIN counters ct ON ct.id = c.counter_id
+            LEFT JOIN service_types st ON st.code = c.service_type
+            WHERE DATE(c.created_at) = CURDATE()
+            ORDER BY 
+                FIELD(c.status, 'serving', 'waiting', 'completed', 'cancelled'),
+                c.created_at ASC
+        ");
+    }
     $customers = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     $stmt = $conn->query("
         SELECT c.*,
                cust.queue_number as current_queue_number,
                cust.name as current_customer_name,
+               cust.custom_description as serving_custom_description,
                (SELECT GROUP_CONCAT(DISTINCT csa.service_type) 
                 FROM counter_service_assignments csa 
                 WHERE csa.counter_id = c.id AND csa.is_active = 1) as active_services
         FROM counters c
-        LEFT JOIN customers cust ON cust.id = c.current_customer_id
+        LEFT JOIN customers cust ON cust.id = c.current_customer_id AND DATE(cust.created_at) = CURDATE()
         ORDER BY c.window_number ASC
     ");
     $counters = $stmt->fetchAll(PDO::FETCH_ASSOC);

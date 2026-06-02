@@ -4,9 +4,30 @@ $company_name = htmlspecialchars($s['company_name'] ?? 'Service Center');
 $branch_name = htmlspecialchars($s['branch_name'] ?? '');
 $company_logo = htmlspecialchars($s['company_logo'] ?? '');
 $services = [];
+$groups = [];
+$knownCompanies = [];
+$groupedServices = [];
+$ungroupedServices = [];
 try {
-    $stmt = $conn->query("SELECT * FROM service_types WHERE is_active = 1 ORDER BY name ASC");
+    $stmt = $conn->query("
+        SELECT st.*, sg.name as group_name, sg.id as group_id
+        FROM service_types st
+        LEFT JOIN service_groups sg ON sg.id = st.group_id
+        WHERE st.is_active = 1 AND st.code != 'custom'
+        ORDER BY sg.name ASC, st.name ASC
+    ");
     $services = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($services as $svc) {
+        if ($svc['group_id']) {
+            $gName = $svc['group_name'];
+            $groupedServices[$gName][] = $svc;
+            if (!isset($groups[$gName])) $groups[$gName] = $svc['group_id'];
+        } else {
+            $ungroupedServices[] = $svc;
+        }
+    }
+    $stmt = $conn->query("SELECT name FROM known_companies ORDER BY name ASC");
+    $knownCompanies = $stmt->fetchAll(PDO::FETCH_COLUMN);
 } catch (Exception $e) {}
 $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
 ?>
@@ -268,8 +289,33 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
                 <?php if (empty($services)): ?>
                 <div class="col-span-full text-center py-12" style="color: var(--muted);">No services available</div>
                 <?php else: ?>
-                <?php foreach ($services as $i => $svc): ?>
-                <div onclick="selectService('<?php echo $svc['code']; ?>')" class="service-btn kiosk-enter card rounded-xl p-8 shadow-sm" style="border: 1px solid var(--border);animation-delay:<?php echo $i * 100; ?>ms;position:relative;">
+                <?php $globalIdx = 0; ?>
+                <?php $groupIdx = 0; ?>
+                <?php foreach ($groupedServices as $groupName => $svcs): ?>
+                <?php $gid = 'grp' . $groupIdx; $groupIdx++; ?>
+                <div onclick="openGroupDisplay('<?php echo $gid; ?>', '<?php echo htmlspecialchars($groupName, ENT_QUOTES); ?>')" class="service-btn kiosk-enter card rounded-xl p-8 shadow-sm" style="border: 1px solid var(--border);animation-delay:<?php echo $globalIdx * 100; ?>ms;cursor:pointer;position:relative;">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-bold tracking-tight"><?php echo htmlspecialchars($groupName); ?></h3>
+                        <i class="fas fa-chevron-right text-lg" style="color: var(--muted);"></i>
+                    </div>
+                    <p class="desc-text mt-1" style="color: var(--muted);"><?php echo count($svcs); ?> service<?php echo count($svcs) > 1 ? 's' : ''; ?></p>
+                </div>
+                <?php foreach ($svcs as $svc): ?>
+                <div data-group="<?php echo $gid; ?>" class="hidden">
+                    <div onclick="selectService('<?php echo $svc['code']; ?>')" class="service-btn kiosk-enter card rounded-xl p-8 shadow-sm" style="border: 1px solid var(--border);position:relative;">
+                        <div class="flex items-start justify-between mb-4">
+                            <span class="font-mono text-sm uppercase tracking-wider" style="color: var(--muted);">Prefix <?php echo htmlspecialchars($svc['queue_prefix']); ?></span>
+                        </div>
+                        <h3 class="font-bold tracking-tight"><?php echo htmlspecialchars($svc['name']); ?></h3>
+                        <p class="desc-text mt-1" style="color: var(--muted);"><?php echo htmlspecialchars($svc['description'] ?? ''); ?></p>
+                        <div class="mt-6 inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest" style="color: var(--primary);">Take ticket <span aria-hidden>→</span></div>
+                    </div>
+                </div>
+                <?php $globalIdx++; endforeach; ?>
+                <?php endforeach; ?>
+                <?php if (!empty($ungroupedServices)): ?>
+                <?php foreach ($ungroupedServices as $svc): ?>
+                <div onclick="selectService('<?php echo $svc['code']; ?>')" class="service-btn kiosk-enter card rounded-xl p-8 shadow-sm" style="border: 1px solid var(--border);animation-delay:<?php echo $globalIdx * 100; ?>ms;position:relative;">
                     <div class="flex items-start justify-between mb-4">
                         <span class="font-mono text-sm uppercase tracking-wider" style="color: var(--muted);">Prefix <?php echo htmlspecialchars($svc['queue_prefix']); ?></span>
                     </div>
@@ -277,17 +323,57 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
                     <p class="desc-text mt-1" style="color: var(--muted);"><?php echo htmlspecialchars($svc['description'] ?? ''); ?></p>
                     <div class="mt-6 inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest" style="color: var(--primary);">Take ticket <span aria-hidden>→</span></div>
                 </div>
-                <?php endforeach; ?>
+                <?php $globalIdx++; endforeach; ?>
+                <?php endif; ?>
+                <!-- Custom Card (always visible, uneditable) -->
+                <div onclick="selectService('custom')" class="service-btn kiosk-enter card rounded-xl p-8 shadow-sm" style="border: 2px dashed var(--primary);animation-delay:<?php echo $globalIdx * 100; ?>ms;position:relative;background:transparent;">
+                    <div class="flex items-start justify-between mb-4">
+                        <span class="font-mono text-sm uppercase tracking-wider" style="color: var(--muted);">Prefix C</span>
+                    </div>
+                    <h3 class="font-bold tracking-tight" style="color: var(--primary);"><i class="fas fa-pen mr-2"></i>Custom</h3>
+                    <p class="desc-text mt-1" style="color: var(--muted);">Type your own concern or inquiry</p>
+                    <div class="mt-6 inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest" style="color: var(--primary);">Take ticket <span aria-hidden>→</span></div>
+                </div>
                 <?php endif; ?>
             </div>
         </div>
 
-        <!-- Step 2: Name Entry -->
+        <!-- Step 1b: Group Drill-down -->
+        <div id="step1b" class="hidden kiosk-enter" style="max-width: 48rem; margin: 0 auto;">
+            <button onclick="closeGroupDisplay()" class="btn btn-ghost mb-6 text-base" style="color: var(--muted);"><i class="fas fa-arrow-left mr-2"></i>Back</button>
+            <h1 class="font-extrabold tracking-tight mb-2" id="groupDisplayTitle">Select a Service</h1>
+            <p class="mb-8" style="color: var(--muted);" id="groupDisplaySubtitle">Choose from the services below</p>
+            <div id="groupDisplayGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        </div>
+
+        <!-- Step 2: Name Entry + Company + Purpose -->
         <div id="step2" class="hidden kiosk-enter" style="max-width: 32rem; margin: 0 auto;">
             <button onclick="goBack()" class="btn btn-ghost mb-6 text-base" style="color: var(--muted);"><i class="fas fa-arrow-left mr-2"></i>Back</button>
-            <h1 class="font-extrabold tracking-tight mb-2" id="serviceTitle">Enter Your Name</h1>
-            <p class="mb-8" style="color: var(--muted);">Type your full name to receive a queue ticket</p>
+            <h1 class="font-extrabold tracking-tight mb-2" id="serviceTitle">Enter Your Details</h1>
+            <p class="mb-8" style="color: var(--muted);">Fill in your information to receive a queue ticket</p>
             <div class="card p-8">
+                <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Company (optional)</label>
+                <input type="text" id="companyName" list="companyList" class="touch-input w-full px-6 py-4 text-center rounded-xl mb-4" style="background: var(--background); color: var(--foreground); border: 1px solid var(--border);" placeholder="Enter company name" autocomplete="off" inputmode="text">
+                <datalist id="companyList">
+                    <?php foreach ($knownCompanies as $cname): ?>
+                    <option value="<?php echo htmlspecialchars($cname); ?>">
+                    <?php endforeach; ?>
+                </datalist>
+
+                <div id="customDescriptionRow" class="hidden">
+                    <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Describe your concern</label>
+                    <input type="text" id="customDescription" class="touch-input w-full px-6 py-4 text-center rounded-xl mb-4" style="background: var(--background); color: var(--foreground); border: 1px solid var(--primary);" placeholder="e.g. Meeting with Sir Murphy" autocomplete="off" inputmode="text" maxlength="150">
+                </div>
+
+                <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Purpose</label>
+                <select id="purposeSelect" class="touch-input w-full px-6 py-4 text-center rounded-xl mb-4" style="background: var(--background); color: var(--foreground); border: 1px solid var(--border);">
+                    <option value="">-- Select purpose --</option>
+                    <option value="inquiry">Inquiry</option>
+                    <option value="complain">Complain</option>
+                    <option value="follow-up">Follow-up</option>
+                </select>
+
+                <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Your Name</label>
                 <input type="text" id="customerName" class="touch-input w-full px-6 py-4 text-center rounded-xl" style="background: var(--background); color: var(--foreground); border: 1px solid var(--border);" placeholder="Tap here to enter name" autocomplete="off" inputmode="text">
                 <div class="flex gap-4 mt-6">
                     <button onclick="goBack()" class="btn btn-secondary flex-1 py-4 text-base">Back</button>
@@ -303,6 +389,7 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
                 <div id="queueNumber" class="font-extrabold tracking-tighter leading-none tabular-nums my-6" style="color: var(--primary);">---</div>
                 <p class="text-2xl font-medium"><?php echo $company_name; ?></p>
                 <p class="text-lg" style="color: var(--muted);">Service: <span id="serviceName">---</span> &middot; <span id="windowAssigned">Available Window</span></p>
+                <p class="text-base" style="color: var(--muted);"><span id="successCompany"></span><span id="successPurpose"></span></p>
                 <p class="mt-4 text-lg max-w-prose mx-auto" style="color: var(--muted);">Please take a seat. Your number will be called shortly on the public display.</p>
                 <button onclick="resetKiosk()" class="mt-8 px-10 py-4 text-sm font-bold uppercase tracking-widest rounded-xl" style="background: var(--foreground); color: var(--background);">Done</button>
             </div>
@@ -336,7 +423,7 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
                 <a href="display.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Live Display</a>
                 <a href="kiosk.php" class="px-3 py-1.5 rounded" style="background: rgba(255,255,255,0.1); color: white;">Kiosk</a>
                 <a href="index.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Operator</a>
-                <a href="reports.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Analytics</a>
+                    <a href="reports.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Analytics</a>
             </div>
         </div>
         <div class="flex items-center gap-3">
@@ -360,32 +447,89 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
     <!-- Step 1: Service Selection -->
     <div id="step1" class="animate-entry">
         <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight max-w-[28ch]">Select the service you need today.</h1>
-        <div id="servicesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
-            <?php if (empty($services)): ?>
-            <div class="col-span-full text-center py-12" style="color: var(--muted);">No services available</div>
-            <?php else: ?>
-            <?php foreach ($services as $i => $svc): ?>
-            <div onclick="selectService('<?php echo $svc['code']; ?>')" class="service-btn animate-entry text-left card rounded-xl p-8 shadow-sm" style="border: 1px solid var(--border);animation-delay:<?php echo $i * 80; ?>ms;position:relative;">
-                <div class="flex items-start justify-between mb-8">
-                    <span class="font-mono text-[11px] uppercase tracking-wider" style="color: var(--muted);">Prefix <?php echo htmlspecialchars($svc['queue_prefix']); ?></span>
-                    <span class="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded" style="background: hsl(215 60% 18% / 0.1); color: var(--primary);">Window</span>
+            <div id="servicesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+                <?php if (empty($services)): ?>
+                <div class="col-span-full text-center py-12" style="color: var(--muted);">No services available</div>
+                <?php else: ?>
+                <?php $globalIdx = 0; ?>
+                <?php $groupIdx2 = 0; ?>
+                <?php foreach ($groupedServices as $groupName => $svcs): ?>
+                <?php $gid = 'grpd' . $groupIdx2; $groupIdx2++; ?>
+                <div onclick="toggleGroup('<?php echo $gid; ?>')" class="service-btn animate-entry card rounded-xl p-8 shadow-sm" style="border: 1px solid var(--border);animation-delay:<?php echo $globalIdx * 80; ?>ms;cursor:pointer;position:relative;">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-2xl font-bold tracking-tight"><?php echo htmlspecialchars($groupName); ?></h3>
+                        <i id="<?php echo $gid; ?>Icon" class="fas fa-chevron-down text-xl transition-transform duration-300" style="color: var(--muted);"></i>
+                    </div>
+                    <p class="text-sm mt-1" style="color: var(--muted);"><?php echo count($svcs); ?> service<?php echo count($svcs) > 1 ? 's' : ''; ?></p>
                 </div>
-                <h3 class="text-2xl font-bold tracking-tight"><?php echo htmlspecialchars($svc['name']); ?></h3>
-                <p class="text-sm mt-1" style="color: var(--muted);"><?php echo htmlspecialchars($svc['description'] ?? ''); ?></p>
-                <div class="mt-8 inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest" style="color: var(--primary);">Take ticket <span aria-hidden>→</span></div>
+                <?php foreach ($svcs as $svc): ?>
+                <div data-group="<?php echo $gid; ?>" onclick="selectService('<?php echo $svc['code']; ?>')" class="service-btn animate-entry text-left card rounded-xl p-8 shadow-sm hidden" style="border: 1px solid var(--border);animation-delay:<?php echo $globalIdx * 80; ?>ms;position:relative;">
+                    <div class="flex items-start justify-between mb-8">
+                        <span class="font-mono text-[11px] uppercase tracking-wider" style="color: var(--muted);">Prefix <?php echo htmlspecialchars($svc['queue_prefix']); ?></span>
+                        <span class="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded" style="background: hsl(215 60% 18% / 0.1); color: var(--primary);">Window</span>
+                    </div>
+                    <h3 class="text-2xl font-bold tracking-tight"><?php echo htmlspecialchars($svc['name']); ?></h3>
+                    <p class="text-sm mt-1" style="color: var(--muted);"><?php echo htmlspecialchars($svc['description'] ?? ''); ?></p>
+                    <div class="mt-8 inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest" style="color: var(--primary);">Take ticket <span aria-hidden>→</span></div>
+                </div>
+                <?php $globalIdx++; endforeach; ?>
+                <?php endforeach; ?>
+                <?php if (!empty($ungroupedServices)): ?>
+                <?php foreach ($ungroupedServices as $svc): ?>
+                <div onclick="selectService('<?php echo $svc['code']; ?>')" class="service-btn animate-entry text-left card rounded-xl p-8 shadow-sm" style="border: 1px solid var(--border);animation-delay:<?php echo $globalIdx * 80; ?>ms;position:relative;">
+                    <div class="flex items-start justify-between mb-8">
+                        <span class="font-mono text-[11px] uppercase tracking-wider" style="color: var(--muted);">Prefix <?php echo htmlspecialchars($svc['queue_prefix']); ?></span>
+                        <span class="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded" style="background: hsl(215 60% 18% / 0.1); color: var(--primary);">Window</span>
+                    </div>
+                    <h3 class="text-2xl font-bold tracking-tight"><?php echo htmlspecialchars($svc['name']); ?></h3>
+                    <p class="text-sm mt-1" style="color: var(--muted);"><?php echo htmlspecialchars($svc['description'] ?? ''); ?></p>
+                    <div class="mt-8 inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest" style="color: var(--primary);">Take ticket <span aria-hidden>→</span></div>
+                </div>
+                <?php $globalIdx++; endforeach; ?>
+                <?php endif; ?>
+                <!-- Custom Card (always visible, uneditable) -->
+                <div onclick="selectService('custom')" class="service-btn animate-entry text-left card rounded-xl p-8 shadow-sm" style="border: 2px dashed var(--primary);animation-delay:<?php echo $globalIdx * 80; ?>ms;position:relative;background:transparent;">
+                    <div class="flex items-start justify-between mb-8">
+                        <span class="font-mono text-[11px] uppercase tracking-wider" style="color: var(--muted);">Prefix C</span>
+                        <span class="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded" style="background: hsl(215 60% 18% / 0.1); color: var(--primary);">Window</span>
+                    </div>
+                    <h3 class="text-2xl font-bold tracking-tight" style="color: var(--primary);"><i class="fas fa-pen mr-2"></i>Custom</h3>
+                    <p class="text-sm mt-1" style="color: var(--muted);">Type your own concern or inquiry</p>
+                    <div class="mt-8 inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest" style="color: var(--primary);">Take ticket <span aria-hidden>→</span></div>
+                </div>
+                <?php endif; ?>
             </div>
-            <?php endforeach; ?>
-            <?php endif; ?>
-        </div>
     </div>
 
-    <!-- Step 2: Name Entry -->
+    <!-- Step 2: Name Entry + Company + Purpose -->
     <div id="step2" class="hidden animate-entry" style="max-width: 32rem; margin: 0 auto;">
         <button onclick="goBack()" class="btn btn-ghost mb-6" style="color: var(--muted);"><i class="fas fa-arrow-left mr-2"></i>Back</button>
-        <h1 class="text-3xl font-extrabold tracking-tight mb-2" id="serviceTitle">Enter Your Name</h1>
-        <p class="text-sm mb-8" style="color: var(--muted);">Type your full name to receive a queue ticket</p>
+        <h1 class="text-3xl font-extrabold tracking-tight mb-2" id="serviceTitle">Enter Your Details</h1>
+        <p class="text-sm mb-8" style="color: var(--muted);">Fill in your information to receive a queue ticket</p>
         <div class="card p-8">
-            <input type="text" id="customerName" class="touch-input w-full px-6 py-4 text-2xl text-center rounded-xl" style="background: var(--background); color: var(--foreground); border: 1px solid var(--border);" placeholder="Tap here to enter name" autocomplete="off" inputmode="text">
+            <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Company (optional)</label>
+            <input type="text" id="companyName" list="companyList" class="touch-input w-full px-5 py-3 text-lg text-center rounded-xl mb-4" style="background: var(--background); color: var(--foreground); border: 1px solid var(--border);" placeholder="Enter company name" autocomplete="off" inputmode="text">
+            <datalist id="companyList">
+                <?php foreach ($knownCompanies as $cname): ?>
+                <option value="<?php echo htmlspecialchars($cname); ?>">
+                <?php endforeach; ?>
+            </datalist>
+
+            <div id="customDescriptionRow" class="hidden">
+                <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Describe your concern</label>
+                <input type="text" id="customDescription" class="touch-input w-full px-5 py-3 text-lg text-center rounded-xl mb-4" style="background: var(--background); color: var(--foreground); border: 1px solid var(--primary);" placeholder="e.g. Meeting with Sir Murphy" autocomplete="off" inputmode="text" maxlength="150">
+            </div>
+
+            <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Purpose</label>
+            <select id="purposeSelect" class="touch-input w-full px-5 py-3 text-lg text-center rounded-xl mb-4" style="background: var(--background); color: var(--foreground); border: 1px solid var(--border);">
+                <option value="">-- Select purpose --</option>
+                <option value="inquiry">Inquiry</option>
+                <option value="complain">Complain</option>
+                <option value="follow-up">Follow-up</option>
+            </select>
+
+            <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Your Name</label>
+            <input type="text" id="customerName" class="touch-input w-full px-5 py-3 text-lg text-center rounded-xl" style="background: var(--background); color: var(--foreground); border: 1px solid var(--border);" placeholder="Tap here to enter name" autocomplete="off" inputmode="text">
             <div class="flex gap-4 mt-6">
                 <button onclick="goBack()" class="btn btn-secondary flex-1 py-4 text-base">Back</button>
                 <button onclick="submitCustomer()" id="submitBtn" class="btn flex-1 py-4 text-base font-bold" style="background: #059669; color: white;">Get Queue Number</button>
@@ -400,6 +544,7 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
             <div id="queueNumber" class="text-[120px] md:text-[160px] font-extrabold tracking-tighter leading-none tabular-nums my-6" style="color: var(--primary);">---</div>
             <p class="text-lg font-medium"><?php echo $company_name; ?></p>
             <p class="text-sm" style="color: var(--muted);">Service: <span id="serviceName">---</span> &middot; <span id="windowAssigned">Available Window</span></p>
+            <p class="text-sm" style="color: var(--muted);"><span id="successCompany"></span><span id="successPurpose"></span></p>
             <p class="mt-4 text-sm max-w-prose mx-auto" style="color: var(--muted);">Please take a seat. Your number will be called shortly on the public display.</p>
             <button onclick="resetKiosk()" class="mt-8 px-6 py-3 text-[11px] font-bold uppercase tracking-widest rounded" style="background: var(--foreground); color: var(--background);">Done</button>
         </div>
@@ -421,7 +566,7 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
     </div>
     <div class="flex items-center gap-2 px-3 py-1 rounded shadow-sm" style="background: var(--card); border: 1px solid var(--border);">
         <div class="w-1.5 h-1.5 rounded-full" style="background: var(--primary);"></div>
-        <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em;">v4.2.0-stable</span>
+        <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em;">v4.3.0-stable</span>
     </div>
 </footer>
 <?php endif; ?>
@@ -429,6 +574,113 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
 <script>
     var finalServiceType = null, countdownInterval = null;
     var serviceNames = {<?php foreach ($services as $svc): echo "'" . $svc['code'] . "': '" . addslashes($svc['name']) . "',"; endforeach; ?>};
+    var serviceStatuses = { custom: 'active', other: 'active' };
+
+    async function fetchCounterStatuses() {
+        try {
+            var res = await fetch('api/get_kiosk_status.php');
+            var data = await res.json();
+            if (!data.success) return;
+            var statusMap = {};
+            data.data.counters.forEach(function(c) {
+                c.services.forEach(function(s) {
+                    if (s.is_primary != '1' && s.is_primary != 1) return;
+                    if (!statusMap[s.service_type]) statusMap[s.service_type] = { online: 0, break: 0, offline: 0 };
+                    if (c.status_text === 'On Break') statusMap[s.service_type].break++;
+                    else if (c.status_text === 'Offline' || c.is_online == 0) statusMap[s.service_type].offline++;
+                    else statusMap[s.service_type].online++;
+                });
+            });
+            // Custom uses ALL counters (not just primary)
+            var allOnline = 0, allBreak = 0, allOffline = 0;
+            data.data.counters.forEach(function(c) {
+                if (c.status_text === 'On Break') allBreak++;
+                else if (c.status_text === 'Offline' || c.is_online == 0) allOffline++;
+                else allOnline++;
+            });
+            if (allOnline === 0 && allBreak === 0) serviceStatuses.custom = 'offline';
+            else if (allBreak > 0 && allOnline === 0) serviceStatuses.custom = 'break';
+            else serviceStatuses.custom = 'active';
+            for (var code in statusMap) {
+                var st = statusMap[code];
+                if (st.online === 0 && st.break === 0) serviceStatuses[code] = 'offline';
+                else if (st.break > 0) serviceStatuses[code] = 'break';
+                else serviceStatuses[code] = 'online';
+            }
+            applyServiceStates();
+        } catch (e) {}
+    }
+
+    function applyServiceStates() {
+        var cards = document.querySelectorAll('.service-btn');
+        for (var ci = 0; ci < cards.length; ci++) { var card = cards[ci];
+            var onclick = card.getAttribute('onclick') || '';
+            var m = onclick.match(/selectService\('([^']+)'\)/);
+            if (!m) continue;
+            var code = m[1];
+            var status = serviceStatuses[code] || 'active';
+            card.removeAttribute('data-status');
+            card.setAttribute('data-status', status);
+            var existingBadge = card.querySelector('.status-badge');
+            if (existingBadge) existingBadge.remove();
+            if (status === 'offline') {
+                card.style.opacity = '0.4';
+                card.style.cursor = 'not-allowed';
+                card.style.pointerEvents = 'none';
+                card.style.filter = 'grayscale(1)';
+                var badge = document.createElement('span');
+                badge.className = 'status-badge';
+                badge.style.cssText = 'position:absolute;top:10px;right:10px;background:#ef4444;color:#fff;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;padding:3px 8px;border-radius:4px;';
+                badge.textContent = 'Offline';
+                card.appendChild(badge);
+            } else {
+                card.style.opacity = '';
+                card.style.cursor = '';
+                card.style.pointerEvents = '';
+                card.style.filter = '';
+                if (status === 'break') {
+                    var badge = document.createElement('span');
+                    badge.className = 'status-badge';
+                    badge.style.cssText = card.classList.contains('kiosk-enter') ?
+                        'position:absolute;top:10px;right:10px;background:#f59e0b;color:#fff;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;padding:3px 8px;border-radius:4px;' :
+                        'position:absolute;top:10px;right:10px;background:#f59e0b;color:#fff;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;padding:3px 8px;border-radius:4px;';
+                    badge.textContent = 'On Break';
+                    card.appendChild(badge);
+                }
+            }
+        }
+        // Also update group headers that show service count
+        var groupCards = document.querySelectorAll('[onclick*="openGroupDisplay"]');
+        for (var gi = 0; gi < groupCards.length; gi++) {
+            var gc = groupCards[gi];
+            var gid = gc.getAttribute('onclick').match(/openGroupDisplay\('([^']+)'/);
+            if (!gid) continue;
+            var svcs = document.querySelectorAll('[data-group="' + gid[1] + '"] .service-btn');
+            var hasOffline = false, hasBreak = false;
+            for (var si = 0; si < svcs.length; si++) {
+                var scode = svcs[si].getAttribute('onclick').match(/selectService\('([^']+)'\)/);
+                if (!scode) continue;
+                var st = serviceStatuses[scode[1]];
+                if (st === 'offline') hasOffline = true;
+                if (st === 'break') hasBreak = true;
+            }
+            var gExisting = gc.querySelector('.status-badge');
+            if (gExisting) gExisting.remove();
+            if (hasOffline) {
+                var badge = document.createElement('span');
+                badge.className = 'status-badge';
+                badge.style.cssText = 'position:absolute;top:10px;right:10px;background:#ef4444;color:#fff;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;padding:3px 8px;border-radius:4px;';
+                badge.textContent = 'Unavailable';
+                gc.appendChild(badge);
+            } else if (hasBreak) {
+                var badge = document.createElement('span');
+                badge.className = 'status-badge';
+                badge.style.cssText = 'position:absolute;top:10px;right:10px;background:#f59e0b;color:#fff;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;padding:3px 8px;border-radius:4px;';
+                badge.textContent = 'On Break';
+                gc.appendChild(badge);
+            }
+        }
+    }
 
     function updateFooterTime() {
         var el = document.getElementById('footerTime');
@@ -438,29 +690,90 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
     }
     setInterval(updateFooterTime, 200);
     updateFooterTime();
+    fetchCounterStatuses();
+    setInterval(fetchCounterStatuses, 10000);
+
+    function toggleGroup(gid) {
+        var items = document.querySelectorAll('[data-group="' + gid + '"]');
+        var icon = document.getElementById(gid + 'Icon');
+        if (!items.length) return;
+        var isHidden = items[0].classList.contains('hidden');
+        for (var i = 0; i < items.length; i++) items[i].classList.toggle('hidden');
+        if (icon) icon.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+    }
+
+    function openGroupDisplay(gid, name) {
+        document.getElementById('groupDisplayTitle').textContent = name;
+        document.getElementById('groupDisplaySubtitle').textContent = 'Choose from the services below';
+        var grid = document.getElementById('groupDisplayGrid');
+        grid.innerHTML = '';
+        var templates = document.querySelectorAll('[data-group="' + gid + '"]');
+        for (var i = 0; i < templates.length; i++) {
+            var card = templates[i].querySelector('.service-btn');
+            if (card) grid.appendChild(card.cloneNode(true));
+        }
+        applyServiceStates();
+        document.getElementById('step1').classList.add('hidden');
+        document.getElementById('step1b').classList.remove('hidden');
+    }
+
+    function closeGroupDisplay() {
+        document.getElementById('step1b').classList.add('hidden');
+        document.getElementById('groupDisplayGrid').innerHTML = '';
+        document.getElementById('step1').classList.remove('hidden');
+    }
 
     function selectService(code) {
+        if (serviceStatuses[code] === 'offline') return;
         finalServiceType = code;
         document.getElementById('serviceTitle').textContent = 'Service: ' + (serviceNames[code] || code);
-        document.getElementById('step1').classList.add('hidden');
+        var customRow = document.getElementById('customDescriptionRow');
+        if (code === 'custom') {
+            if (customRow) customRow.classList.remove('hidden');
+            document.getElementById('customDescription').value = '';
+        } else {
+            if (customRow) customRow.classList.add('hidden');
+        }
+        var step1b = document.getElementById('step1b');
+        if (step1b && !step1b.classList.contains('hidden')) {
+            window._fromStep1b = true;
+            step1b.classList.add('hidden');
+        } else {
+            window._fromStep1b = false;
+            document.getElementById('step1').classList.add('hidden');
+        }
         document.getElementById('step2').classList.remove('hidden');
         setTimeout(function() { document.getElementById('customerName').focus(); }, 300);
     }
 
     function goBack() {
         document.getElementById('step2').classList.add('hidden');
-        document.getElementById('step1').classList.remove('hidden');
+        var customRow = document.getElementById('customDescriptionRow');
+        if (customRow) customRow.classList.add('hidden');
+        if (window._fromStep1b) {
+            document.getElementById('step1b').classList.remove('hidden');
+            window._fromStep1b = false;
+        } else {
+            document.getElementById('step1').classList.remove('hidden');
+        }
         document.getElementById('customerName').value = '';
+        document.getElementById('companyName').value = '';
+        document.getElementById('purposeSelect').value = '';
     }
 
     async function submitCustomer() {
         var name = document.getElementById('customerName').value.trim();
+        var company = document.getElementById('companyName').value.trim();
+        var purpose = document.getElementById('purposeSelect').value;
+        var customDesc = document.getElementById('customDescription') ? document.getElementById('customDescription').value.trim() : '';
         if (!name || name.length < 2) { alert('Please enter your name (min 2 characters)'); return; }
         var btn = document.getElementById('submitBtn');
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
         try {
-            var res = await fetch('api/add_customer.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name, service_type: finalServiceType }) });
+            var body = { name: name, service_type: finalServiceType, company_name: company, purpose: purpose };
+            if (customDesc) body.custom_description = customDesc;
+            var res = await fetch('api/add_customer.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
             var data = await res.json();
             if (data.success) {
                 showQueueNumber(data.queue_number, finalServiceType, data.data);
@@ -470,8 +783,19 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
 
     function showQueueNumber(queueNumber, serviceType, data) {
         document.getElementById('queueNumber').textContent = queueNumber;
-        document.getElementById('serviceName').textContent = serviceNames[serviceType] || serviceType;
+        var customDesc = document.getElementById('customDescription') ? document.getElementById('customDescription').value.trim() : '';
+        var displayName = serviceNames[serviceType] || serviceType;
+        if (serviceType === 'custom' && customDesc) displayName += ' (' + customDesc + ')';
+        document.getElementById('serviceName').textContent = displayName;
         document.getElementById('windowAssigned').textContent = data.assigned_counter || 'Available Window';
+        var company = document.getElementById('companyName').value.trim();
+        var purpose = document.getElementById('purposeSelect').value;
+        var companyEl = document.getElementById('successCompany');
+        var purposeEl = document.getElementById('successPurpose');
+        if (company) { companyEl.textContent = 'Company: ' + company; }
+        else { companyEl.textContent = ''; }
+        if (purpose) { purposeEl.textContent = (company ? '  \u00b7  ' : '') + 'Purpose: ' + purpose.charAt(0).toUpperCase() + purpose.slice(1); }
+        else { purposeEl.textContent = ''; }
         document.getElementById('step2').classList.add('hidden');
         document.getElementById('step3').classList.remove('hidden');
         var seconds = 30;
@@ -482,11 +806,18 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
     function resetKiosk() {
         if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
         document.getElementById('step3').classList.add('hidden');
+        document.getElementById('step1b').classList.add('hidden');
         document.getElementById('step1').classList.remove('hidden');
+        var customRow = document.getElementById('customDescriptionRow');
+        if (customRow) customRow.classList.add('hidden');
         document.getElementById('customerName').value = '';
+        document.getElementById('companyName').value = '';
+        document.getElementById('purposeSelect').value = '';
+        if (document.getElementById('customDescription')) document.getElementById('customDescription').value = '';
         document.getElementById('submitBtn').disabled = false;
         document.getElementById('submitBtn').innerHTML = 'Get Queue Number';
         finalServiceType = null;
+        fetchCounterStatuses();
     }
 
     document.addEventListener('keydown', function(e) {

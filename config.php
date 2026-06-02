@@ -54,7 +54,7 @@ function requireAuth() {
         $conn = $db->getConnection();
         
         $stmt = $conn->prepare("
-            SELECT s.*, u.id as uid, u.username, u.display_name, u.role
+            SELECT s.*, u.id as uid, u.username, u.display_name, u.role, u.window_id
             FROM user_sessions s
             JOIN users u ON u.id = s.user_id
             WHERE s.token = ? AND s.expires_at > NOW() AND u.is_active = 1
@@ -67,7 +67,8 @@ function requireAuth() {
                 'id' => $session['uid'],
                 'username' => $session['username'],
                 'display_name' => $session['display_name'],
-                'role' => $session['role']
+                'role' => $session['role'],
+                'window_id' => $session['window_id'] ?? null
             ];
         }
     } catch (Exception $e) {

@@ -1,8 +1,12 @@
 <?php include 'config.php';
+$user = requireAuth();
+if (!$user) { header('Location: login.php'); exit; }
 try { $db = new Database(); $conn = $db->getConnection(); $s = $conn->query("SELECT * FROM display_settings LIMIT 1")->fetch(PDO::FETCH_ASSOC); } catch (Exception $e) { $s = []; }
 $company_name = htmlspecialchars($s['company_name'] ?? 'Service Center');
 $branch_name = htmlspecialchars($s['branch_name'] ?? '');
 $company_logo = htmlspecialchars($s['company_logo'] ?? '');
+$display_name = htmlspecialchars($user['display_name'] ?? 'Admin');
+$user_role = htmlspecialchars($user['role'] ?? 'staff');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -38,13 +42,24 @@ $company_logo = htmlspecialchars($s['company_logo'] ?? '');
                 </a>
                 <div class="hidden md:flex gap-1 text-[11px] font-semibold uppercase tracking-wider">
                     <a href="index.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Operator</a>
+                    <?php if ($user_role !== 'staff'): ?>
                     <a href="display.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Live Display</a>
+                    <?php endif; ?>
+                    <?php if ($user_role === 'admin'): ?>
                     <a href="kiosk.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Kiosk</a>
+                    <?php endif; ?>
                     <a href="reports.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Analytics</a>
                 </div>
             </div>
             <div class="flex items-center gap-3">
-                <span style="font-size: 10px; font-family: var(--font-mono); opacity: 0.7;">ADMIN</span>
+                <div class="flex items-center gap-2 pl-3">
+                    <div class="w-7 h-7 rounded-full grid place-items-center text-[10px] font-bold" style="background: rgba(255,255,255,0.15);"><?php echo substr($display_name, 0, 2); ?></div>
+                    <div class="hidden sm:flex flex-col leading-none">
+                        <span style="font-size: 11px; font-weight: 600;"><?php echo $display_name; ?></span>
+                        <span style="font-size: 9px; opacity: 0.5; text-transform: uppercase; letter-spacing: 0.15em;"><?php echo $user_role; ?></span>
+                    </div>
+                    <button onclick="logout()" class="ml-2 px-2 py-1 rounded text-[10px]" style="background: rgba(255,255,255,0.1);" title="Sign Out"><i class="fas fa-sign-out-alt"></i></button>
+                </div>
             </div>
         </div>
     </nav>
@@ -130,7 +145,7 @@ $company_logo = htmlspecialchars($s['company_logo'] ?? '');
                 <div>
                     <label class="label-md block mb-3">Announcement Posters</label>
                     <p class="text-[10px] mb-3" style="color: var(--muted);">Create text-based announcement posters that rotate alongside image posters.</p>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
                         <div class="md:col-span-2">
                             <label class="label-md block mb-1.5">Title</label>
                             <input type="text" id="annPosterTitle" class="input-field" placeholder="e.g. Holiday Schedule">
@@ -142,6 +157,14 @@ $company_logo = htmlspecialchars($s['company_logo'] ?? '');
                         <div>
                             <label class="label-md block mb-1.5">Text Color</label>
                             <input type="color" id="annPosterFg" class="input-field h-10 p-1" value="#ffffff">
+                        </div>
+                        <div>
+                            <label class="label-md block mb-1.5">Text Size</label>
+                            <select id="annPosterTextSize" class="input-field">
+                                <option value="sm">Small</option>
+                                <option value="md" selected>Medium</option>
+                                <option value="lg">Large</option>
+                            </select>
                         </div>
                     </div>
                     <div class="mb-4">
@@ -229,9 +252,11 @@ $company_logo = htmlspecialchars($s['company_logo'] ?? '');
                 poster_announcements: JSON.stringify(annPosters)
             };
             try {
+                var token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+                var authHeaders = token ? { 'Authorization': 'Bearer ' + token } : {};
                 var res = await fetch('api/settings/index.php', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: Object.assign(authHeaders, { 'Content-Type': 'application/json' }),
                     body: JSON.stringify(data)
                 });
                 var result = await res.json();
@@ -261,14 +286,17 @@ $company_logo = htmlspecialchars($s['company_logo'] ?? '');
             var body = document.getElementById('annPosterBody').value;
             var bg = document.getElementById('annPosterBg').value;
             var fg = document.getElementById('annPosterFg').value;
+            var ts = document.getElementById('annPosterTextSize').value;
             el.style.background = bg;
             el.style.color = fg;
+            el.style.fontSize = {sm:'7px',md:'8px',lg:'10px'}[ts] || '8px';
             el.textContent = (title || body || 'Preview').substring(0, 30);
         }
         document.getElementById('annPosterTitle').addEventListener('input', updateAnnPreview);
         document.getElementById('annPosterBody').addEventListener('input', updateAnnPreview);
         document.getElementById('annPosterBg').addEventListener('input', updateAnnPreview);
         document.getElementById('annPosterFg').addEventListener('input', updateAnnPreview);
+        document.getElementById('annPosterTextSize').addEventListener('change', updateAnnPreview);
 
         function renderAnnouncementPosters() {
             var el = document.getElementById('annPosterList');
@@ -278,8 +306,11 @@ $company_logo = htmlspecialchars($s['company_logo'] ?? '');
                 return;
             }
             el.innerHTML = annPosters.map(function(p, i) {
+                var ts = p.text_size || 'md';
+                var tsLabel = {sm:'S',md:'M',lg:'L'}[ts] || 'M';
                 return '<div style="width:160px;height:90px;border-radius:6px;overflow:hidden;border:1px solid var(--border);position:relative;cursor:pointer;background:' + p.bg + ';color:' + p.fg + ';display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px;text-align:center;" onclick="removeAnnouncementPoster(' + i + ')">' +
                     '<div style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.5);color:white;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:10px;">&times;</div>' +
+                    '<div style="position:absolute;bottom:2px;right:2px;background:rgba(0,0,0,0.4);color:white;border-radius:3px;padding:1px 4px;font-size:7px;line-height:1.3;">' + tsLabel + '</div>' +
                     (p.title ? '<div style="font-size:10px;font-weight:700;line-height:1.2;margin-bottom:2px;">' + p.title.substring(0, 30) + '</div>' : '') +
                     (p.body ? '<div style="font-size:7px;line-height:1.2;opacity:0.85;">' + p.body.substring(0, 50) + '</div>' : '') +
                 '</div>';
@@ -294,11 +325,13 @@ $company_logo = htmlspecialchars($s['company_logo'] ?? '');
                 title: title,
                 body: body,
                 bg: document.getElementById('annPosterBg').value,
-                fg: document.getElementById('annPosterFg').value
+                fg: document.getElementById('annPosterFg').value,
+                text_size: document.getElementById('annPosterTextSize').value
             });
             renderAnnouncementPosters();
             document.getElementById('annPosterTitle').value = '';
             document.getElementById('annPosterBody').value = '';
+            document.getElementById('annPosterTextSize').value = 'md';
             updateAnnPreview();
             showToast('Announcement poster added', 'success');
         }
@@ -340,7 +373,8 @@ $company_logo = htmlspecialchars($s['company_logo'] ?? '');
                 fd.append('poster_images[]', input.files[i]);
             }
             try {
-                var res = await fetch('api/settings/index.php', { method: 'POST', body: fd });
+                var token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+                var res = await fetch('api/settings/index.php', { method: 'POST', headers: token ? { 'Authorization': 'Bearer ' + token } : {}, body: fd });
                 var result = await res.json();
                 if (result.success) {
                     showToast('Posters uploaded', 'success');
@@ -355,9 +389,10 @@ $company_logo = htmlspecialchars($s['company_logo'] ?? '');
         async function removePoster(idx) {
             if (!confirm('Remove this poster image?')) return;
             try {
+                var token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
                 var res = await fetch('api/settings/index.php', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: Object.assign(token ? { 'Authorization': 'Bearer ' + token } : {}, { 'Content-Type': 'application/json' }),
                     body: JSON.stringify({ remove_poster: idx })
                 });
                 var result = await res.json();
@@ -370,6 +405,20 @@ $company_logo = htmlspecialchars($s['company_logo'] ?? '');
             } catch (e) { showToast('Error: ' + e.message, 'error'); }
         }
 
+        function logout() {
+            if (confirm('Sign out of Settings?')) {
+                var token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+                if (token) {
+                    fetch('api/auth/logout.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: token }) });
+                }
+                sessionStorage.removeItem('auth_token');
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user_data');
+                sessionStorage.removeItem('user_data');
+                document.cookie = 'auth_token=; path=/; max-age=0; SameSite=Lax';
+                window.location.href = 'login.php';
+            }
+        }
     </script>
 </body>
 </html>

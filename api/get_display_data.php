@@ -29,18 +29,19 @@ try {
     $stmt = $conn->query("
         SELECT c.id, c.display_name, c.is_online, c.window_number, c.status_text,
                cust.id as customer_id, cust.queue_number, cust.name as customer_name, 
-               cust.service_type, cust.called_at,
+               cust.service_type, cust.company_name, cust.purpose, cust.called_at,
+               cust.custom_description,
                (SELECT GROUP_CONCAT(csa.service_type) FROM counter_service_assignments csa WHERE csa.counter_id = c.id AND csa.is_active = 1) as active_services,
                (SELECT GROUP_CONCAT(st.name SEPARATOR ', ') FROM counter_service_assignments csa JOIN service_types st ON st.code = csa.service_type WHERE csa.counter_id = c.id AND csa.is_active = 1) as active_services_names
         FROM counters c
-        LEFT JOIN customers cust ON cust.id = c.current_customer_id
+        LEFT JOIN customers cust ON cust.id = c.current_customer_id AND DATE(cust.created_at) = CURDATE()
         ORDER BY c.window_number ASC
     ");
     $data['windows'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     $stmt = $conn->query("
         SELECT c.service_type, st.queue_prefix, st.name as service_name,
-               c.id, c.queue_number, c.name
+               c.id, c.queue_number, c.name, c.custom_description
         FROM customers c
         JOIN service_types st ON st.code = c.service_type
         WHERE c.status = 'waiting' AND DATE(c.created_at) = CURDATE()
@@ -90,7 +91,7 @@ try {
     }
     
     $stmt = $conn->query("
-        SELECT queue_number, service_type
+        SELECT queue_number, service_type, name, company_name, purpose, custom_description
         FROM customers 
         WHERE status = 'waiting' AND DATE(created_at) = CURDATE()
         ORDER BY created_at ASC
@@ -99,7 +100,7 @@ try {
     $data['waiting_queue'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     $stmt = $conn->query("
-        SELECT cust.queue_number, cust.service_type, cust.called_at, c.window_number, c.display_name
+        SELECT cust.queue_number, cust.service_type, cust.called_at, c.window_number, c.display_name, cust.custom_description
         FROM customers cust
         JOIN counters c ON cust.counter_id = c.id
         WHERE cust.status IN ('serving', 'completed') 
@@ -111,7 +112,7 @@ try {
     $data['recent_called_history'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     $stmt = $conn->query("
-        SELECT id, queue_number, name, service_type, created_at
+        SELECT id, queue_number, name, service_type, company_name, purpose, created_at, custom_description
         FROM customers
         WHERE is_follow_up = 1 AND status = 'completed' AND DATE(created_at) = CURDATE()
         ORDER BY completed_at DESC

@@ -2,18 +2,33 @@
 header('Content-Type: application/json');
 include '../config.php';
 
+requireRole(['admin', 'supervisor', 'staff']);
+
 try {
     $db = new Database();
     $conn = $db->getConnection();
-    
-    $stmt = $conn->query("
+    $counterId = isset($_GET['counter_id']) ? intval($_GET['counter_id']) : 0;
+
+    $serviceFilter = '';
+    $timingFilter = '';
+    $params = [];
+    $timingParams = [];
+    if ($counterId) {
+        $serviceFilter = ' AND c.service_type IN (SELECT service_type FROM counter_service_assignments WHERE counter_id = ? AND is_active = 1)';
+        $timingFilter = ' AND service_type IN (SELECT service_type FROM counter_service_assignments WHERE counter_id = ? AND is_active = 1)';
+        $params[] = $counterId;
+        $timingParams[] = $counterId;
+    }
+
+    $stmt = $conn->prepare("
         SELECT 
             status,
             COUNT(*) as count
-        FROM customers 
-        WHERE DATE(created_at) = CURDATE()
+        FROM customers c
+        WHERE DATE(c.created_at) = CURDATE()" . $serviceFilter . "
         GROUP BY status
     ");
+    $stmt->execute($params);
     $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     $stats = [
@@ -33,7 +48,7 @@ try {
         }
     }
     
-    $stmt = $conn->query("
+    $stmt = $conn->prepare("
         SELECT 
             c.service_type,
             st.name as service_name,
@@ -44,12 +59,13 @@ try {
             SUM(CASE WHEN c.status = 'completed' THEN 1 ELSE 0 END) as completed
         FROM customers c
         JOIN service_types st ON st.code = c.service_type
-        WHERE DATE(c.created_at) = CURDATE()
+        WHERE DATE(c.created_at) = CURDATE()" . $serviceFilter . "
         GROUP BY c.service_type, st.name, st.queue_prefix
     ");
+    $stmt->execute($params);
     $statsByService = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    $stmt = $conn->query("
+    $stmt = $conn->prepare("
         SELECT 
             AVG(wait_duration) as avg_wait,
             AVG(service_duration) as avg_service,
@@ -59,22 +75,26 @@ try {
         WHERE DATE(created_at) = CURDATE() 
         AND status = 'completed'
         AND wait_duration IS NOT NULL
-        AND service_duration IS NOT NULL
+        AND service_duration IS NOT NULL" . $timingFilter . "
     ");
+    $stmt->execute($timingParams);
     $timings = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    $stmt = $conn->query("
+
+    $counterSql = "
         SELECT 
-            c.id,
-            c.display_name,
-            c.is_online,
-            c.customers_served,
-            c.avg_service_time,
+            c.id, c.display_name, c.window_number, c.is_online, c.customers_served, c.avg_service_time,
+            (SELECT GROUP_CONCAT(DISTINCT csa.service_type) FROM counter_service_assignments csa WHERE csa.counter_id = c.id AND csa.is_active = 1) as active_services,
             COUNT(CASE WHEN c2.status = 'serving' AND c2.counter_id = c.id THEN 1 END) as currently_serving
         FROM counters c
         LEFT JOIN customers c2 ON DATE(c2.created_at) = CURDATE()
-        GROUP BY c.id, c.display_name, c.is_online, c.customers_served, c.avg_service_time
-    ");
+    ";
+    if ($counterId) {
+        $counterSql .= " WHERE c.id = ?";
+        $stmt = $conn->prepare($counterSql . " GROUP BY c.id, c.display_name, c.window_number, c.is_online, c.customers_served, c.avg_service_time");
+        $stmt->execute([$counterId]);
+    } else {
+        $stmt = $conn->query($counterSql . " GROUP BY c.id, c.display_name, c.window_number, c.is_online, c.customers_served, c.avg_service_time");
+    }
     $counterStats = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     echo json_encode([

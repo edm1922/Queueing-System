@@ -75,7 +75,8 @@ try {
                 'id' => $user['id'],
                 'username' => $user['username'],
                 'display_name' => $user['display_name'],
-                'role' => $user['role']
+                'role' => $user['role'],
+                'window_id' => $user['window_id'] ?? null
             ]
         ]
     ]);

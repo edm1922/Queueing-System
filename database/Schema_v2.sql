@@ -7,6 +7,30 @@ START TRANSACTION;
 SET time_zone = "+00:00";
 
 -- --------------------------------------------------------
+-- Service Groups table (v3 - grouping services into categories)
+-- --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `service_groups` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `description` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+-- Known Companies table (v3 - autocomplete for kiosk)
+-- --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `known_companies` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_company_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
 -- Drop existing tables (for fresh installation only)
 -- In production, use ALTER TABLE commands instead
 -- --------------------------------------------------------
@@ -35,6 +59,7 @@ CREATE TABLE `users` (
   `display_name` varchar(100) NOT NULL,
   `email` varchar(100) DEFAULT NULL,
   `role` enum('admin','supervisor','staff') DEFAULT 'staff',
+  `window_id` int(11) DEFAULT NULL,
   `is_active` tinyint(1) DEFAULT 1,
   `password_reset_required` tinyint(1) DEFAULT 0,
   `last_login` datetime DEFAULT NULL,
@@ -95,6 +120,7 @@ CREATE TABLE `service_types` (
   `description` varchar(255) DEFAULT NULL,
   `queue_prefix` char(1) NOT NULL,
   `is_active` tinyint(1) DEFAULT 1,
+  `group_id` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_code` (`code`)
@@ -106,7 +132,8 @@ INSERT INTO `service_types` (`name`, `code`, `description`, `queue_prefix`) VALU
 ('Benefits', 'benefits', 'SSS Benefits applications and inquiries', 'I'),
 ('ID Renewal', 'id_renewal', 'ID card renewal, updates, replacements', 'R'),
 ('ATM Claim', 'atm_renewal', 'ATM card renewal, PIN issues, replacements', 'R'),
-('Other', 'other', 'General inquiries and other services', 'O');
+('Other', 'other', 'General inquiries and other services', 'O'),
+('Custom', 'custom', 'Custom inquiry or concern', 'C');
 
 -- --------------------------------------------------------
 -- Queue sequences for atomic queue number generation
@@ -183,6 +210,8 @@ CREATE TABLE `customers` (
   `queue_number` varchar(20) NOT NULL,
   `name` varchar(100) NOT NULL,
   `service_type` varchar(50) NOT NULL,
+  `company_name` varchar(255) DEFAULT NULL,
+  `purpose` enum('inquiry','complain','follow-up') DEFAULT NULL,
   `status` enum('waiting','serving','completed','cancelled') DEFAULT 'waiting',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `called_at` timestamp NULL DEFAULT NULL,
@@ -193,6 +222,8 @@ CREATE TABLE `customers` (
   `counter_id` int(11) DEFAULT NULL,
   `is_redistributed` tinyint(1) DEFAULT 0,
   `is_follow_up` tinyint(1) DEFAULT 0,
+  `remark` text DEFAULT NULL,
+  `custom_description` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `queue_number` (`queue_number`),
   KEY `idx_status` (`status`),

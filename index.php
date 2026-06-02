@@ -1,8 +1,12 @@
 <?php include 'config.php';
+$user = requireAuth();
+if (!$user) { header('Location: login.php'); exit; }
 try { $db = new Database(); $conn = $db->getConnection(); $s = $conn->query("SELECT * FROM display_settings LIMIT 1")->fetch(PDO::FETCH_ASSOC); } catch (Exception $e) { $s = []; }
 $company_name = htmlspecialchars($s['company_name'] ?? 'Service Center');
 $branch_name = htmlspecialchars($s['branch_name'] ?? '');
 $company_logo = htmlspecialchars($s['company_logo'] ?? '');
+$display_name = htmlspecialchars($user['display_name'] ?? 'Admin');
+$user_role = htmlspecialchars($user['role'] ?? 'staff');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -44,8 +48,12 @@ $company_logo = htmlspecialchars($s['company_logo'] ?? '');
                     </div>
                 </a>
                 <div class="hidden md:flex gap-1 text-[11px] font-semibold uppercase tracking-wider">
+                    <?php if ($user_role !== 'staff'): ?>
                     <a href="display.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Live Display</a>
+                    <?php endif; ?>
+                    <?php if ($user_role === 'admin'): ?>
                     <a href="kiosk.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Kiosk</a>
+                    <?php endif; ?>
                     <a href="index.php" class="px-3 py-1.5 rounded" style="background: rgba(255,255,255,0.1); color: white;">Operator</a>
                     <a href="reports.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Analytics</a>
                 </div>
@@ -56,10 +64,10 @@ $company_logo = htmlspecialchars($s['company_logo'] ?? '');
                     <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em;">All Systems Operational</span>
                 </div>
                 <div class="flex items-center gap-2 pl-3" style="border-left: 1px solid rgba(255,255,255,0.15);">
-                    <div class="w-7 h-7 rounded-full grid place-items-center text-[10px] font-bold" style="background: rgba(255,255,255,0.15);">AD</div>
+                    <div class="w-7 h-7 rounded-full grid place-items-center text-[10px] font-bold" style="background: rgba(255,255,255,0.15);"><?php echo substr($display_name, 0, 2); ?></div>
                     <div class="hidden sm:flex flex-col leading-none">
-                        <span style="font-size: 11px; font-weight: 600;">Admin</span>
-                        <span style="font-size: 9px; opacity: 0.5; text-transform: uppercase; letter-spacing: 0.15em;">Supervisor</span>
+                        <span style="font-size: 11px; font-weight: 600;"><?php echo $display_name; ?></span>
+                        <span style="font-size: 9px; opacity: 0.5; text-transform: uppercase; letter-spacing: 0.15em;"><?php echo $user_role; ?></span>
                     </div>
                     <button onclick="logout()" class="ml-2 px-2 py-1 rounded text-[10px]" style="background: rgba(255,255,255,0.1);" title="Sign Out"><i class="fas fa-sign-out-alt"></i></button>
                 </div>
@@ -75,20 +83,13 @@ $company_logo = htmlspecialchars($s['company_logo'] ?? '');
                 <span class="font-mono text-[10px]" style="color: var(--muted);" id="sessionTime">SESSION --</span>
             </div>
 
-            <!-- Now Serving -->
-            <div class="animate-entry card rounded-xl p-8 shadow-sm" style="border: 1px solid var(--border);">
-                <div class="flex items-start justify-between gap-6 flex-wrap">
-                    <div>
-                        <span class="text-[11px] font-bold uppercase tracking-[0.2em]" style="color: var(--muted);">You are serving</span>
-                        <div class="text-7xl font-extrabold tracking-tighter tabular-nums mt-2" id="servingNumber" style="color: var(--primary);">---</div>
-                        <p class="text-sm mt-2" style="color: var(--muted);" id="servingInfo">No active customer</p>
-                    </div>
-                    <div class="flex flex-wrap gap-2">
-                        <button onclick="callNext()" class="px-5 py-3 rounded text-[11px] font-bold uppercase tracking-widest" style="background: var(--primary); color: var(--primary-foreground);">Complete &amp; Next</button>
-                        <button onclick="skipCustomer()" class="px-5 py-3 border rounded text-[11px] font-bold uppercase tracking-widest" style="border-color: var(--border); background: var(--card);">Skip</button>
-                        <button onclick="noShow()" class="px-5 py-3 border rounded text-[11px] font-bold uppercase tracking-widest" style="border-color: var(--border); background: var(--card); color: var(--destructive);">No-Show</button>
-                    </div>
+            <!-- Windows Serving Grid -->
+            <div class="animate-entry card rounded-xl p-6 shadow-sm" style="border: 1px solid var(--border);">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-[11px] font-bold uppercase tracking-[0.2em]" style="color: var(--muted);">Windows Serving</span>
+                    <?php if ($user_role === 'staff'): ?><a href="window.php" class="text-[10px] font-semibold uppercase tracking-wider px-3 py-1.5 rounded" style="background: var(--primary); color: var(--primary-foreground);"><i class="fas fa-external-link-alt mr-1"></i>Open Window Portal</a><?php endif; ?>
                 </div>
+                <div id="servingGrid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3"></div>
             </div>
 
             <!-- Follow-Up Queue -->
@@ -145,7 +146,7 @@ $company_logo = htmlspecialchars($s['company_logo'] ?? '');
                 <div class="overflow-x-auto">
                     <table class="w-full queue-table">
                         <thead>
-                            <tr><th>Queue No.</th><th>Customer</th><th>Service</th><th>Status</th><th>Time</th><th>Actions</th></tr>
+                            <tr><th>Queue No.</th><th>Customer</th><th>Service</th><th>Company</th><th>Purpose</th><th>Status</th><th>Time</th><th>Remark</th></tr>
                         </thead>
                         <tbody id="queueTable"></tbody>
                     </table>
@@ -161,10 +162,12 @@ $company_logo = htmlspecialchars($s['company_logo'] ?? '');
 
         <!-- Sidebar -->
         <aside class="col-span-12 lg:col-span-4 flex flex-col gap-6">
+            <?php if ($user_role !== 'staff'): ?>
             <h2 class="text-[11px] font-bold uppercase tracking-[0.2em]" style="color: var(--muted);">Counter Status</h2>
             <div class="bg-card border border-border rounded-xl shadow-sm divide-y divide-border/60" id="countersStatus">
                 <!-- Injected by JS -->
             </div>
+            <?php endif; ?>
 
             <!-- Session totals -->
             <div class="relative overflow-hidden rounded-xl p-6" style="background: var(--surface-dark); color: var(--surface-dark-foreground);">
@@ -180,7 +183,11 @@ $company_logo = htmlspecialchars($s['company_logo'] ?? '');
                 </div>
             </div>
 
+            <?php if ($user_role === 'admin'): ?>
             <button onclick="openAddWindowModal()" class="btn btn-secondary w-full text-[11px]"><i class="fas fa-plus mr-2"></i>Add Window</button>
+            <button onclick="openGroupModal()" class="btn btn-secondary w-full text-[11px] mt-2"><i class="fas fa-layer-group mr-2"></i>Manage Service Groups</button>
+            <button onclick="openUserModal()" class="btn btn-secondary w-full text-[11px] mt-2"><i class="fas fa-users mr-2"></i>Manage Users</button>
+            <?php endif; ?>
         </aside>
     </main>
 
@@ -198,7 +205,7 @@ $company_logo = htmlspecialchars($s['company_logo'] ?? '');
         </div>
         <div class="flex items-center gap-2 px-3 py-1 rounded shadow-sm" style="background: var(--card); border: 1px solid var(--border);">
             <div class="w-1.5 h-1.5 rounded-full" style="background: var(--primary);"></div>
-            <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em;">v4.2.0-stable</span>
+            <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em;">v4.3.0-stable</span>
         </div>
     </footer>
 
@@ -259,22 +266,119 @@ $company_logo = htmlspecialchars($s['company_logo'] ?? '');
                     <input type="hidden" id="editServicesCounterId">
                     <div id="servicesCheckboxes" class="space-y-2 max-h-60 overflow-y-auto border rounded p-3" style="border-color: var(--border); background: var(--secondary);"></div>
                     <button onclick="submitEditServices()" class="btn btn-primary w-full">Save Services</button>
-                    <hr style="border-color: var(--border);">
-                    <h4 class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--muted);">Add New Service</h4>
-                    <div class="grid grid-cols-3 gap-2">
-                        <input type="text" id="newServiceName" class="w-full px-3 py-2 text-xs rounded" style="border:1px solid var(--border);" placeholder="Name">
-                        <input type="text" id="newServiceCode" class="w-full px-3 py-2 text-xs rounded" style="border:1px solid var(--border);" placeholder="Code">
-                        <input type="text" id="newServicePrefix" class="w-full px-3 py-2 text-xs rounded" style="border:1px solid var(--border);" placeholder="Prefix (e.g. O)">
-                    </div>
-                    <button onclick="addNewService()" class="btn btn-secondary w-full text-[11px]"><i class="fas fa-plus mr-1"></i>Add Service</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="serviceGroupsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden modal-overlay z-50 flex items-center justify-center p-4">
+        <div class="card w-full max-w-4xl max-h-screen overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold" style="color: var(--foreground);">Manage Service Groups</h3>
+                    <button onclick="closeGroupModal()" class="btn btn-ghost p-1"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="mb-6 p-4 rounded" style="background: var(--secondary); border: 1px solid var(--border);">
+                    <h4 class="label-md mb-2">Create New Group</h4>
+                    <div class="flex gap-3 flex-wrap">
+                        <input type="text" id="newGroupName" class="flex-1 px-4 py-2 rounded min-w-[140px]" style="border: 1px solid var(--border);" placeholder="Group name (e.g. Others)">
+                        <input type="text" id="newGroupDesc" class="flex-1 px-4 py-2 rounded min-w-[140px]" style="border: 1px solid var(--border);" placeholder="Description (optional)">
+                        <button onclick="createGroup()" class="btn btn-primary shrink-0">Add Group</button>
+                    </div>
+                </div>
+                <div class="mb-6 p-4 rounded" style="background: var(--secondary); border: 1px solid var(--border);">
+                    <h4 class="label-md mb-2">Assign Service to Group</h4>
+                    <div class="flex gap-3">
+                        <select id="assignGroupServiceId" class="flex-1 px-4 py-2 rounded" style="border: 1px solid var(--border);"></select>
+                        <select id="assignGroupTargetId" class="flex-1 px-4 py-2 rounded" style="border: 1px solid var(--border);"></select>
+                        <button onclick="assignServiceToGroup()" class="btn btn-primary shrink-0">Assign</button>
+                    </div>
+                </div>
+                <div id="groupsListContainer" class="space-y-4">
+                    <!-- Injected by JS -->
+                </div>
+
+                <hr class="my-6" style="border-color: var(--border);">
+
+                <div class="mb-6 p-4 rounded" style="background: var(--secondary); border: 1px solid var(--border);">
+                    <h4 class="label-md mb-2">Add New Service</h4>
+                    <div class="grid grid-cols-3 gap-2 mb-2">
+                        <input type="text" id="grpNewServiceName" class="w-full px-3 py-2 text-xs rounded" style="border:1px solid var(--border);" placeholder="Name (e.g. New Service)">
+                        <input type="text" id="grpNewServiceCode" class="w-full px-3 py-2 text-xs rounded" style="border:1px solid var(--border);" placeholder="Code (e.g. new_svc)">
+                        <input type="text" id="grpNewServicePrefix" class="w-full px-3 py-2 text-xs rounded" style="border:1px solid var(--border);" placeholder="Prefix (e.g. N)">
+                    </div>
+                    <button onclick="addServiceInGroup()" class="btn btn-secondary w-full text-[11px]"><i class="fas fa-plus mr-1"></i>Add Service</button>
+                </div>
+
+                <div class="p-4 rounded" style="background: var(--secondary); border: 1px solid var(--border);">
+                    <h4 class="label-md mb-2">All Services <span id="allServicesCount" class="text-[10px] font-normal" style="color: var(--muted);"></span></h4>
+                    <div id="allServicesList" class="space-y-1 max-h-48 overflow-y-auto civic-scrollbar">
+                        <!-- Injected by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Management Modal -->
+    <div id="userModal" class="fixed inset-0 bg-black bg-opacity-50 hidden modal-overlay z-50 flex items-center justify-center p-4">
+        <div class="card w-full max-w-2xl max-h-screen overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold" style="color: var(--foreground);">Manage Users</h3>
+                    <button onclick="closeUserModal()" class="btn btn-ghost p-1"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="mb-6 p-4 rounded" style="background: var(--secondary); border: 1px solid var(--border);">
+                    <h4 class="label-md mb-3">Create New User</h4>
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <input type="text" id="newUserUsername" class="w-full px-3 py-2 rounded text-xs" style="border:1px solid var(--border);" placeholder="Username (min 3 chars)">
+                        <input type="password" id="newUserPassword" class="w-full px-3 py-2 rounded text-xs" style="border:1px solid var(--border);" placeholder="Password (min 6 chars)">
+                        <input type="text" id="newUserDisplayName" class="w-full px-3 py-2 rounded text-xs" style="border:1px solid var(--border);" placeholder="Display name">
+                        <select id="newUserRole" onchange="toggleWindowField()" class="w-full px-3 py-2 rounded text-xs" style="border:1px solid var(--border);background:var(--card);">
+                            <option value="staff">Staff</option>
+                            <option value="supervisor">Supervisor</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div class="flex gap-3">
+                        <div id="windowFieldRow" class="flex-1">
+                            <select id="newUserWindow" class="w-full px-3 py-2 rounded text-xs" style="border:1px solid var(--border);background:var(--card);">
+                                <option value="">No window assignment</option>
+                            </select>
+                        </div>
+                        <button onclick="createUser()" class="btn btn-primary text-xs shrink-0">Create User</button>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="label-md mb-2">Users <span id="usersCount" class="text-[10px] font-normal" style="color: var(--muted);"></span></h4>
+                    <div id="usersList" class="space-y-2 max-h-80 overflow-y-auto civic-scrollbar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Service Modal -->
+    <div id="editServiceModal" class="fixed inset-0 bg-black bg-opacity-50 hidden modal-overlay z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeEditServiceModal()">
+        <div class="card w-full max-w-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold" style="color: var(--foreground);">Edit Service</h3>
+                <button onclick="closeEditServiceModal()" class="btn btn-ghost p-1"><i class="fas fa-times"></i></button>
+            </div>
+            <input type="hidden" id="editServiceId">
+            <div class="space-y-4">
+                <div><label class="label-md block mb-1">Code</label><input type="text" id="editServiceCode" class="w-full px-4 py-2 rounded font-mono text-sm" style="border: 1px solid var(--border);" placeholder="e.g. insurance"></div>
+                <div><label class="label-md block mb-1">Name</label><input type="text" id="editServiceNameInput" class="w-full px-4 py-2 rounded" style="border: 1px solid var(--border);" placeholder="Service name"></div>
+                <div><label class="label-md block mb-1">Queue Prefix</label><input type="text" id="editServicePrefix" class="w-full px-4 py-2 rounded" style="border: 1px solid var(--border);" maxlength="1" placeholder="e.g. I"></div>
+                <div><label class="label-md block mb-1">Description</label><textarea id="editServiceDescription" rows="2" class="w-full px-4 py-2 rounded" style="border: 1px solid var(--border); resize: vertical;" placeholder="Service description"></textarea></div>
+                <button onclick="submitEditService()" class="btn btn-primary w-full">Save Changes</button>
             </div>
         </div>
     </div>
 
     <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
 
-    <script src="js/main.js?v=10"></script>
+    <script>var currentUserRole = '<?php echo $user_role; ?>';</script>
+    <script src="js/main.js?v=12"></script>
     <script>
         function updateFooterTime() {
             var el = document.getElementById('footerTime');
@@ -298,8 +402,15 @@ $company_logo = htmlspecialchars($s['company_logo'] ?? '');
 
         function logout() {
             if (confirm('Sign out of Operator Console?')) {
+                var token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+                if (token) {
+                    fetch('api/auth/logout.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: token }) });
+                }
                 sessionStorage.removeItem('auth_token');
                 localStorage.removeItem('auth_token');
+                localStorage.removeItem('user_data');
+                sessionStorage.removeItem('user_data');
+                document.cookie = 'auth_token=; path=/; max-age=0; SameSite=Lax';
                 window.location.href = 'login.php';
             }
         }

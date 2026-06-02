@@ -24,7 +24,9 @@ $company_logo = htmlspecialchars($settings['company_logo'] ?? '');
 $cutoff = $settings['cutoff_time'] ?? '17:00:00';
 $cutoff_formatted = date("g:i A", strtotime($cutoff));
 $welcome = addslashes($settings['welcome_message'] ?? 'Welcome! Please have your queue ticket ready.');
-$video_id = getYoutubeId($settings['video_url'] ?? '');
+$video_url_raw = $settings['video_url'] ?? '';
+$video_type = $settings['video_type'] ?? 'youtube';
+$video_id = getYoutubeId($video_url_raw);
 $video_volume = intval($settings['video_volume'] ?? 50);
 $duck_volume = max(1, intval($video_volume * 0.15));
 $poster_duration = intval($settings['poster_duration'] ?? 10);
@@ -43,7 +45,7 @@ for ($i = 0; $i < $maxCount; $i++) {
         $mergedPosters[] = ['type' => 'image', 'src' => $poster_images[$i]];
     }
     if ($i < $annCount) {
-        $mergedPosters[] = ['type' => 'announcement', 'title' => $poster_announcements[$i]['title'] ?? '', 'body' => $poster_announcements[$i]['body'] ?? '', 'bg' => $poster_announcements[$i]['bg'] ?? '#1e3a5f', 'fg' => $poster_announcements[$i]['fg'] ?? '#ffffff'];
+        $mergedPosters[] = ['type' => 'announcement', 'title' => $poster_announcements[$i]['title'] ?? '', 'body' => $poster_announcements[$i]['body'] ?? '', 'bg' => $poster_announcements[$i]['bg'] ?? '#1e3a5f', 'fg' => $poster_announcements[$i]['fg'] ?? '#ffffff', 'text_size' => $poster_announcements[$i]['text_size'] ?? 'md'];
     }
 }
 $mergedPostersJson = json_encode($mergedPosters);
@@ -59,7 +61,6 @@ $mergedPostersJson = json_encode($mergedPosters);
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="css/design-system.css">
-    <script src="https://www.youtube.com/iframe_api"></script>
     <style>
         .now-serving-card { min-height: 260px; }
         .now-serving-card .num { font-size: 100px; line-height: 0.9; }
@@ -281,13 +282,18 @@ $mergedPostersJson = json_encode($mergedPosters);
         </div>
         <div class="flex items-center gap-2 px-3 py-1 rounded shadow-sm" style="background: var(--card); border: 1px solid var(--border);">
             <div class="w-1.5 h-1.5 rounded-full" style="background: var(--primary);"></div>
-            <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em;">v4.2.0-stable</span>
+            <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em;">v4.3.0-stable</span>
         </div>
     </footer>
 
     <audio id="notificationSound" preload="auto"><source src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3" type="audio/mpeg"></audio>
 
     <script>
+        function formatService(q) {
+            var base = q.service_type || '';
+            if (q.service_type === 'custom' && q.custom_description) base += ' (' + q.custom_description + ')';
+            return base;
+        }
         var lastCallInfo = {};
         var welcomeMsg = "<?php echo $welcome; ?>";
         var ytPlayer = null;
@@ -299,14 +305,43 @@ $mergedPostersJson = json_encode($mergedPosters);
         var windowHistory = {};  // tracks previous window state for live alert generation
         var marqueeStep = null;  // interval handle for JS-powered marquee scroll
 
-        function onYouTubeIframeAPIReady() {
-            ytPlayer = new YT.Player('mediaVideo', {
-                height: '100%', width: '100%',
-                videoId: '<?php echo $video_id; ?>',
-                playerVars: { autoplay: 1, mute: 0, controls: 0, rel: 0, modestbranding: 1, playsinline: 1 },
-                events: { onReady: function(e) { e.target.setVolume(<?php echo $video_volume; ?>); e.target.playVideo(); } }
-            });
+        function initVideoPlayer() {
+            var isYoutube = '<?php echo $video_type; ?>' === 'youtube' || '<?php echo $video_type; ?>' === '';
+            if (isYoutube) {
+                if (typeof YT !== 'undefined' && YT.Player) {
+                    ytPlayer = new YT.Player('mediaVideo', {
+                        height: '100%', width: '100%',
+                        videoId: '<?php echo $video_id; ?>',
+                        playerVars: { autoplay: 1, mute: 0, controls: 0, rel: 0, modestbranding: 1, playsinline: 1 },
+                        events: { onReady: function(e) { e.target.setVolume(<?php echo $video_volume; ?>); e.target.playVideo(); } }
+                    });
+                } else {
+                    fallbackYoutubeIframe();
+                }
+            } else {
+                createHtml5Video();
+            }
         }
+
+        function fallbackYoutubeIframe() {
+            var el = document.getElementById('mediaVideo');
+            if (!el) return;
+            el.innerHTML = '<iframe src="https://www.youtube.com/embed/<?php echo $video_id; ?>?autoplay=1&controls=0&modestbranding=1&rel=0&loop=1&playlist=<?php echo $video_id; ?>" style="width:100%;height:100%;border:0;" allow="autoplay; encrypted-media" allowfullscreen></iframe>';
+        }
+
+        function createHtml5Video() {
+            var el = document.getElementById('mediaVideo');
+            if (!el) return;
+            el.innerHTML = '<video id="directVideo" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover;"><source src="<?php echo htmlspecialchars($video_url_raw, ENT_QUOTES); ?>" type="video/mp4"></video>';
+            var v = document.getElementById('directVideo');
+            if (v) { v.volume = <?php echo $video_volume; ?> / 100; }
+        }
+
+        function onYouTubeIframeAPIReady() { initVideoPlayer(); }
+
+        setTimeout(function() {
+            if (!ytPlayer && '<?php echo $video_type; ?>' === 'youtube') { initVideoPlayer(); }
+        }, 5000);
 
         function updateFooterTime() {
             var el = document.getElementById('footerTime');
@@ -319,9 +354,13 @@ $mergedPostersJson = json_encode($mergedPosters);
         updateFooterTime();
 
         function duckVolume() {
+            var dv = document.getElementById('directVideo');
+            if (dv) { dv.volume = <?php echo $duck_volume; ?> / 100; return; }
             if (ytPlayer && typeof ytPlayer.setVolume === 'function') { ytPlayer.setVolume(<?php echo $duck_volume; ?>); }
         }
         function restoreVolume() {
+            var dv = document.getElementById('directVideo');
+            if (dv) { dv.volume = <?php echo $video_volume; ?> / 100; return; }
             if (ytPlayer && typeof ytPlayer.setVolume === 'function') { ytPlayer.setVolume(<?php echo $video_volume; ?>); }
         }
 
@@ -365,8 +404,11 @@ $mergedPostersJson = json_encode($mergedPosters);
                     ann.style.display = 'flex';
                     ann.style.background = slide.bg;
                     ann.style.color = slide.fg;
-                    ann.innerHTML = (slide.title ? '<div style="font-size:1.5rem;font-weight:800;letter-spacing:-0.02em;margin-bottom:0.5rem;line-height:1.2;">' + escapeHtml(slide.title) + '</div>' : '') +
-                        (slide.body ? '<div style="font-size:1rem;line-height:1.5;opacity:0.9;max-width:90%;">' + escapeHtml(slide.body) + '</div>' : '');
+                    var ts = slide.text_size || 'md';
+                    var titleSize = {sm:'1.25rem',md:'1.5rem',lg:'2rem'}[ts] || '1.5rem';
+                    var bodySize = {sm:'0.875rem',md:'1rem',lg:'1.25rem'}[ts] || '1rem';
+                    ann.innerHTML = (slide.title ? '<div style="font-size:' + titleSize + ';font-weight:800;letter-spacing:-0.02em;margin-bottom:0.5rem;line-height:1.2;">' + escapeHtml(slide.title) + '</div>' : '') +
+                        (slide.body ? '<div style="font-size:' + bodySize + ';line-height:1.5;opacity:0.9;max-width:90%;">' + escapeHtml(slide.body) + '</div>' : '');
                 }
                 document.getElementById('posterLabel').textContent = 'ANNOUNCEMENT';
             }
@@ -388,16 +430,17 @@ $mergedPostersJson = json_encode($mergedPosters);
 
         function makeNowServingCard(w, idx) {
             var active = Number(w.is_online) !== 0 && w.status_text !== 'Offline' && w.status_text !== 'On Break';
-            var liveBadge = active ? '<span class="live-badge text-[11px] font-bold uppercase tracking-widest px-3 py-1 rounded-sm" style="background: var(--brand-gold); color: #b91c1c;">Live</span>' : '';
+            var statusBadge = '<span id="window' + w.window_number + 'StatusBadge" class="live-badge text-[11px] font-bold uppercase tracking-widest px-3 py-1 rounded-sm>' + windowStatusLabel(w) + '</span>';
             var statusLabel = '<span class="window-label font-mono text-lg font-bold uppercase tracking-widest px-4 py-1.5 rounded-lg" style="color: ' + (active ? '#b91c1c' : '#374151') + '; background: ' + (active ? 'rgba(185,28,28,0.08)' : 'rgba(0,0,0,0.04)') + ';">WINDOW ' + w.window_number + '</span>';
             var numColor = active ? '#b91c1c' : 'var(--foreground)';
             var bgStyle = active ? 'background: white; color: #111827; border: 1px solid #e5e7eb;' : 'background: var(--card); border: 1px solid var(--border);';
             var serviceColor = active ? '#6b7280' : 'var(--muted)';
             return '<div id="window' + w.window_number + 'Card" class="animate-entry now-serving-card relative overflow-hidden rounded-md flex flex-col justify-between p-6" style="' + bgStyle + 'min-height:260px;animation-delay:' + (idx * 100) + 'ms;">' +
-                '<div class="flex items-center justify-between">' + statusLabel + liveBadge + '</div>' +
+                '<div class="flex items-center justify-between">' + statusLabel + statusBadge + '</div>' +
                 '<div class="flex-1 flex flex-col items-center justify-center">' +
                     '<div id="window' + w.window_number + 'Serving" class="num font-extrabold tracking-tighter leading-none tabular-nums flip-in" style="color: ' + numColor + ';">---</div>' +
                     '<span class="now-serving-tag text-sm font-bold uppercase tracking-[0.3em] mt-3" style="color: ' + serviceColor + ';">Now Serving</span>' +
+                    '<div id="window' + w.window_number + 'Extra" class="text-xs mt-2" style="color: ' + serviceColor + ';"></div>' +
                 '</div>' +
                 '<div class="card-footer flex items-center justify-between text-sm font-mono uppercase tracking-widest" style="color: ' + serviceColor + ';">' +
                     '<span id="window' + w.window_number + 'Service">--</span>' +
@@ -481,6 +524,10 @@ $mergedPostersJson = json_encode($mergedPosters);
                     var dbAnn = data.announcements || [];
                     var allMsgs = dynMsgs.concat(dbAnn.map(function(a){return a.message;}));
 
+                    if (allMsgs.length === 0 && welcomeMsg) {
+                        allMsgs.push(welcomeMsg);
+                    }
+
                     if (allMsgs.length > 0) {
                         alertBar.style.display = 'flex';
                         var text = allMsgs.join(' &nbsp;&bull;&bull;&bull;&nbsp; ');
@@ -503,12 +550,16 @@ $mergedPostersJson = json_encode($mergedPosters);
                         for (var i = 0; i < Math.min(waitingQueue.length, 10); i++) {
                             var q = waitingQueue[i];
                             var bg = i === 0 ? 'background: hsl(42 70% 52% / 0.1);' : '';
+                            var extraParts = [];
+                            if (q.company_name) extraParts.push(q.company_name);
+                            if (q.purpose) extraParts.push(q.purpose.charAt(0).toUpperCase() + q.purpose.slice(1));
+                            var extraStr = extraParts.length > 0 ? ' &middot; ' + extraParts.join(' &middot; ') : '';
                             nextHtml += '<li class="flex items-center justify-between px-4 py-3" style="' + bg + '">' +
                                 '<div class="flex items-center gap-4">' +
                                     '<span class="text-[10px] font-mono w-6 tabular-nums" style="color: var(--muted);">' + String(i + 1).padStart(2,'0') + '</span>' +
                                     '<div class="flex flex-col">' +
                                         '<span class="font-mono text-sm font-bold tracking-tight">' + q.queue_number + '</span>' +
-                                        '<span class="text-[10px] uppercase tracking-wider" style="color: var(--muted);">' + (q.service_type || '') + '</span>' +
+                                        '<span class="text-[10px] uppercase tracking-wider" style="color: var(--muted);">' + formatService(q) + extraStr + '</span>' +
                                     '</div>' +
                                 '</div>' +
                             '</li>';
@@ -530,12 +581,16 @@ $mergedPostersJson = json_encode($mergedPosters);
                         var fuHtml = '';
                         for (var i = 0; i < Math.min(followUpData.length, 10); i++) {
                             var f = followUpData[i];
+                            var extraParts = [];
+                            if (f.company_name) extraParts.push(f.company_name);
+                            if (f.purpose) extraParts.push(f.purpose.charAt(0).toUpperCase() + f.purpose.slice(1));
+                            var extraStr = extraParts.length > 0 ? ' &middot; ' + extraParts.join(' &middot; ') : '';
                             fuHtml += '<li class="flex items-center justify-between px-4 py-3" style="border-color: hsl(215 60% 25%);">' +
                                 '<div class="flex items-center gap-4">' +
                                     '<span class="text-[10px] font-mono w-6 tabular-nums" style="color: rgba(255,255,255,0.5);">' + String(i + 1).padStart(2,'0') + '</span>' +
                                     '<div class="flex flex-col">' +
                                         '<span class="font-mono text-sm font-bold tracking-tight" style="color: var(--brand-gold);">' + f.queue_number + '</span>' +
-                                        '<span class="text-[10px] uppercase tracking-wider" style="color: rgba(255,255,255,0.5);">' + (f.service_type || '') + '</span>' +
+                                        '<span class="text-[10px] uppercase tracking-wider" style="color: rgba(255,255,255,0.5);">' + formatService(f) + extraStr + '</span>' +
                                     '</div>' +
                                 '</div>' +
                             '</li>';
@@ -549,25 +604,39 @@ $mergedPostersJson = json_encode($mergedPosters);
             }).catch(function(e) { console.error('Display Error:', e); });
         }
 
+        function windowStatusLabel(w) {
+            var active = Number(w.is_online) !== 0 && w.status_text !== 'Offline' && w.status_text !== 'On Break';
+            var st = (w.status_text || (Number(w.is_online) ? 'Online' : 'Offline'));
+            if (active) return '<span style="background: var(--brand-gold); color: #b91c1c;">Live</span>';
+            if (st === 'On Break') return '<span style="background: #f59e0b; color: white;">On Break</span>';
+            if (st === 'Offline') return '<span style="background: #9ca3af; color: white;">Offline</span>';
+            return '<span style="background: #9ca3af; color: white;">Offline</span>';
+        }
+
         function updateWindow(w, fullData) {
             var isOffline = !(w && Number(w.is_online));
             var statusText = (w && w.status_text) ? w.status_text : (isOffline ? 'Offline' : 'Online');
+            var badgeEl = document.getElementById('window' + w.window_number + 'StatusBadge');
+            if (badgeEl) badgeEl.innerHTML = windowStatusLabel(w);
             var card = document.getElementById('window' + w.window_number + 'Card');
             var serving = document.getElementById('window' + w.window_number + 'Serving');
             var service = document.getElementById('window' + w.window_number + 'Service');
             var status = document.getElementById('window' + w.window_number + 'Status');
+            var extra = document.getElementById('window' + w.window_number + 'Extra');
             if (!card || !serving) return;
 
             if (isOffline || statusText === 'Offline') {
                 serving.textContent = '---';
                 if (service) service.textContent = 'Offline';
                 if (status) status.textContent = '---';
+                if (extra) extra.textContent = '';
                 card.style.opacity = '0.5';
                 return;
             } else if (statusText === 'On Break') {
                 serving.textContent = '---';
                 if (service) service.textContent = 'On Break';
                 if (status) status.textContent = '---';
+                if (extra) extra.textContent = '';
                 card.style.opacity = '0.7';
                 return;
             }
@@ -589,9 +658,21 @@ $mergedPostersJson = json_encode($mergedPosters);
                 lastCallInfo[w.window_number] = { queue_number: '---', called_at: '' };
             }
 
-            var svc = (w && w.active_services) ? w.active_services.split(',').join(', ') : '--';
-            if (service) service.textContent = svc || '--';
+            var svc = '--';
+            if (w && w.service_type) {
+                svc = w.service_type;
+                if (w.service_type === 'custom' && w.custom_description) svc += ' (' + w.custom_description + ')';
+            } else if (w && w.active_services) {
+                svc = w.active_services.split(',').join(', ');
+            }
+            if (service) service.textContent = svc;
             if (status) status.textContent = statusText === 'Online' ? 'Desk Active' : statusText;
+            if (extra) {
+                var parts = [];
+                if (w.company_name) parts.push('Company: ' + w.company_name);
+                if (w.purpose) parts.push('Purpose: ' + w.purpose.charAt(0).toUpperCase() + w.purpose.slice(1));
+                extra.textContent = parts.join('  \u00b7  ');
+            }
         }
 
         // Media Panel — YouTube always plays, poster overlays on timer
@@ -601,6 +682,8 @@ $mergedPostersJson = json_encode($mergedPosters);
         document.getElementById('mediaCta').textContent = '<?php echo addslashes($settings['video_cta'] ?? ''); ?>';
 
         startPosterRotation();
+
+        if ('<?php echo $video_type; ?>' !== 'youtube') { initVideoPlayer(); }
 
         window.addEventListener('storage', function(e) {
             if (e.key === 'cq_settings_updated') location.reload();
@@ -621,5 +704,6 @@ $mergedPostersJson = json_encode($mergedPosters);
         }
         marqueeStep = setInterval(scrollMarquee, 40);
     </script>
+    <script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>

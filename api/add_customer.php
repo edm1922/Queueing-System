@@ -18,6 +18,9 @@ try {
     
     $name = $data['name'] ?? '';
     $serviceType = $data['service_type'] ?? '';
+    $companyName = trim($data['company_name'] ?? '');
+    $purpose = $data['purpose'] ?? '';
+    $customDescription = trim($data['custom_description'] ?? '');
 
     if (empty($name) || empty($serviceType)) {
         echo json_encode(['success' => false, 'message' => 'Name and service type are required']);
@@ -27,6 +30,11 @@ try {
     $name = trim($name);
     if (strlen($name) < 2 || strlen($name) > 100) {
         echo json_encode(['success' => false, 'message' => 'Name must be between 2 and 100 characters']);
+        exit;
+    }
+
+    if ($purpose && !in_array($purpose, ['inquiry', 'complain', 'follow-up'])) {
+        echo json_encode(['success' => false, 'message' => 'Invalid purpose value']);
         exit;
     }
 
@@ -67,9 +75,14 @@ try {
     
     $counterId = $availableCounter ? $availableCounter['counter_id'] : null;
     
-    $stmt = $conn->prepare("INSERT INTO customers (queue_number, name, service_type, counter_id) VALUES (?, ?, ?, ?)");
-    $stmt->execute([$queueNumber, $name, $serviceType, $counterId]);
+    $stmt = $conn->prepare("INSERT INTO customers (queue_number, name, service_type, company_name, purpose, counter_id, custom_description) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt->execute([$queueNumber, $name, $serviceType, $companyName ?: null, $purpose ?: null, $counterId, $customDescription ?: null]);
     $customerId = $conn->lastInsertId();
+
+    if ($companyName) {
+        $stmt = $conn->prepare("INSERT IGNORE INTO known_companies (name) VALUES (?)");
+        $stmt->execute([$companyName]);
+    }
     
     $conn->commit();
     

@@ -28,6 +28,7 @@ try {
     
     switch ($method) {
         case 'GET':
+            // Public — no auth required
             $type = $_GET['type'] ?? null;
             $activeOnly = isset($_GET['active']) ? (bool)$_GET['active'] : true;
             
@@ -58,6 +59,7 @@ try {
             break;
             
         case 'POST':
+            requireRole(['admin', 'supervisor', 'staff']);
             if (empty($data) && !empty($input)) {
                 $data = json_decode($input, true) ?? [];
             }
@@ -102,6 +104,7 @@ try {
             break;
             
         case 'DELETE':
+            requireRole(['admin', 'supervisor', 'staff']);
             $id = $_GET['id'] ?? null;
             
             if (!$id) {
