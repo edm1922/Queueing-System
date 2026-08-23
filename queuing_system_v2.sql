@@ -55,6 +55,7 @@ INSERT INTO `service_types` (`name`, `code`, `description`, `queue_prefix`) VALU
 CREATE TABLE `queue_sequences` (
   `prefix` char(1) NOT NULL,
   `current_value` int(11) NOT NULL DEFAULT 0,
+  `queue_date` date NOT NULL,
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`prefix`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -63,9 +64,9 @@ CREATE TABLE `queue_sequences` (
 -- Initialize sequences for each prefix
 --
 
-INSERT INTO `queue_sequences` (`prefix`, `current_value`) VALUES
-('I', 0),
-('R', 0);
+INSERT INTO `queue_sequences` (`prefix`, `current_value`, `queue_date`) VALUES
+('I', 0, CURDATE()),
+('R', 0, CURDATE());
 
 -- --------------------------------------------------------
 -- Create counter_service_assignments table
@@ -100,6 +101,7 @@ CREATE TABLE `display_announcements` (
   `priority` int(11) DEFAULT 0,
   `is_active` tinyint(1) DEFAULT 1,
   `is_preset` tinyint(1) DEFAULT 0,
+  `counter_id` int(11) DEFAULT NULL,
   `starts_at` timestamp NULL DEFAULT NULL,
   `expires_at` timestamp NULL DEFAULT NULL,
   `display_duration` int(11) DEFAULT 10,

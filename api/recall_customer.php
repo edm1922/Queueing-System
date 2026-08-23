@@ -19,6 +19,7 @@ try {
     }
     
     $customerId = $data['customer_id'] ?? null;
+    $counterId = isset($data['counter_id']) ? intval($data['counter_id']) : null;
     
     if (!$customerId) {
         throw new Exception('customer_id is required');
@@ -35,16 +36,31 @@ try {
         throw new Exception('Customer not found');
     }
     
-    // We can only recall customers who are currently being served
-    if ($customer['status'] !== 'serving') {
+    // Allow recall for currently serving customers or follow-up tickets
+    if ($customer['status'] !== 'serving' && $customer['is_follow_up'] != 1) {
         throw new Exception('Customer is not in serving status');
+    }
+    
+    // Verify the counter is online if specified
+    if ($counterId) {
+        $stmt = $conn->prepare("SELECT is_online, status_text FROM counters WHERE id = ?");
+        $stmt->execute([$counterId]);
+        $counterRow = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$counterRow || !$counterRow['is_online'] || $counterRow['status_text'] !== 'Online') {
+            throw new Exception('Cannot recall a customer — window is not online. Set status to Online first.');
+        }
     }
     
     $now = date('Y-m-d H:i:s');
     
     // Update called_at to trigger a re-announcement on the display
-    $stmt = $conn->prepare("UPDATE customers SET called_at = ? WHERE id = ?");
-    $stmt->execute([$now, $customerId]);
+    if ($customer['is_follow_up'] == 1 && $counterId) {
+        $stmt = $conn->prepare("UPDATE customers SET called_at = ?, counter_id = ? WHERE id = ?");
+        $stmt->execute([$now, $counterId, $customerId]);
+    } else {
+        $stmt = $conn->prepare("UPDATE customers SET called_at = ? WHERE id = ?");
+        $stmt->execute([$now, $customerId]);
+    }
     
     echo json_encode([
         'success' => true,

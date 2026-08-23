@@ -71,6 +71,21 @@ try {
     $stmt = $conn->prepare("UPDATE counters SET is_online = ?, status_text = ?, last_status_change = NOW() WHERE id = ?");
     $stmt->execute([$newStatus, $statusText, $counterId]);
     
+    // If counter is going Offline or On Break, cancel any stuck serving customer and clear current_customer_id
+    if (!$isOnline || $statusText === 'On Break') {
+        $currentCustId = $counter['current_customer_id'];
+        if ($currentCustId) {
+            $stmt = $conn->prepare("SELECT status FROM customers WHERE id = ? AND status = 'serving'");
+            $stmt->execute([$currentCustId]);
+            if ($stmt->fetchColumn()) {
+                $stmt = $conn->prepare("UPDATE customers SET status = 'cancelled', completed_at = NOW() WHERE id = ?");
+                $stmt->execute([$currentCustId]);
+            }
+            $stmt = $conn->prepare("UPDATE counters SET current_customer_id = NULL WHERE id = ?");
+            $stmt->execute([$counterId]);
+        }
+    }
+    
     $eventType = $isOnline ? 'counter_online' : ($statusText === 'On Break' ? 'counter_break' : 'counter_offline');
     
     $stmt = $conn->prepare("INSERT INTO redistribution_logs (event_type, counter_id, notes) VALUES (?, ?, ?)");
@@ -127,16 +142,18 @@ try {
                 }
             }
             
-            $placeholders = implode(',', array_fill(0, count($affectedServices), '?'));
-            $stmt = $conn->prepare("
-                UPDATE customers 
-                SET counter_id = ?, is_redistributed = 1 
-                WHERE service_type IN ($placeholders) 
-                AND status = 'waiting' 
-                AND DATE(created_at) = CURDATE()
-            ");
-            $stmt->execute(array_merge([$fallbackCounterId], $affectedServices));
-            $reassignedCustomers = $stmt->rowCount();
+            if (!empty($affectedServices)) {
+                $placeholders = implode(',', array_fill(0, count($affectedServices), '?'));
+                $stmt = $conn->prepare("
+                    UPDATE customers 
+                    SET counter_id = ?, is_redistributed = 1 
+                    WHERE service_type IN ($placeholders) 
+                    AND status = 'waiting' 
+                    AND DATE(created_at) = CURDATE()
+                ");
+                $stmt->execute(array_merge([$fallbackCounterId], $affectedServices));
+                $reassignedCustomers = $stmt->rowCount();
+            }
         }
         
         $stmt = $conn->prepare("

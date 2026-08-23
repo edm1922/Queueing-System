@@ -36,7 +36,7 @@ try {
 
     $id = $conn->lastInsertId();
 
-    $stmt = $conn->prepare("INSERT INTO queue_sequences (prefix, current_value) VALUES (?, 0) ON DUPLICATE KEY UPDATE prefix = prefix");
+    $stmt = $conn->prepare("INSERT INTO queue_sequences (prefix, current_value, queue_date) VALUES (?, 0, CURDATE()) ON DUPLICATE KEY UPDATE prefix = prefix");
     $stmt->execute([$prefix]);
 
     echo json_encode([

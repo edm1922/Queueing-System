@@ -45,7 +45,7 @@ async function refreshStats() {
             var timings = res.data.timings || {};
             if (document.getElementById('sessionServed')) document.getElementById('sessionServed').textContent = stats.completed || 0;
             if (document.getElementById('sessionNoshows')) document.getElementById('sessionNoshows').textContent = stats.cancelled || 0;
-            if (document.getElementById('sessionAvgHandle')) document.getElementById('sessionAvgHandle').textContent = timings.avg_service_formatted || '0:00';
+            if (document.getElementById('sessionAvgHandle')) document.getElementById('sessionAvgHandle').textContent = timings.avg_wait_formatted || '0:00';
         }
     } catch (e) { console.error('Stats Error:', e); }
 }
@@ -176,7 +176,7 @@ function updateCounters(counters) {
             dotClass = 'status-dot offline';
             statusBadge = 'badge badge-offline';
         }
-        var windowTitle = 'Window ' + (c.window_number || c.id);
+        var windowTitle = c.display_name || c.name || 'Window ' + (c.window_number || c.id);
         var servicesText = c.active_services || 'None';
         html += '<div class="p-4">' +
                 '<div class="flex items-start justify-between mb-3">' +
@@ -186,6 +186,7 @@ function updateCounters(counters) {
                             '<span class="text-sm font-bold" style="color: var(--color-fg);">' + windowTitle + '</span>' +
                         '</div>' +
                         '<div class="text-xs" style="color: var(--color-muted);"><i class="fas fa-tags mr-1"></i> ' + servicesText + '</div>' +
+                        (c.description ? '<div class="text-[10px] mt-1" style="color: var(--color-muted);"><i class="fas fa-info-circle mr-1"></i>' + c.description + '</div>' : '') +
                     '</div>' +
                     '<span class="' + statusBadge + '">' + c.status_text + '</span>' +
                 '</div>' +
@@ -197,7 +198,14 @@ function updateCounters(counters) {
                     '</select>' +
                     '<a href="window.php?window_id=' + c.id + '" class="btn btn-ghost text-[10px] py-1 px-2" title="Open Window Portal"><i class="fas fa-external-link-alt"></i></a>' +
                     '<button onclick="openEditServicesModal(' + c.id + ')" class="btn btn-ghost text-[10px] py-1 px-2" title="Edit Services"><i class="fas fa-edit"></i></button>' +
+                    '<button onclick="openEditWindowModal(' + c.id + ', \'' + (c.display_name || c.name || '').replace(/'/g, "\\'") + '\', \'' + (c.description || '').replace(/'/g, "\\'") + '\')" class="btn btn-ghost text-[10px] py-1 px-2" title="Edit Window"><i class="fas fa-pen"></i></button>' +
                     '<button onclick="deleteWindow(' + c.id + ')" class="btn btn-ghost text-[10px] py-1 px-2" style="color:var(--color-destructive);" title="Delete"><i class="fas fa-trash"></i></button>' +
+                '</div>' +
+                '<div class="flex items-center gap-2 mb-2">' +
+                    '<label class="flex items-center gap-1.5 cursor-pointer text-[10px] select-none" style="color:var(--color-muted);">' +
+                        '<input type="checkbox" ' + (c.custom_enabled == 1 ? 'checked' : '') + ' onchange="toggleCustom(' + c.id + ', this.checked)" class="accent-green-600">' +
+                        '<span>Custom tickets</span>' +
+                    '</label>' +
                 '</div>' : '<div class="flex items-center gap-2 mb-2">' +
                     '<a href="window.php?window_id=' + c.id + '" class="btn btn-ghost text-[10px] py-1 px-2" title="Open Window Portal"><i class="fas fa-external-link-alt mr-1"></i>Portal</a>' +
                 '</div>') +
@@ -239,7 +247,8 @@ function updateServingGrid(counters, customers) {
                     '<div class="flex items-center justify-between mb-2">' +
                         '<div class="flex items-center gap-2">' +
                             '<span class="' + dotClass + '"></span>' +
-                            '<span class="text-xs font-bold" style="color:var(--foreground);">Window ' + (c.window_number || c.id) + '</span>' +
+                            '<span class="text-xs font-bold" style="color:var(--foreground);">' + (c.display_name || c.name || 'Window ' + (c.window_number || c.id)) + '</span>' +
+                            (c.description ? '<div class="text-[10px] mt-0.5" style="color:var(--muted);">' + c.description + '</div>' : '') +
                         '</div>' +
                         '<span class="text-[10px] font-mono" style="color:var(--muted);">' + statusLabel + '</span>' +
                     '</div>' +
@@ -301,7 +310,7 @@ async function loadUsers() {
                     '</div>' +
                 '</div>' +
                 '<div class="flex gap-1">' +
-                    (u.username !== 'admin' ? '<button onclick="deleteUser(' + u.id + ')" class="btn btn-ghost text-[10px] px-2 py-1" style="color: var(--destructive);" title="Deactivate"><i class="fas fa-user-slash"></i></button>' : '') +
+                    (u.username !== 'admin' ? '<button onclick="editUser(' + u.id + ')" class="btn btn-ghost text-[10px] px-2 py-1" style="color: var(--primary);" title="Edit"><i class="fas fa-pen"></i></button><button onclick="deleteUser(' + u.id + ')" class="btn btn-ghost text-[10px] px-2 py-1" style="color: var(--destructive);" title="Delete"><i class="fas fa-trash-can"></i></button>' : '') +
                 '</div>' +
                 '</div>';
         }
@@ -318,6 +327,28 @@ function openUserModal() {
 
 function closeUserModal() {
     document.getElementById('userModal').style.display = 'none';
+}
+
+function cancelEdit() {
+    document.getElementById('editUserId').value = '';
+    document.getElementById('userFormTitle').textContent = 'Create New User';
+    document.getElementById('userFormBtn').textContent = 'Create User';
+    document.getElementById('newUserUsername').value = '';
+    document.getElementById('newUserPassword').value = '';
+    document.getElementById('newUserDisplayName').value = '';
+    document.getElementById('newUserRole').value = 'staff';
+    document.getElementById('newUserWindow').value = '';
+    document.getElementById('newUserUsername').disabled = false;
+    document.getElementById('newUserPassword').disabled = false;
+}
+
+async function submitUserForm() {
+    var editId = document.getElementById('editUserId').value;
+    if (editId) {
+        await updateUser(editId);
+    } else {
+        await createUser();
+    }
 }
 
 async function createUser() {
@@ -338,9 +369,7 @@ async function createUser() {
         var data = await res.json();
         if (data.success) {
             showToast('User created successfully', 'success');
-            document.getElementById('newUserUsername').value = '';
-            document.getElementById('newUserPassword').value = '';
-            document.getElementById('newUserDisplayName').value = '';
+            cancelEdit();
             loadUsers();
         } else {
             showToast(data.message || 'Failed to create user', 'error');
@@ -348,8 +377,54 @@ async function createUser() {
     } catch (e) { showToast('Error creating user', 'error'); }
 }
 
+async function editUser(userId) {
+    try {
+        var res = await apiFetch('api/user/list.php?user_id=' + userId);
+        var data = await res.json();
+        if (!data.success) { showToast(data.message || 'Failed to load user', 'error'); return; }
+        var u = data.user;
+        document.getElementById('editUserId').value = u.id;
+        document.getElementById('userFormTitle').textContent = 'Edit User';
+        document.getElementById('userFormBtn').textContent = 'Save Changes';
+        document.getElementById('newUserUsername').value = u.username;
+        document.getElementById('newUserUsername').disabled = true;
+        document.getElementById('newUserPassword').value = '';
+        document.getElementById('newUserPassword').disabled = true;
+        document.getElementById('newUserDisplayName').value = u.display_name;
+        document.getElementById('newUserRole').value = u.role;
+        if (u.window_id) {
+            document.getElementById('newUserWindow').value = u.window_id;
+        } else {
+            document.getElementById('newUserWindow').value = '';
+        }
+        toggleWindowField();
+    } catch (e) { showToast('Error loading user', 'error'); }
+}
+
+async function updateUser(userId) {
+    var display_name = document.getElementById('newUserDisplayName').value.trim();
+    var role = document.getElementById('newUserRole').value;
+    var window_id = document.getElementById('newUserWindow').value;
+    if (!display_name) { showToast('Display name is required', 'error'); return; }
+    try {
+        var res = await apiFetch('api/user/update.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: parseInt(userId), display_name: display_name, role: role, window_id: window_id ? parseInt(window_id) : null })
+        });
+        var data = await res.json();
+        if (data.success) {
+            showToast('User updated successfully', 'success');
+            cancelEdit();
+            loadUsers();
+        } else {
+            showToast(data.message || 'Failed to update user', 'error');
+        }
+    } catch (e) { showToast('Error updating user', 'error'); }
+}
+
 async function deleteUser(userId) {
-    if (!confirm('Deactivate this user? They will no longer be able to log in.')) return;
+    if (!confirm('Permanently delete this user? This cannot be undone.')) return;
     try {
         var res = await apiFetch('api/user/delete.php', {
             method: 'POST',
@@ -358,12 +433,12 @@ async function deleteUser(userId) {
         });
         var data = await res.json();
         if (data.success) {
-            showToast('User deactivated', 'success');
+            showToast('User deleted', 'success');
             loadUsers();
         } else {
             showToast(data.message || 'Failed', 'error');
         }
-    } catch (e) { showToast('Error deactivating user', 'error'); }
+    } catch (e) { showToast('Error deleting user', 'error'); }
 }
 
 function toggleWindowField() {
@@ -393,8 +468,30 @@ async function changeWindowStatus(counterId, status) {
     }
 }
 
+async function toggleCustom(counterId, enabled) {
+    try {
+        var response = await apiFetch('api/counter/toggle_custom.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ counter_id: counterId, enabled: enabled ? 1 : 0 })
+        });
+        var data = await response.json();
+        if (data.success) {
+            showToast(enabled ? 'Custom tickets enabled' : 'Custom tickets disabled', 'success');
+            refreshQueue();
+        } else {
+            showToast(data.message || 'Failed to toggle custom', 'error');
+            refreshQueue();
+        }
+    } catch (e) {
+        showToast('Error toggling custom', 'error');
+        refreshQueue();
+    }
+}
+
 function openAddWindowModal() {
     document.getElementById('newWindowName').value = '';
+    document.getElementById('newWindowDesc').value = '';
     document.getElementById('addWindowModal').style.display = 'flex';
 }
 
@@ -402,14 +499,50 @@ function closeAddWindowModal() {
     document.getElementById('addWindowModal').style.display = 'none';
 }
 
+function openEditWindowModal(counterId, currentName, currentDesc) {
+    document.getElementById('editWindowId').value = counterId;
+    document.getElementById('editWindowName').value = currentName;
+    document.getElementById('editWindowDesc').value = currentDesc || '';
+    document.getElementById('editWindowModal').style.display = 'flex';
+}
+
+function closeEditWindowModal() {
+    document.getElementById('editWindowModal').style.display = 'none';
+}
+
+async function submitEditWindow() {
+    var counterId = document.getElementById('editWindowId').value;
+    var name = document.getElementById('editWindowName').value.trim();
+    var description = document.getElementById('editWindowDesc').value.trim();
+    if (!name) { showToast('Please enter a window name', 'error'); return; }
+    try {
+        var response = await apiFetch('api/counter/update_window.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ counter_id: parseInt(counterId), name: name, description: description })
+        });
+        var data = await response.json();
+        if (data.success) {
+            showToast('Window updated successfully', 'success');
+            closeEditWindowModal();
+            refreshQueue();
+        } else {
+            showToast(data.message || 'Failed to update window', 'error');
+        }
+    } catch (e) {
+        showToast('Error updating window', 'error');
+    }
+}
+
 async function submitNewWindow() {
     var name = document.getElementById('newWindowName').value.trim();
+    var description = document.getElementById('newWindowDesc').value.trim();
     if (!name) { showToast('Please enter a window name', 'error'); return; }
     try {
         var response = await apiFetch('api/counter/add_window.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: name })
+            body: JSON.stringify({ name: name, description: description })
         });
         var data = await response.json();
         if (data.success) {
@@ -485,26 +618,22 @@ function openEditServicesModal(counterId) {
             for (var si = 0; si < group.services.length; si++) {
                 if (group.services[si].code !== 'custom') groupSvcs.push(group.services[si]);
             }
-            var allChecked = true, groupDisabled = false;
+            var allChecked = true;
             for (var si = 0; si < groupSvcs.length; si++) {
                 if (!assignedServices.includes(groupSvcs[si].code)) { allChecked = false; }
-                var owner = serviceOwners[groupSvcs[si].code];
-                if (owner && !assignedServices.includes(groupSvcs[si].code)) { groupDisabled = true; }
             }
             html += '<div class="mb-3">' +
-                    '<label class="flex items-center gap-3 p-2 rounded cursor-pointer hover:bg-gray-100 transition-colors" style="border-bottom:1px solid var(--border);font-weight:600;' + (groupDisabled ? 'opacity:0.5;' : '') + '">' +
-                    '<input type="checkbox" class="group-cb" data-group="' + g + '" ' + (allChecked ? 'checked' : '') + (groupDisabled ? ' disabled' : '') + ' style="accent-color:var(--color-primary);">' +
+                    '<label class="flex items-center gap-3 p-2 rounded cursor-pointer hover:bg-gray-100 transition-colors" style="border-bottom:1px solid var(--border);font-weight:600;">' +
+                    '<input type="checkbox" class="group-cb" data-group="' + g + '" ' + (allChecked ? 'checked' : '') + ' style="accent-color:var(--color-primary);">' +
                     '<span class="text-sm font-bold">' + group.name + '</span>' +
-                    (groupDisabled ? '<span class="text-[10px]" style="color:var(--muted);">(some services assigned to other windows)</span>' : '') +
                     '</label>';
             for (var si = 0; si < groupSvcs.length; si++) {
                 var svc = groupSvcs[si];
                 var isChecked = assignedServices.includes(svc.code) ? 'checked' : '';
                 var owner = serviceOwners[svc.code];
-                var isDisabled = owner && !isChecked;
-                html += '<label class="flex items-center gap-3 pl-8 p-1.5 rounded ' + (isDisabled ? '' : 'cursor-pointer hover:bg-gray-50') + ' transition-colors">' +
-                        '<input type="checkbox" class="service-cb" data-group="' + g + '" value="' + svc.code + '" ' + isChecked + (isDisabled ? ' disabled' : '') + ' style="accent-color:var(--color-primary);' + (isDisabled ? 'opacity:0.4;' : '') + '">' +
-                        '<span class="text-sm" style="color:' + (isDisabled ? 'var(--muted)' : 'var(--color-fg)') + ';">' + svc.name + '</span>' +
+                html += '<label class="flex items-center gap-3 pl-8 p-1.5 rounded cursor-pointer hover:bg-gray-50 transition-colors">' +
+                        '<input type="checkbox" class="service-cb" data-group="' + g + '" value="' + svc.code + '" ' + isChecked + ' style="accent-color:var(--color-primary);">' +
+                        '<span class="text-sm">' + svc.name + '</span>' +
                         (owner ? '<span class="text-[10px]" style="color:var(--muted);">(' + owner + ')</span>' : '') +
                         '</label>';
             }
@@ -521,10 +650,9 @@ function openEditServicesModal(counterId) {
                 var svc = ungroupedFiltered[si];
                 var isChecked = assignedServices.includes(svc.code) ? 'checked' : '';
                 var owner = serviceOwners[svc.code];
-                var isDisabled = owner && !isChecked;
-                html += '<label class="flex items-center gap-3 p-2 rounded ' + (isDisabled ? '' : 'cursor-pointer hover:bg-gray-50') + ' transition-colors">' +
-                        '<input type="checkbox" class="service-cb" value="' + svc.code + '" ' + isChecked + (isDisabled ? ' disabled' : '') + ' style="accent-color:var(--color-primary);' + (isDisabled ? 'opacity:0.4;' : '') + '">' +
-                        '<span class="text-sm" style="color:' + (isDisabled ? 'var(--muted)' : 'var(--color-fg)') + ';">' + svc.name + '</span>' +
+                html += '<label class="flex items-center gap-3 p-2 rounded cursor-pointer hover:bg-gray-50 transition-colors">' +
+                        '<input type="checkbox" class="service-cb" value="' + svc.code + '" ' + isChecked + ' style="accent-color:var(--color-primary);">' +
+                        '<span class="text-sm">' + svc.name + '</span>' +
                         (owner ? '<span class="text-[10px]" style="color:var(--muted);">(' + owner + ')</span>' : '') +
                         '</label>';
             }
@@ -534,21 +662,21 @@ function openEditServicesModal(counterId) {
         document.getElementById('servicesCheckboxes').innerHTML = html;
         document.getElementById('editServicesModal').style.display = 'flex';
 
-        var groupCbs = document.querySelectorAll('.group-cb:not(:disabled)');
+        var groupCbs = document.querySelectorAll('.group-cb');
         for (var i = 0; i < groupCbs.length; i++) {
             groupCbs[i].addEventListener('change', function() {
                 var g = this.getAttribute('data-group');
                 var checked = this.checked;
-                var cbs = document.querySelectorAll('.service-cb[data-group="' + g + '"]:not(:disabled)');
+                var cbs = document.querySelectorAll('.service-cb[data-group="' + g + '"]');
                 for (var j = 0; j < cbs.length; j++) cbs[j].checked = checked;
             });
         }
-        var svcCbs = document.querySelectorAll('.service-cb:not(:disabled)');
+        var svcCbs = document.querySelectorAll('.service-cb');
         for (var i = 0; i < svcCbs.length; i++) {
             svcCbs[i].addEventListener('change', function() {
                 var g = this.getAttribute('data-group');
                 if (!g) return;
-                var all = document.querySelectorAll('.service-cb[data-group="' + g + '"]:not(:disabled)');
+                var all = document.querySelectorAll('.service-cb[data-group="' + g + '"]');
                 var checked = document.querySelectorAll('.service-cb[data-group="' + g + '"]:checked');
                 var groupCb = document.querySelector('.group-cb[data-group="' + g + '"]');
                 if (groupCb) groupCb.checked = all.length > 0 && checked.length === all.length;
@@ -563,7 +691,7 @@ function closeEditServicesModal() {
 
 async function submitEditServices() {
     var counterId = document.getElementById('editServicesCounterId').value;
-    var checkboxes = document.querySelectorAll('.service-cb:checked:not(:disabled)');
+    var checkboxes = document.querySelectorAll('.service-cb:checked');
     var services = [];
     for (var i = 0; i < checkboxes.length; i++) {
         services.push(checkboxes[i].value);
@@ -732,60 +860,157 @@ function renderFollowUpList(allCustomers) {
     }
     document.getElementById('followUpPanel').style.display = 'block';
     document.getElementById('followUpCount').textContent = followUps.length;
+    var canInteract = currentUserRole === 'staff';
     var html = '';
     for (var i = 0; i < followUps.length; i++) {
         var c = followUps[i];
         var statusLabel = c.status === 'serving' ? ' (being served)' : c.status === 'completed' ? '' : '';
-        html += '<div class="flex items-center justify-between p-3 border-b border-border">' +
-                '<div class="flex items-center gap-3">' +
-                    '<span class="text-[10px] font-mono w-5 tabular-nums" style="color:var(--muted);">' + (i+1) + '</span>' +
-                    '<div class="flex flex-col">' +
-                        '<span class="font-mono text-sm font-bold tracking-tight" style="color:var(--brand-gold);">' + c.queue_number + '</span>' +
-                        '<span class="text-[10px] uppercase tracking-wider" style="color:var(--muted);">' + formatService(c) + statusLabel + '</span>' +
+        var fwdInfo = '';
+        if (c.forwarded_by_user_id && c.forwarded_by_user_id == currentUserId && c.forwarded_to_name) {
+            var fwdLabel = c.forwarded_to_description ? c.forwarded_to_name + ' — ' + c.forwarded_to_description : c.forwarded_to_name;
+            fwdInfo = '<div class="mt-1.5 pl-8">' +
+                '<span class="text-[10px] italic" style="color: var(--brand-gold);"><i class="fas fa-share mr-1"></i>Forwarded to ' + escapeHtml(fwdLabel) + '</span>';
+            if (c.forward_remark) {
+                fwdInfo += '<div class="text-[10px] mt-0.5 pl-3" style="color: var(--muted);">"' + escapeHtml(c.forward_remark) + '"</div>';
+            }
+            fwdInfo += '</div>';
+        } else if (c.forwarded_by_name) {
+            fwdInfo = '<div class="mt-1.5 pl-8">' +
+                '<span class="text-[10px] italic" style="color: var(--brand-gold);"><i class="fas fa-share mr-1"></i>Forwarded by ' + escapeHtml(c.forwarded_by_name) + '</span>';
+            if (c.forward_remark) {
+                fwdInfo += '<div class="text-[10px] mt-0.5 pl-3" style="color: var(--muted);">"' + escapeHtml(c.forward_remark) + '"</div>';
+            }
+            fwdInfo += '</div>';
+        }
+        html += '<div class="p-3 border-b border-border">' +
+                '<div class="flex items-center justify-between">' +
+                    '<div class="flex items-center gap-3">' +
+                        '<span class="text-[10px] font-mono w-5 tabular-nums" style="color:var(--muted);">' + (i+1) + '</span>' +
+                        '<div class="flex flex-col">' +
+                            '<span class="font-mono text-sm font-bold tracking-tight" style="color:var(--brand-gold);">' + c.queue_number + '</span>' +
+                            '<span class="text-[10px] uppercase tracking-wider" style="color:var(--muted);">' + formatService(c) + statusLabel + '</span>' +
+                        '</div>' +
                     '</div>' +
+                    (canInteract ?
+                        '<div class="flex gap-1 items-center">' +
+                            '<div class="relative">' +
+                                '<button onclick="toggleAdminFwdDropdown(' + c.id + ')" class="btn btn-primary text-[10px] py-1 px-2.5" id="fwdBtn' + c.id + '"><i class="fas fa-check text-xs mr-1"></i>Complete <i class="fas fa-caret-down ml-1"></i></button>' +
+                                '<div id="fwdMenu' + c.id + '" class="hidden absolute right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-40" style="min-width: 150px;">' +
+                                    '<button onclick="closeAdminFwdDropdown(' + c.id + '); completeFollowUp(' + c.id + ')" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-100 rounded-t-lg" style="color: var(--foreground);"><i class="fas fa-check mr-2 text-green-600"></i>Complete</button>' +
+                                    '<button onclick="closeAdminFwdDropdown(' + c.id + '); openAdminForwardModal(' + c.id + ')" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-100 rounded-b-lg" style="color: var(--foreground);"><i class="fas fa-share mr-2 text-blue-600"></i>Forward</button>' +
+                                '</div>' +
+                            '</div>' +
+                            '<button onclick="rejectFollowUp(' + c.id + ')" class="btn btn-ghost text-[10px] py-1 px-2" title="Reject" style="color:var(--color-destructive);"><i class="fas fa-times"></i></button>' +
+                        '</div>' : '') +
                 '</div>' +
-                '<div class="flex gap-1">' +
-                    '<button onclick="serveFollowUp(' + c.id + ')" class="btn btn-primary text-[10px] py-1 px-2.5"><i class="fas fa-arrow-right text-xs mr-1"></i>Serve</button>' +
-                    '<button onclick="toggleFollowUp(' + c.id + ')" class="btn btn-ghost text-[10px] py-1 px-2" title="Remove" style="color:var(--color-destructive);"><i class="fas fa-times"></i></button>' +
-                '</div>' +
-            '</div>';
+                fwdInfo +
+                '</div>';
     }
     el.innerHTML = html;
 }
 
-async function toggleFollowUp(id) {
-    try {
-        var response = await apiFetch('api/toggle_followup.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ customer_id: id })
-        });
-        var data = await response.json();
-        if (data.success) {
-            showToast(data.message, data.is_follow_up ? 'warning' : 'success');
-            refreshQueue();
-        } else {
-            showToast(data.message || 'Failed to toggle follow-up', 'error');
-        }
-    } catch (e) { showToast('Error toggling follow-up', 'error'); }
+function toggleAdminFwdDropdown(id) {
+    var menu = document.getElementById('fwdMenu' + id);
+    if (!menu) return;
+    var wasHidden = menu.classList.contains('hidden');
+    closeAllAdminFwdDropdowns();
+    if (wasHidden) menu.classList.remove('hidden');
 }
 
-async function serveFollowUp(id) {
-    if (!confirm('Serve this follow-up ticket now?')) return;
-    try {
-        var response = await apiFetch('api/serve_followup.php', {
+function closeAdminFwdDropdown(id) {
+    var menu = document.getElementById('fwdMenu' + id);
+    if (menu) menu.classList.add('hidden');
+}
+
+function closeAllAdminFwdDropdowns() {
+    var menus = document.querySelectorAll('[id^="fwdMenu"]');
+    for (var i = 0; i < menus.length; i++) menus[i].classList.add('hidden');
+}
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('[id^="fwdBtn"]') && !e.target.closest('[id^="fwdMenu"]')) {
+        closeAllAdminFwdDropdowns();
+    }
+});
+
+function openAdminForwardModal(customerId) {
+    var overlay = document.getElementById('forwardOverlay');
+    var targetSel = document.getElementById('forwardTarget');
+    var remarkEl = document.getElementById('forwardRemark');
+    var confirmBtn = document.getElementById('forwardConfirm');
+    targetSel.innerHTML = '<option value="">Select a counter...</option>';
+    remarkEl.value = '';
+    confirmBtn.disabled = true;
+    var userWindowId = typeof currentUserWindowId !== 'undefined' ? currentUserWindowId : null;
+    for (var i = 0; i < countersData.length; i++) {
+        var ct = countersData[i];
+        if (ct.is_online != 1 || ct.status_text === 'Offline') continue;
+        if (userWindowId && ct.id == userWindowId) continue;
+        var opt = document.createElement('option');
+        opt.value = ct.id;
+        opt.textContent = ct.display_name || ct.name || ('Window ' + ct.window_number);
+        if (ct.description) opt.textContent += ' — ' + ct.description;
+        targetSel.appendChild(opt);
+    }
+    confirmBtn.onclick = function() {
+        var targetId = targetSel.value;
+        var remark = remarkEl.value.trim();
+        if (!targetId || !remark) return;
+        overlay.classList.add('hidden');
+        apiFetch('api/forward_followup.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ customer_id: id })
+            body: JSON.stringify({ customer_id: customerId, target_counter_id: parseInt(targetId), remark: remark })
+        }).then(function(r) { return r.json(); }).then(function(data) {
+            if (data.success) {
+                showToast('Follow-up forwarded', 'success');
+                refreshQueue(); refreshStats();
+            } else {
+                showToast(data.message || 'Failed to forward', 'error');
+            }
+        }).catch(function() { showToast('Error forwarding follow-up', 'error'); });
+    };
+    document.getElementById('forwardCancel').onclick = function() {
+        overlay.classList.add('hidden');
+    };
+    overlay.classList.remove('hidden');
+    setTimeout(function() { targetSel.focus(); }, 100);
+}
+
+async function completeFollowUp(id) {
+    var remark = prompt('Resolution notes (optional):');
+    if (remark === null) return;
+    try {
+        var response = await apiFetch('api/complete_followup.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ customer_id: id, remark: remark })
         });
         var data = await response.json();
         if (data.success) {
-            showToast('Follow-up ticket served', 'success');
+            showToast('Follow-up completed', 'success');
             refreshQueue(); refreshStats();
         } else {
-            showToast(data.message || 'Failed to serve follow-up', 'error');
+            showToast(data.message || 'Failed to complete follow-up', 'error');
         }
-    } catch (e) { showToast('Error serving follow-up', 'error'); }
+    } catch (e) { showToast('Error completing follow-up', 'error'); }
+}
+
+function rejectFollowUp(id) {
+    var remark = prompt('Reason for rejection (optional):');
+    if (remark === null) return;
+    apiFetch('api/reject_followup.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customer_id: id, remark: remark })
+    }).then(function(r){ return r.json(); }).then(function(data) {
+        if (data.success) {
+            showToast('Follow-up removed', 'success');
+            refreshQueue();
+        } else {
+            showToast(data.message || 'Failed', 'error');
+        }
+    }).catch(function() { showToast('Error rejecting follow-up', 'error'); });
 }
 
 // ====== Service Group Management ======
@@ -810,11 +1035,25 @@ async function loadGroups() {
         // Populate assign dropdowns
         var svcSelect = document.getElementById('assignGroupServiceId');
         var grpSelect = document.getElementById('assignGroupTargetId');
+        // Collect IDs of services already assigned to any group
+        var assignedSvcIds = [];
+        for (var i = 0; i < groups.length; i++) {
+            var gSvcs = groups[i].services || [];
+            for (var j = 0; j < gSvcs.length; j++) {
+                assignedSvcIds.push(gSvcs[j].id);
+            }
+        }
         if (svcSelect) {
             svcSelect.innerHTML = '<option value="">-- Select service --</option>';
             for (var i = 0; i < allServices.length; i++) {
-                svcSelect.innerHTML += '<option value="' + allServices[i].id + '">' + allServices[i].name + '</option>';
+                if (assignedSvcIds.indexOf(allServices[i].id) === -1) {
+                    svcSelect.innerHTML += '<option value="' + allServices[i].id + '">' + allServices[i].name + '</option>';
+                }
             }
+            if (svcSelect.options.length <= 1) {
+                svcSelect.innerHTML = '<option value="">All services are assigned</option>';
+            }
+            svcSelect.disabled = true;
         }
         if (grpSelect) {
             grpSelect.innerHTML = '<option value="">-- Select group --</option>';

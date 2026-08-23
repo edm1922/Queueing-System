@@ -12,7 +12,8 @@ try {
             c.name,
             c.display_name,
             c.status_text,
-            c.is_online
+            c.is_online,
+            c.custom_enabled
         FROM counters c
         ORDER BY c.window_number ASC
     ");
@@ -30,8 +31,12 @@ try {
         $counter['services'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    $stmt = $conn->query("SELECT force_refresh_token FROM display_settings LIMIT 1");
+    $refreshToken = intval($stmt->fetch(PDO::FETCH_ASSOC)['force_refresh_token'] ?? 0);
+
     echo json_encode([
         'success' => true,
+        'force_refresh_token' => $refreshToken,
         'data' => [
             'counters' => $counters
         ]

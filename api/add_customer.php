@@ -21,6 +21,7 @@ try {
     $companyName = trim($data['company_name'] ?? '');
     $purpose = $data['purpose'] ?? '';
     $customDescription = trim($data['custom_description'] ?? '');
+    $remark = trim($data['remark'] ?? '');
 
     if (empty($name) || empty($serviceType)) {
         echo json_encode(['success' => false, 'message' => 'Name and service type are required']);
@@ -33,7 +34,7 @@ try {
         exit;
     }
 
-    if ($purpose && !in_array($purpose, ['inquiry', 'complain', 'follow-up'])) {
+    if ($purpose && !in_array($purpose, ['inquiry/complain', 'follow-up', 'request'])) {
         echo json_encode(['success' => false, 'message' => 'Invalid purpose value']);
         exit;
     }
@@ -53,18 +54,38 @@ try {
     
     $prefix = $serviceInfo['queue_prefix'];
     
-    $stmt = $conn->prepare("UPDATE queue_sequences SET current_value = current_value + 1 WHERE prefix = ?");
-    $stmt->execute([$prefix]);
+    // Determine queue date based on cutoff time
+    $stmt = $conn->prepare("SELECT cutoff_time FROM display_settings LIMIT 1");
+    $stmt->execute();
+    $ds = $stmt->fetch(PDO::FETCH_ASSOC);
+    $cutoff = $ds['cutoff_time'] ?? '17:00:00';
+    $today = date('Y-m-d');
+    $cutoffTs = strtotime($today . ' ' . $cutoff);
+    $queueDate = (time() >= $cutoffTs) ? date('Y-m-d', strtotime('+1 day')) : $today;
     
-    $stmt = $conn->prepare("SELECT current_value FROM queue_sequences WHERE prefix = ?");
+    // Lock row, then increment or reset (safe under concurrent requests)
+    $stmt = $conn->prepare("SELECT current_value, queue_date FROM queue_sequences WHERE prefix = ? FOR UPDATE");
     $stmt->execute([$prefix]);
-    $result = $stmt->fetch(PDO::FETCH_ASSOC);
-    $nextNum = $result['current_value'];
+    $seqRow = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$seqRow) {
+        $stmt = $conn->prepare("INSERT INTO queue_sequences (prefix, current_value, queue_date) VALUES (?, 1, ?)");
+        $stmt->execute([$prefix, $queueDate]);
+        $nextNum = 1;
+    } elseif ($seqRow['queue_date'] === $queueDate) {
+        $stmt = $conn->prepare("UPDATE queue_sequences SET current_value = current_value + 1 WHERE prefix = ?");
+        $stmt->execute([$prefix]);
+        $nextNum = $seqRow['current_value'] + 1;
+    } else {
+        $stmt = $conn->prepare("UPDATE queue_sequences SET current_value = 1, queue_date = ? WHERE prefix = ?");
+        $stmt->execute([$queueDate, $prefix]);
+        $nextNum = 1;
+    }
     
     $queueNumber = $prefix . str_pad($nextNum, 3, '0', STR_PAD_LEFT);
     
     $stmt = $conn->prepare("
-        SELECT c.id as counter_id, c.display_name 
+        SELECT c.id as counter_id, c.name
         FROM counters c
         JOIN counter_service_assignments csa ON csa.counter_id = c.id
         WHERE csa.service_type = ? AND csa.is_active = 1 AND c.is_online = 1
@@ -75,8 +96,8 @@ try {
     
     $counterId = $availableCounter ? $availableCounter['counter_id'] : null;
     
-    $stmt = $conn->prepare("INSERT INTO customers (queue_number, name, service_type, company_name, purpose, counter_id, custom_description) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    $stmt->execute([$queueNumber, $name, $serviceType, $companyName ?: null, $purpose ?: null, $counterId, $customDescription ?: null]);
+    $stmt = $conn->prepare("INSERT INTO customers (queue_number, queue_date, name, service_type, company_name, purpose, counter_id, custom_description, remark) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->execute([$queueNumber, $queueDate, $name, $serviceType, $companyName ?: null, $purpose ?: null, $counterId, $customDescription ?: null, $remark ?: null]);
     $customerId = $conn->lastInsertId();
 
     if ($companyName) {
@@ -96,7 +117,7 @@ try {
         'message' => 'Customer added successfully',
         'data' => [
             'customer' => $customer,
-            'assigned_counter' => $availableCounter ? $availableCounter['display_name'] : null,
+            'assigned_counter' => $availableCounter ? $availableCounter['name'] : null,
             'queue_position' => getQueuePosition($conn, $customerId)
         ]
     ]);

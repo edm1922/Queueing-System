@@ -6,7 +6,7 @@ try {
     $stmt = $conn->query("SELECT * FROM display_settings LIMIT 1");
     $settings = $stmt->fetch(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
-    $settings = ['company_name' => 'Service Center', 'branch_name' => 'Main Office', 'address' => '', 'welcome_message' => 'Welcome', 'cutoff_time' => '17:00:00', 'company_logo' => '', 'video_url' => 'aqz-KE-bpKQ', 'video_type' => 'youtube', 'video_title' => 'Citizen Services Overview', 'video_sponsor' => 'Public Affairs Office', 'video_cta' => '', 'video_volume' => 50, 'poster_duration' => 10, 'poster_images' => '[]'];
+    $settings = ['company_name' => 'Service Center', 'branch_name' => 'Main Office', 'address' => '', 'welcome_message' => 'Welcome', 'cutoff_time' => '17:00:00', 'company_logo' => '', 'video_url' => 'aqz-KE-bpKQ', 'video_type' => 'youtube', 'video_title' => 'Citizen Services Overview', 'video_sponsor' => 'Public Affairs Office', 'video_cta' => '', 'video_volume' => 50, 'poster_enabled' => 0, 'poster_interval' => 10, 'poster_duration' => 10, 'poster_images' => '[]', 'poster_announcements' => '[]'];
 }
 function getYoutubeId($url) {
     if (!$url) return 'aqz-KE-bpKQ';
@@ -35,7 +35,6 @@ $poster_images = json_decode($poster_images_raw, true) ?: [];
 $poster_announcements_raw = $settings['poster_announcements'] ?? '[]';
 $poster_announcements = json_decode($poster_announcements_raw, true) ?: [];
 
-// Merge images and announcements into a unified poster array, interleaving them
 $mergedPosters = [];
 $imgCount = count($poster_images);
 $annCount = count($poster_announcements);
@@ -58,22 +57,613 @@ $mergedPostersJson = json_encode($mergedPosters);
     <title>Live Display — <?php echo $company_name; ?></title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563eb'><path d='M3 3h18v2H3V3zm0 4h18v2H3V7zm0 4h18v2H3v-2zm0 4h12v2H3v-2zm14 0l3 3-3 3v-6z'/></svg>">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="css/design-system.css">
     <style>
-        .now-serving-card { min-height: 260px; }
-        .now-serving-card .num { font-size: 100px; line-height: 0.9; }
-        @media (min-width: 768px) { .now-serving-card .num { font-size: 120px; } }
-        @keyframes flipIn { 0% { transform: translateY(-20px) scale(0.9); opacity: 0; } 50% { transform: translateY(10px) scale(1.05); } 100% { transform: translateY(0) scale(1); opacity: 1; } }
-        .flip-in { animation: flipIn 0.6s var(--ease-out-expo); }
-        .history-card { flex-shrink: 0; width: 10rem; }
-        @media (prefers-reduced-motion: reduce) { .flip-in, .animate-entry { animation: none !important; } }
-        #posterPanel { display: none; flex-direction: column; background: #000; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
-        #posterPanel.active { display: flex; }
-        #nextUpList { max-height: 240px; overflow-y: auto; }
-        @media (min-width: 768px) { #nextUpList { max-height: 360px; } }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: #ffffff;
+            color: #111827;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .display-header {
+            height: 96px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 64px;
+            border-bottom: 2px solid #e5e7eb;
+            background: #ffffff;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-logo {
+            width: 72px;
+            height: 72px;
+            border-radius: 10px;
+            background: #b91c1c;
+            display: grid;
+            place-items: center;
+            color: #ffffff;
+            font-weight: 900;
+            font-size: 24px;
+            letter-spacing: -0.05em;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .header-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .org-name {
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: #111827;
+            line-height: 1.2;
+        }
+
+        .org-sub {
+            font-size: 13px;
+            font-family: 'IBM Plex Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            color: #6b7280;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 28px;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 24px;
+            border-radius: 9999px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            font-size: 15px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: #374151;
+        }
+
+        .status-dot-live {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #9ca3af;
+            animation: pulse-dot 2s infinite;
+        }
+
+        .header-clock {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 38px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            color: #111827;
+            tabular-nums: true;
+        }
+
+        .display-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            background: #f9fafb;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: #374151;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .display-btn:hover {
+            background: #f3f4f6;
+        }
+
+        .display-main {
+            flex: 1;
+            display: grid;
+            grid-template-rows: auto 1fr;
+            min-height: 0;
+        }
+
+        .serving-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 28px 48px 20px 48px;
+            min-height: 0;
+            background: #f3f4f6;
+        }
+
+        #windowsContainer {
+            display: grid;
+            gap: 28px;
+            width: 100%;
+            max-width: 1600px;
+            margin: 0 auto;
+            align-items: stretch;
+        }
+
+        #windowsContainer:has(> :nth-child(1):last-child) {
+            grid-template-columns: 1fr;
+        }
+        #windowsContainer:has(> :nth-child(2):last-child) {
+            grid-template-columns: 1fr 1fr;
+        }
+        #windowsContainer:has(> :nth-child(3):last-child) {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+        #windowsContainer:has(> :nth-child(4):last-child) {
+            grid-template-columns: 1fr 1fr;
+        }
+        #windowsContainer:has(> :nth-child(n+5):last-child) {
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        }
+
+        /* Scaled-down card sizes for 4+ windows */
+        #windowsContainer:has(> :nth-child(4):last-child) .now-serving-card,
+        #windowsContainer:has(> :nth-child(n+5):last-child) .now-serving-card {
+            padding: 20px 20px 24px 20px !important;
+        }
+        #windowsContainer:has(> :nth-child(4):last-child) .now-serving-card .num,
+        #windowsContainer:has(> :nth-child(n+5):last-child) .now-serving-card .num {
+            font-size: 140px !important;
+        }
+        #windowsContainer:has(> :nth-child(4):last-child) .now-serving-card .window-label,
+        #windowsContainer:has(> :nth-child(n+5):last-child) .now-serving-card .window-label {
+            font-size: 28px !important;
+            padding: 6px 20px !important;
+        }
+        #windowsContainer:has(> :nth-child(4):last-child) .now-serving-card .now-serving-tag,
+        #windowsContainer:has(> :nth-child(n+5):last-child) .now-serving-card .now-serving-tag {
+            font-size: 16px !important;
+        }
+        #windowsContainer:has(> :nth-child(4):last-child) .now-serving-card .desc-label,
+        #windowsContainer:has(> :nth-child(n+5):last-child) .now-serving-card .desc-label {
+            font-size: 14px !important;
+        }
+
+        .now-serving-card {
+            background: #ffffff !important;
+            border: 2px solid #e5e7eb !important;
+            border-radius: 16px !important;
+            min-height: unset !important;
+            padding: 32px 32px 40px 32px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.07) !important;
+            transition: border-color 0.3s ease;
+        }
+
+        .now-serving-card.card-active {
+            border-top: 3px solid #b91c1c !important;
+        }
+
+        .now-serving-card.card-break {
+            border-top: 3px solid #f59e0b !important;
+        }
+
+        .now-serving-card .window-label {
+            font-size: 38px !important;
+            font-weight: 900 !important;
+            letter-spacing: 0.15em !important;
+            color: #374151 !important;
+            background: #f3f4f6 !important;
+            padding: 8px 32px !important;
+            border-radius: 8px !important;
+        }
+
+        .now-serving-card .num {
+            font-size: 180px !important;
+            line-height: 1 !important;
+            font-weight: 900 !important;
+            letter-spacing: -0.03em !important;
+            color: #111827 !important;
+            margin: 0 0 8px 0;
+        }
+
+        .now-serving-card .now-serving-tag {
+            font-size: 20px !important;
+            font-weight: 600 !important;
+            letter-spacing: 0.3em !important;
+            text-transform: uppercase !important;
+            color: #6b7280 !important;
+            margin-top: 0 !important;
+            margin-bottom: 8px !important;
+        }
+
+        .now-serving-card .card-footer {
+            display: none !important;
+        }
+
+        .now-serving-card .desc-label {
+            font-size: 22px !important;
+            font-weight: 500 !important;
+        }
+
+        .now-serving-card #window1Extra,
+        .now-serving-card #window2Extra,
+        .now-serving-card #window3Extra,
+        .now-serving-card #window4Extra {
+            display: none !important;
+        }
+
+        .now-serving-card .live-badge {
+            display: inline-block !important;
+            font-size: 20px !important;
+            font-weight: 900 !important;
+            letter-spacing: 0.1em !important;
+            border-radius: 8px !important;
+            padding: 8px 22px !important;
+            text-transform: uppercase !important;
+        }
+
+        .now-serving-card > div:first-child {
+            order: 2 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            margin-top: 2px !important;
+        }
+
+        .now-serving-card > div:nth-child(2) {
+            order: 1 !important;
+            flex: none !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+
+        .bottom-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            min-height: 0;
+            border-top: 2px solid #e5e7eb;
+            background: #fafafa;
+        }
+
+        .bottom-panel {
+            display: flex;
+            flex-direction: column;
+            padding: 28px 44px;
+            overflow: hidden;
+        }
+
+        .bottom-panel + .bottom-panel {
+            border-left: 1px solid #e5e7eb;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+        }
+
+        .panel-header .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #9ca3af;
+        }
+
+        .panel-header .label {
+            font-size: 20px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            color: #6b7280;
+        }
+
+        .panel-header .count {
+            font-size: 20px;
+            font-family: 'IBM Plex Mono', monospace;
+            color: #9ca3af;
+            margin-left: auto;
+        }
+
+        #nextUpList {
+            flex: 1;
+            overflow-y: auto;
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        #nextUpList li {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            padding: 16px 24px;
+            border-radius: 10px;
+            font-size: 30px;
+            flex-shrink: 0;
+        }
+
+        #nextUpList li .pos {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 24px;
+            font-weight: 600;
+            color: #9ca3af;
+            width: 56px;
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        #nextUpList li .ticket-num {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 34px;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        #nextUpList li .ticket-svc {
+            font-size: 20px;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-left: 10px;
+        }
+
+        #nextUpList li.highlighted {
+            padding-left: 18px;
+            font-weight: 700;
+        }
+
+        #nextUpList li.highlighted .ticket-svc {
+            font-weight: 600;
+        }
+
+        #nextUpList li.highlighted-w1 { background: #fef2f2; border-left: 3px solid #b91c1c; }
+        #nextUpList li.highlighted-w1 .ticket-num,
+        #nextUpList li.highlighted-w1 .pos { color: #b91c1c; font-weight: 900; }
+        #nextUpList li.highlighted-w1 .ticket-num { font-weight: 900; }
+
+        #nextUpList li.highlighted-w2 { background: #fffbeb; border-left: 3px solid #d97706; }
+        #nextUpList li.highlighted-w2 .ticket-num,
+        #nextUpList li.highlighted-w2 .pos { color: #d97706; font-weight: 900; }
+
+        #nextUpList li.highlighted-w3 { background: #eff6ff; border-left: 3px solid #2563eb; }
+        #nextUpList li.highlighted-w3 .ticket-num,
+        #nextUpList li.highlighted-w3 .pos { color: #2563eb; font-weight: 900; }
+
+        #nextUpList li.highlighted-w4 { background: #ecfdf5; border-left: 3px solid #059669; }
+        #nextUpList li.highlighted-w4 .ticket-num,
+        #nextUpList li.highlighted-w4 .pos { color: #059669; font-weight: 900; }
+
+        #nextUpList li.highlighted-w5 { background: #f5f3ff; border-left: 3px solid #7c3aed; }
+        #nextUpList li.highlighted-w5 .ticket-num,
+        #nextUpList li.highlighted-w5 .pos { color: #7c3aed; font-weight: 900; }
+
+        #nextUpList li.highlighted-w6 { background: #fdf2f8; border-left: 3px solid #db2777; }
+        #nextUpList li.highlighted-w6 .ticket-num,
+        #nextUpList li.highlighted-w6 .pos { color: #db2777; font-weight: 900; }
+
+        #nextUpList li.dimmed {
+            opacity: 0.55;
+            font-size: 22px;
+            padding: 12px 24px;
+        }
+
+        #nextUpList li.dimmed .ticket-num {
+            font-size: 26px;
+        }
+
+        #nextUpList li.dimmed .ticket-svc {
+            font-size: 16px;
+        }
+
+        #nextUpList li.dimmed .pos {
+            width: 0;
+            overflow: hidden;
+        }
+
+        .announce-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .announce-carousel {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .announce-slides {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .announce-slide {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 4px 0;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            pointer-events: none;
+        }
+
+        .announce-slide.active {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        .announce-slide .type-badge {
+            flex-shrink: 0;
+            font-size: 20px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 8px 18px;
+            border-radius: 8px;
+            color: #ffffff;
+            line-height: 1;
+        }
+
+        .announce-slide .type-badge.type-info { background: #6b7280; }
+        .announce-slide .type-badge.type-warning { background: #d97706; }
+        .announce-slide .type-badge.type-urgent { background: #dc2626; }
+
+        .announce-slide .slide-text {
+            font-size: 34px;
+            font-weight: 700;
+            color: #374151;
+            line-height: 1.3;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+        }
+
+        .announce-dots {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 6px 0 2px 0;
+            flex-shrink: 0;
+        }
+
+        .announce-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #d1d5db;
+            cursor: pointer;
+            transition: background 0.3s ease, transform 0.3s ease;
+        }
+
+        .announce-dot.active {
+            background: #b91c1c;
+            transform: scale(1.3);
+        }
+
+        .announce-empty {
+            font-size: 22px;
+            color: #9ca3af;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes flipIn {
+            0% { transform: translateY(-20px) scale(0.9); opacity: 0; }
+            50% { transform: translateY(10px) scale(1.05); }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+
+        .flip-in { animation: flipIn 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .flip-in, .animate-entry { animation: none !important; }
+        }
+
+        @media (max-width: 1280px) {
+            .display-header { padding: 0 32px; height: 80px; }
+            .serving-section { padding: 24px 32px 18px 32px; }
+            #windowsContainer { gap: 20px; }
+            .now-serving-card .num { font-size: 160px !important; }
+            .now-serving-card { padding: 24px 24px 28px 24px !important; }
+            #windowsContainer:has(> :nth-child(4):last-child) .now-serving-card .num,
+            #windowsContainer:has(> :nth-child(n+5):last-child) .now-serving-card .num { font-size: 120px !important; }
+            #windowsContainer:has(> :nth-child(4):last-child) .now-serving-card .window-label,
+            #windowsContainer:has(> :nth-child(n+5):last-child) .now-serving-card .window-label { font-size: 22px !important; }
+            #windowsContainer:has(> :nth-child(4):last-child) .now-serving-card .desc-label,
+            #windowsContainer:has(> :nth-child(n+5):last-child) .now-serving-card .desc-label { font-size: 13px !important; }
+            .header-clock { font-size: 28px; }
+            .org-name { font-size: 24px; }
+            .bottom-panel { padding: 20px 28px; }
+            #nextUpList li { font-size: 22px; padding: 12px 18px; }
+            #nextUpList li .ticket-num { font-size: 26px; }
+            #nextUpList li .ticket-svc { font-size: 16px; }
+            #nextUpList li .pos { font-size: 18px; width: 44px; }
+            #nextUpList li.dimmed { font-size: 16px; padding: 10px 18px; }
+            #nextUpList li.dimmed .ticket-num { font-size: 20px; }
+            .now-serving-card .window-label { font-size: 20px !important; }
+            .now-serving-card .now-serving-tag { font-size: 15px !important; }
+        }
+
+        @media (max-width: 768px) {
+            .status-badge { display: none; }
+            .display-header { padding: 0 16px; height: 64px; }
+            .header-clock { font-size: 20px; }
+            .org-name { font-size: 18px; }
+            .header-logo { width: 48px; height: 48px; font-size: 16px; }
+            .serving-section { padding: 16px 16px; }
+            .now-serving-card .num { font-size: 100px !important; }
+            .now-serving-card { padding: 16px !important; }
+            .now-serving-card .window-label { font-size: 16px !important; padding: 4px 16px !important; }
+            .now-serving-card .now-serving-tag { font-size: 12px !important; }
+            .now-serving-card .live-badge { font-size: 11px !important; padding: 3px 10px !important; }
+            .header-clock { font-size: 16px; }
+            .display-btn { font-size: 10px; padding: 6px 12px; }
+            .bottom-section { grid-template-columns: 1fr; }
+            .bottom-panel { padding: 14px 20px; }
+            #nextUpList li { padding: 8px 14px; font-size: 16px; gap: 12px; }
+            #nextUpList li .ticket-num { font-size: 18px; }
+            #nextUpList li .ticket-svc { font-size: 12px; }
+            #nextUpList li .pos { font-size: 13px; width: 32px; }
+            #nextUpList li.dimmed { font-size: 13px; padding: 6px 14px; }
+            #nextUpList li.dimmed .ticket-num { font-size: 15px; }
+            #nextUpList li.dimmed .pos { display: none; }
+            .panel-header .label { font-size: 10px; }
+            .announce-slide .slide-text { font-size: 22px; }
+            .announce-slide .type-badge { font-size: 14px; padding: 5px 12px; }
+            .bottom-panel + .bottom-panel { border-left: none; border-top: 1px solid #e5e7eb; }
+        }
+
+        .hidden-js {
+            display: none !important;
+        }
     </style>
     <script>
         function toggleDisplayMode() {
@@ -113,178 +703,65 @@ $mergedPostersJson = json_encode($mergedPosters);
         setInterval(updateClock, 1000);
     </script>
 </head>
-<body class="min-h-screen flex flex-col" style="background: var(--background); color: var(--foreground);">
-    <style>
-        body.display-mode .nav-links,
-        body.display-mode .nav-status,
-        body.display-mode .sub-header { display: none !important; }
-        body.display-mode .company-name { font-size: 28px; }
-        body.display-mode .company-sub { font-size: 11px; }
-        body.display-mode .now-serving-card .num { font-size: 130px; }
-        body.display-mode .now-serving-card .window-label { font-size: 22px !important; padding: 6px 16px !important; border-radius: 8px !important; background: rgba(0,0,0,0.06) !important; }
-        body.display-mode .now-serving-card .now-serving-tag { font-size: 16px !important; }
-        body.display-mode .now-serving-card .card-footer { font-size: 16px !important; }
-        body.display-mode .now-serving-card .live-badge { font-size: 14px !important; }
-        body.display-mode #nextUpList { max-height: 360px !important; }
-        body.display-mode #posterPanel { border-width: 2px !important; }
-        body.display-mode #posterLabel { font-size: 11px !important; }
-        body.display-mode #posterCountdownSide { font-size: 12px !important; }
-        @media (min-width: 768px) {
-            body.display-mode .now-serving-card .num { font-size: 150px; }
-            body.display-mode .now-serving-card .window-label { font-size: 26px !important; padding: 8px 20px !important; }
-            body.display-mode .now-serving-card .now-serving-tag { font-size: 18px !important; }
-            body.display-mode .now-serving-card .card-footer { font-size: 18px !important; }
-            body.display-mode #nextUpList { max-height: 480px !important; }
-        }
-        #siteNav { cursor: pointer; }
-    </style>
-
-    <!-- SiteNav -->
-    <nav id="siteNav" class="sticky top-0 z-50" style="background: #b91c1c; color: white; border-bottom: 1px solid rgba(255,255,255,0.15);" onclick="toggleDisplayMode();">
-        <div class="max-w-[1600px] mx-auto flex items-center justify-between px-6" style="height: 3.5rem;">
-            <div class="flex items-center gap-10">
-                <a href="display.php" class="flex items-center gap-3">
-                    <div class="relative w-7 h-7 grid place-items-center" style="background: var(--brand-gold); border-radius: 2px;">
-                        <?php if ($company_logo): ?><img src="<?php echo $company_logo; ?>" alt="" class="w-5 h-5 object-contain"><?php else: ?><span style="color: var(--primary); font-size: 11px; font-weight: 900; letter-spacing: -0.05em;">CQ</span><?php endif; ?>
-                    </div>
-                    <div class="flex flex-col leading-none">
-                        <span class="company-name" style="font-size: 20px; font-weight: 800; letter-spacing: -0.02em; color: white;"><?php echo $company_name; ?></span>
-                        <span class="company-sub" style="font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.2em; opacity: 0.5;"><?php if ($branch_name) echo htmlspecialchars($branch_name) . ' · '; ?>Queue Management</span>
-                    </div>
-                </a>
-                <div class="hidden md:flex gap-1 text-[11px] font-semibold uppercase tracking-wider nav-links">
-                    <a href="display.php" class="px-3 py-1.5 rounded" style="background: rgba(255,255,255,0.1); color: white;">Live Display</a>
-                    <a href="kiosk.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Kiosk</a>
-                    <a href="index.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Operator</a>
-                    <a href="reports.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Analytics</a>
-                </div>
+<body>
+    <header class="display-header">
+        <div class="header-left">
+            <div class="header-logo">
+                <img src="291326981_417957617015097_5338941729333725938_n.png" alt="Centro Logo">
             </div>
-            <div class="flex items-center gap-4">
-                <span id="liveClock" class="font-mono text-xl font-bold tracking-wider" style="color: white;">--:--:--</span>
-                <div class="hidden sm:flex items-center gap-2 px-3 py-1 rounded nav-status" style="background: rgba(255,255,255,0.1);">
-                    <div class="w-1.5 h-1.5 rounded-full" style="background: #34d399; animation: pulse-dot 2s infinite;"></div>
-                    <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em;">All Systems Operational</span>
-                </div>
-                <button onclick="event.stopPropagation(); toggleDisplayMode();" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[10px] font-bold uppercase tracking-widest" style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.2);">
-                    <span id="displayModeIcon">&#9632;</span>
-                    <span id="displayModeLabel">Display</span>
-                </button>
+            <span class="org-name"><?php echo $company_name; ?></span>
+        </div>
+        <div class="header-right">
+            <div class="status-badge">
+                <span class="status-dot-live"></span>
+                <span>All Systems Online</span>
+            </div>
+            <span id="liveClock" class="header-clock">--:--:-- --</span>
+            <button onclick="event.stopPropagation(); toggleDisplayMode();" class="display-btn">
+                <span id="displayModeIcon">&#9632;</span>
+                <span id="displayModeLabel">Display</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="display-main">
+        <div class="serving-section">
+            <div id="windowsContainer">
             </div>
         </div>
-    </nav>
 
-    <!-- Sub-header bar -->
-    <div class="sub-header" style="background: var(--card); border-bottom: 1px solid var(--border);">
-        <div class="max-w-[1600px] mx-auto px-6 flex items-center justify-between flex-wrap gap-3" style="padding-top: 0.75rem; padding-bottom: 0.75rem;">
-            <div class="flex items-center gap-4">
-                <span style="font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.15em; color: var(--muted);"><?php echo $branch_name; ?></span>
-                <?php if ($address): ?><span style="font-size: 10px; font-family: var(--font-mono); color: var(--muted);"><?php echo $address; ?></span><span style="height: 0.75rem; width: 1px; background: var(--border);"></span><?php endif; ?>
-                <span style="font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.15em; color: var(--muted);">Cutoff <?php echo $cutoff_formatted; ?></span>
+        <div class="bottom-section">
+            <div class="bottom-panel">
+                <div class="panel-header">
+                    <span class="dot"></span>
+                    <span class="label">Next in Line</span>
+                    <span class="count"><span id="waitingCount">0</span> ahead</span>
+                </div>
+                <ul id="nextUpList"></ul>
             </div>
-            <div class="flex items-center gap-6" style="font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.15em; color: var(--muted);">
-                <span>Wait · <span class="font-bold" style="color: var(--foreground);" id="statWait">--m</span></span>
-                <span>Active Windows · <span class="font-bold" style="color: var(--foreground);" id="statWindows">0</span></span>
-                <span>Tickets Today · <span class="font-bold" style="color: var(--foreground);" id="statTickets">0</span></span>
+            <div class="bottom-panel">
+                <div class="panel-header">
+                    <span class="dot"></span>
+                    <span class="label">Announcements</span>
+                </div>
+                <div class="announce-area">
+                    <div id="announceCarousel" class="announce-carousel" style="display:none;">
+                        <div id="announceSlides" class="announce-slides"></div>
+                        <div id="announceDots" class="announce-dots"></div>
+                    </div>
+                    <div id="announceEmpty" class="announce-empty">No announcements</div>
+                </div>
             </div>
         </div>
     </div>
 
-    <main class="flex-1 w-full max-w-[1600px] mx-auto px-6 py-6 grid grid-cols-12 gap-6">
-        <!-- Left Column -->
-        <section class="col-span-12 lg:col-span-8 flex flex-col gap-6">
-            <!-- Now Serving -->
-            <div id="windowsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Injected by JS -->
-            </div>
-
-            <!-- Sponsored Media Panel -->
-            <div id="mediaPanel" class="rounded-md overflow-hidden shadow-lg" style="background: var(--surface-dark); color: var(--surface-dark-foreground); border: 1px solid rgba(0,0,0,0.2);">
-                <div class="flex items-center justify-between px-4 py-2" style="background: rgba(0,0,0,0.3); border-bottom: 1px solid rgba(255,255,255,0.05);">
-                    <span id="mediaLabel" class="text-[9px] font-mono uppercase tracking-widest" style="color: rgba(255,255,255,0.5);">VIDEO</span>
-                </div>
-                <div class="relative" style="aspect-ratio: 16 / 9; background: black;">
-                    <div id="mediaSlideContainer" class="absolute inset-0 w-full h-full">
-                        <div id="mediaVideo" class="absolute inset-0 w-full h-full"></div>
-                    </div>
-                    <div class="absolute inset-0 pointer-events-none" style="background: linear-gradient(to top, rgba(0,0,0,0.85), transparent 60%);"></div>
-                    <div class="absolute bottom-0 left-0 right-0 p-4 flex items-end justify-between gap-4 pointer-events-none">
-                        <div>
-                            <span id="mediaSponsor" class="inline-block text-[9px] font-bold uppercase tracking-widest mb-1" style="color: var(--brand-gold);">Public Affairs Office</span>
-                            <h4 id="mediaTitle" class="text-base font-semibold leading-tight max-w-md">Citizen Services Overview</h4>
-                            <p id="mediaCta" class="text-[11px] mt-1" style="color: rgba(255,255,255,0.7);"></p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Alert Marquee -->
-            <div id="alertBar" class="alert-marquee-wrap" style="display: none; background: var(--primary); color: var(--primary-foreground); border-radius: var(--radius); border: 1px solid hsl(215 60% 25%); padding: 0.625rem 1.25rem; align-items: center; gap: 1.25rem; overflow: hidden;">
-                <span class="shrink-0 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm" style="background: var(--brand-gold); color: var(--primary);">Advisory</span>
-                <div id="tickerScroller" class="overflow-hidden flex-1" style="white-space:nowrap;">
-                    <span id="announcementTicker" style="display:inline-block;font-size:0.8125rem;font-weight:500;padding-right:50px;"><?php echo $welcome; ?> &nbsp;&bull;&bull;&bull;&nbsp; <?php echo $welcome; ?></span>
-                </div>
-            </div>
-        </section>
-
-        <!-- Right Column -->
-        <aside class="col-span-12 lg:col-span-4 flex flex-col gap-6" style="height:100%;">
-            <!-- Queue Next Up -->
-            <div style="flex-shrink:0; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);">
-                <div class="flex items-center justify-between px-4 py-3 border-b border-border" style="background: hsl(215 20% 94% / 0.6); border-radius: var(--radius) var(--radius) 0 0;">
-                    <div class="flex items-center gap-2">
-                        <div class="w-1.5 h-1.5 rounded-full" style="background: var(--success); animation: pulse-dot 2s infinite;"></div>
-                        <span class="text-[11px] font-bold uppercase tracking-widest">Queue · Next Up</span>
-                    </div>
-                    <span class="text-[10px] font-mono" style="color: var(--muted);"><span id="waitingCount">0</span> ahead</span>
-                </div>
-                <ul id="nextUpList" class="divide-y divide-border civic-scrollbar">
-                    <!-- Injected by JS -->
-                </ul>
-            </div>
-
-            <!-- Follow-Up Tickets -->
-            <div id="followUpPanel" style="flex-shrink:0; background: var(--primary); color: var(--primary-foreground); border: 1px solid hsl(215 60% 25%); border-radius: var(--radius); display: none;">
-                <div class="flex items-center justify-between px-4 py-3" style="background: rgba(0,0,0,0.2); border-bottom: 1px solid hsl(215 60% 25%); border-radius: var(--radius) var(--radius) 0 0;">
-                    <div class="flex items-center gap-2">
-                        <i class="fas fa-flag text-xs" style="color: var(--brand-gold);"></i>
-                        <span class="text-[10px] font-bold uppercase tracking-widest">Follow-up · Return customers</span>
-                    </div>
-                    <span class="text-[10px] font-mono" style="color: rgba(255,255,255,0.5);"><span id="followUpCount">0</span> pending</span>
-                </div>
-                <ul id="followUpList" class="divide-y divide-y civic-scrollbar" style="border-color: hsl(215 60% 25%);">
-                    <!-- Injected by JS -->
-                </ul>
-            </div>
-
-            <!-- Poster Panel (image + announcement) -->
-            <div id="posterPanel" style="flex:1; min-height:0; display:none; flex-direction:column; background:#000; border-radius:var(--radius); overflow:hidden; border:1px solid var(--border);">
-                <div class="flex items-center justify-between px-4 py-2" style="background:rgba(0,0,0,0.3); border-bottom:1px solid rgba(255,255,255,0.05); flex-shrink:0;">
-                    <span id="posterLabel" class="text-[9px] font-mono uppercase tracking-widest" style="color:rgba(255,255,255,0.5);">POSTER</span>
-                    <span id="posterCountdownSide" class="text-[10px] font-bold font-mono uppercase tracking-widest" style="color:var(--brand-gold);display:none;">--</span>
-                </div>
-                <img id="posterDisplayImg" src="" alt="" style="width:100%; flex:1; min-height:0; object-fit:cover; display:none;">
-                <div id="posterAnnContent" style="flex:1; min-height:0; display:none; flex-direction:column; align-items:center; justify-content:center; padding:2rem; text-align:center; overflow:hidden;"></div>
-            </div>
-        </aside>
-    </main>
-
-    <!-- StatusFooter -->
-    <footer class="sticky bottom-0 left-0 w-full p-6 flex justify-between items-center" style="background: hsl(210 30% 97% / 0.8); backdrop-filter: blur(12px); pointer-events: none;">
-        <div class="flex items-center gap-6">
-            <div class="flex flex-col">
-                <span class="text-[9px] font-bold uppercase tracking-widest" style="color: var(--muted);">Terminal ID</span>
-                <span class="text-[11px] font-mono" style="color: var(--foreground);">DISPLAY-MAIN</span>
-            </div>
-            <div class="flex flex-col">
-                <span class="text-[9px] font-bold uppercase tracking-widest" style="color: var(--muted);">Last Sync</span>
-                <span class="text-[11px] font-mono tabular-nums" id="footerTime" style="color: var(--foreground);">--:--:--</span>
-            </div>
-        </div>
-        <div class="flex items-center gap-2 px-3 py-1 rounded shadow-sm" style="background: var(--card); border: 1px solid var(--border);">
-            <div class="w-1.5 h-1.5 rounded-full" style="background: var(--primary);"></div>
-            <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em;">v4.3.0-stable</span>
-        </div>
-    </footer>
+    <div class="hidden-js">
+        <div id="mediaVideo"></div>
+        <div id="mediaPanel"><span id="mediaLabel"></span><span id="mediaSponsor"></span><span id="mediaTitle"></span><span id="mediaCta"></span></div>
+        <div id="posterPanel"><span id="posterLabel"></span><span id="posterCountdownSide"></span><img id="posterDisplayImg" src=""><div id="posterAnnContent"></div></div>
+        <span id="footerTime"></span>
+        <span id="statWindows"></span><span id="statWindowsActive"></span><span id="statTickets"></span><span id="statWait"></span>
+    </div>
 
     <audio id="notificationSound" preload="auto"><source src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3" type="audio/mpeg"></audio>
 
@@ -302,8 +779,12 @@ $mergedPostersJson = json_encode($mergedPosters);
         var posterIdx = 0;
         var posterTimer = null;
         var lastSettingsHash = '';
-        var windowHistory = {};  // tracks previous window state for live alert generation
-        var marqueeStep = null;  // interval handle for JS-powered marquee scroll
+        var lastRefreshToken = 0;
+        var windowHistory = {};
+        var announceSlidesData = [];
+        var announceIdx = 0;
+        var announceTimer = null;
+        var lastSlidesJson = '';
 
         function initVideoPlayer() {
             var isYoutube = '<?php echo $video_type; ?>' === 'youtube' || '<?php echo $video_type; ?>' === '';
@@ -369,11 +850,12 @@ $mergedPostersJson = json_encode($mergedPosters);
             if (a) { a.currentTime = 0; a.play().catch(function() {}); }
         }
 
-        function announceNumber(number, windowNum) {
+        function announceNumber(number, windowNum, windowName) {
             if (!window.speechSynthesis) return;
             window.speechSynthesis.cancel();
             var spoken = number.split('').join(', ');
-            var u = new SpeechSynthesisUtterance('Now serving, ticket number ' + spoken + ', at Window ' + windowNum);
+            var label = windowName || ('Window ' + windowNum);
+            var u = new SpeechSynthesisUtterance('Now serving, ticket number ' + spoken + ', at ' + label);
             u.rate = 0.85; u.pitch = 1.1; u.volume = 1.0;
             duckVolume();
             u.onend = function() { restoreVolume(); };
@@ -428,14 +910,23 @@ $mergedPostersJson = json_encode($mergedPosters);
             showNextPoster();
         }
 
+        function windowLabel(w) { return w.display_name || w.name || ('WINDOW ' + w.window_number); }
+
         function makeNowServingCard(w, idx) {
             var active = Number(w.is_online) !== 0 && w.status_text !== 'Offline' && w.status_text !== 'On Break';
-            var statusBadge = '<span id="window' + w.window_number + 'StatusBadge" class="live-badge text-[11px] font-bold uppercase tracking-widest px-3 py-1 rounded-sm>' + windowStatusLabel(w) + '</span>';
-            var statusLabel = '<span class="window-label font-mono text-lg font-bold uppercase tracking-widest px-4 py-1.5 rounded-lg" style="color: ' + (active ? '#b91c1c' : '#374151') + '; background: ' + (active ? 'rgba(185,28,28,0.08)' : 'rgba(0,0,0,0.04)') + ';">WINDOW ' + w.window_number + '</span>';
-            var numColor = active ? '#b91c1c' : 'var(--foreground)';
+            var onBreak = Number(w.is_online) !== 0 && w.status_text === 'On Break';
+            var activeClass = active ? 'card-active' : '';
+            var breakClass = onBreak ? 'card-break' : '';
+            var wLabel = windowLabel(w);
+            var statusBadge = '<span id="window' + w.window_number + 'StatusBadge" class="live-badge">' + windowStatusLabel(w) + '</span>';
+            var statusLabel = '<div style="text-align:center;">' +
+                '<span class="window-label font-mono text-lg font-bold uppercase tracking-widest px-4 py-1.5 rounded-lg" style="color: ' + (active ? '#374151' : '#6b7280') + '; background: ' + (active ? '#f3f4f6' : 'rgba(0,0,0,0.03)') + ';">' + wLabel + '</span>' +
+                (w.description ? '<div class="desc-label font-medium tracking-wide mt-1" style="color: ' + (active ? '#6b7280' : '#9ca3af') + ';">' + w.description + '</div>' : '') +
+                '</div>';
+            var numColor = active ? '#111827' : '#9ca3af';
             var bgStyle = active ? 'background: white; color: #111827; border: 1px solid #e5e7eb;' : 'background: var(--card); border: 1px solid var(--border);';
-            var serviceColor = active ? '#6b7280' : 'var(--muted)';
-            return '<div id="window' + w.window_number + 'Card" class="animate-entry now-serving-card relative overflow-hidden rounded-md flex flex-col justify-between p-6" style="' + bgStyle + 'min-height:260px;animation-delay:' + (idx * 100) + 'ms;">' +
+            var serviceColor = active ? '#6b7280' : '#9ca3af';
+            return '<div id="window' + w.window_number + 'Card" class="animate-entry now-serving-card ' + activeClass + ' ' + breakClass + '" style="' + bgStyle + 'min-height:280px;animation-delay:' + (idx * 100) + 'ms;">' +
                 '<div class="flex items-center justify-between">' + statusLabel + statusBadge + '</div>' +
                 '<div class="flex-1 flex flex-col items-center justify-center">' +
                     '<div id="window' + w.window_number + 'Serving" class="num font-extrabold tracking-tighter leading-none tabular-nums flip-in" style="color: ' + numColor + ';">---</div>' +
@@ -449,18 +940,169 @@ $mergedPostersJson = json_encode($mergedPosters);
             '</div>';
         }
 
+        function buildAnnounceSlides(data) {
+            var slides = [];
+            var windows = data.windows || [];
+            var waitingCount = data.waiting_count || 0;
+            var offlineCount = 0;
+            for (var wi = 0; wi < windows.length; wi++) {
+                var w = windows[wi];
+                if (Number(w.is_online) === 0 || w.status_text === 'Offline') {
+                    offlineCount++;
+                    slides.push({message: windowLabel(w) + ' is currently offline', type: 'warning'});
+                } else if (w.status_text === 'On Break') {
+                    slides.push({message: windowLabel(w) + ' is on break, please wait patiently', type: 'info'});
+                } else if (w.queue_number) {
+                    slides.push({message: windowLabel(w) + ' is now serving Ticket ' + w.queue_number, type: 'info'});
+                }
+            }
+            if (windows.length > 0 && offlineCount === windows.length) {
+                slides = [{message: 'Currently all windows are offline. Please wait for assistance.', type: 'urgent'}];
+            }
+            if (waitingCount >= 10) {
+                slides.push({message: 'Due to the high volume of inquiries, please wait patiently. ' + waitingCount + ' customers ahead.', type: 'warning'});
+            }
+            if (data.settings && data.settings.cutoff_time) {
+                var parts = data.settings.cutoff_time.split(':');
+                var now = new Date();
+                var cutoffDate = new Date();
+                cutoffDate.setHours(parseInt(parts[0], 10), parseInt(parts[1] || 0, 10), parseInt(parts[2] || 0, 10));
+                var diffMin = (cutoffDate - now) / 60000;
+                if (diffMin > 0 && diffMin <= 60) {
+                    slides.push({message: 'Last ticket issuance ends at ' + data.settings.cutoff_time_formatted + '. Please queue now.', type: 'info'});
+                }
+            }
+            var svcToWindow = {};
+            for (var wi = 0; wi < windows.length; wi++) {
+                var w = windows[wi];
+                if (w.active_services) {
+                    var svcs = w.active_services.split(',');
+                    for (var si = 0; si < svcs.length; si++) {
+                        svcToWindow[svcs[si].trim()] = { wn: w.window_number, cid: w.id, wl: windowLabel(w) };
+                    }
+                }
+                svcToWindow['cid_' + w.id] = { wn: w.window_number, cid: w.id, wl: windowLabel(w) };
+            }
+            var waitingQueue = data.waiting_queue || [];
+            var nextPerWindow = {};
+            for (var qi = 0; qi < waitingQueue.length; qi++) {
+                var q = waitingQueue[qi];
+                var win = null;
+                if (q.counter_id && svcToWindow['cid_' + q.counter_id]) {
+                    win = svcToWindow['cid_' + q.counter_id];
+                } else if (svcToWindow[q.service_type]) {
+                    win = svcToWindow[q.service_type];
+                }
+                if (win) {
+                    var key = 'W' + win.wn;
+                    if (!nextPerWindow[key]) {
+                        nextPerWindow[key] = { wn: win.wn, qn: q.queue_number, wl: win.wl };
+                    }
+                }
+            }
+            var sortedNext = Object.keys(nextPerWindow).sort();
+            for (var ni = 0; ni < sortedNext.length; ni++) {
+                var n = nextPerWindow[sortedNext[ni]];
+                slides.push({message: (n.wl || 'Window ' + n.wn) + ': Next is ' + n.qn, type: 'info'});
+            }
+
+            var dbAnn = data.announcements || [];
+            for (var ai = 0; ai < dbAnn.length; ai++) {
+                var ann = dbAnn[ai];
+                var msg = ann.message;
+                if (ann.counter_id && ann.window_name) {
+                    msg = ann.window_name + ': ' + msg;
+                }
+                slides.push({message: msg, type: ann.type || 'info'});
+            }
+            if (slides.length === 0 && welcomeMsg) {
+                slides.push({message: welcomeMsg, type: 'info'});
+            }
+            return slides;
+        }
+
+        function rebuildAnnounceCarousel(slides) {
+            var carousel = document.getElementById('announceCarousel');
+            var empty = document.getElementById('announceEmpty');
+            if (!carousel) return;
+            var newJson = JSON.stringify(slides);
+            if (newJson === lastSlidesJson && announceSlidesData.length > 0) {
+                return;
+            }
+            lastSlidesJson = newJson;
+            if (announceTimer) { clearInterval(announceTimer); announceTimer = null; }
+            if (slides.length === 0) {
+                carousel.style.display = 'none';
+                if (empty) empty.style.display = 'flex';
+                announceSlidesData = [];
+                return;
+            }
+            carousel.style.display = 'flex';
+            if (empty) empty.style.display = 'none';
+            announceSlidesData = slides;
+            announceIdx = 0;
+            var slidesEl = document.getElementById('announceSlides');
+            var dotsEl = document.getElementById('announceDots');
+            if (!slidesEl || !dotsEl) return;
+            var slidesHtml = '';
+            var dotsHtml = '';
+            for (var si = 0; si < slides.length; si++) {
+                var s = slides[si];
+                var isActive = si === 0 ? ' active' : '';
+                var typeClass = 'type-' + (s.type || 'info');
+                var badgeText = (s.type || 'info').charAt(0).toUpperCase() + (s.type || 'info').slice(1);
+                slidesHtml += '<div class="announce-slide' + isActive + '">' +
+                    '<span class="type-badge ' + typeClass + '">' + badgeText + '</span>' +
+                    '<span class="slide-text">' + htmlEncode(s.message) + '</span>' +
+                '</div>';
+                dotsHtml += '<div class="announce-dot' + isActive + '" data-index="' + si + '" onclick="showAnnounceSlide(' + si + ')"></div>';
+            }
+            slidesEl.innerHTML = slidesHtml;
+            dotsEl.innerHTML = dotsHtml;
+            if (slides.length > 1) {
+                announceTimer = setInterval(advanceAnnounceSlide, 5000);
+            }
+        }
+
+        function advanceAnnounceSlide() {
+            if (announceSlidesData.length < 2) return;
+            showAnnounceSlide((announceIdx + 1) % announceSlidesData.length);
+        }
+
+        function showAnnounceSlide(idx) {
+            var slidesEl = document.getElementById('announceSlides');
+            var dotsEl = document.getElementById('announceDots');
+            if (!slidesEl || !dotsEl) return;
+            var prevIdx = announceIdx;
+            announceIdx = idx;
+            var slideEls = slidesEl.children;
+            if (slideEls[prevIdx]) slideEls[prevIdx].classList.remove('active');
+            if (slideEls[idx]) slideEls[idx].classList.add('active');
+            var dotEls = dotsEl.children;
+            if (dotEls[prevIdx]) dotEls[prevIdx].classList.remove('active');
+            if (dotEls[idx]) dotEls[idx].classList.add('active');
+        }
+
+        function htmlEncode(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
         function updateDisplay() {
             fetch('api/get_display_data.php').then(function(r){return r.json();}).then(function(data) {
                 if (data.error) return;
 
-                // Auto-reload on settings change (cross-device)
                 if (data.settings_hash && lastSettingsHash && data.settings_hash !== lastSettingsHash) {
                     location.reload();
                     return;
                 }
                 if (data.settings_hash) lastSettingsHash = data.settings_hash;
 
-                // Now Serving cards
+                if (data.force_refresh_token && lastRefreshToken && data.force_refresh_token !== lastRefreshToken) {
+                    location.reload();
+                    return;
+                }
+                if (data.force_refresh_token) lastRefreshToken = data.force_refresh_token;
+
                 var wc = document.getElementById('windowsContainer');
                 var windowsData = data.windows || [];
                 if (wc && (wc.children.length === 0 || wc.children.length !== windowsData.length)) {
@@ -468,146 +1110,82 @@ $mergedPostersJson = json_encode($mergedPosters);
                 }
                 for (var i = 0; i < windowsData.length; i++) updateWindow(windowsData[i], data);
 
-                // Stats in sub-header
                 if (document.getElementById('statWindows')) document.getElementById('statWindows').textContent = windowsData.length;
                 var activeW = windowsData.filter(function(w){return w.is_online===1&&w.status_text!=='Offline'&&w.status_text!=='On Break';}).length;
                 if (document.getElementById('statWindowsActive')) document.getElementById('statWindowsActive').textContent = activeW;
                 if (document.getElementById('statTickets')) document.getElementById('statTickets').textContent = data.stats_today || 0;
                 if (document.getElementById('statWait')) document.getElementById('statWait').textContent = data.avg_wait || '--m';
 
-                // Live alert marquee — dynamic state messages + DB announcements
-                var alertBar = document.getElementById('alertBar');
-                var ticker = document.getElementById('announcementTicker');
-                var scroller = document.getElementById('tickerScroller');
-                if (alertBar && ticker && scroller) {
-                    var dynMsgs = [];
-                    var windows = data.windows || [];
-                    var waitingCount = data.waiting_count || 0;
-                    var offlineCount = 0;
+                var slides = buildAnnounceSlides(data);
+                rebuildAnnounceCarousel(slides);
 
-                    // Per-window status messages
-                    for (var wi = 0; wi < windows.length; wi++) {
-                        var w = windows[wi];
-                        if (Number(w.is_online) === 0 || w.status_text === 'Offline') {
-                            offlineCount++;
-                            dynMsgs.push('Window ' + w.window_number + ' is currently offline');
-                        } else if (w.status_text === 'On Break') {
-                            dynMsgs.push('Window ' + w.window_number + ' is on break, please wait patiently');
-                        } else if (w.queue_number) {
-                            dynMsgs.push('Window ' + w.window_number + ' is now serving Ticket ' + w.queue_number);
-                        }
-                    }
-
-                    // All windows offline
-                    if (windows.length > 0 && offlineCount === windows.length) {
-                        dynMsgs = ['Currently all windows are offline. Please wait for assistance.'];
-                    }
-
-                    // High density
-                    if (waitingCount >= 10) {
-                        dynMsgs.push('Due to the high volume of inquiries, please wait patiently. ' + waitingCount + ' customers ahead.');
-                    }
-
-                    // Cutoff approaching (within 60 minutes)
-                    if (data.settings && data.settings.cutoff_time) {
-                        var parts = data.settings.cutoff_time.split(':');
-                        var now = new Date();
-                        var cutoffDate = new Date();
-                        cutoffDate.setHours(parseInt(parts[0], 10), parseInt(parts[1] || 0, 10), parseInt(parts[2] || 0, 10));
-                        var diffMin = (cutoffDate - now) / 60000;
-                        if (diffMin > 0 && diffMin <= 60) {
-                            dynMsgs.push('Last ticket issuance ends at ' + data.settings.cutoff_time_formatted + '. Please queue now.');
-                        }
-                    }
-
-                    // Merge with DB announcements
-                    var dbAnn = data.announcements || [];
-                    var allMsgs = dynMsgs.concat(dbAnn.map(function(a){return a.message;}));
-
-                    if (allMsgs.length === 0 && welcomeMsg) {
-                        allMsgs.push(welcomeMsg);
-                    }
-
-                    if (allMsgs.length > 0) {
-                        alertBar.style.display = 'flex';
-                        var text = allMsgs.join(' &nbsp;&bull;&bull;&bull;&nbsp; ');
-                        if (ticker.getAttribute('data-text') !== text) {
-                            ticker.setAttribute('data-text', text);
-                            ticker.innerHTML = text + ' &nbsp;&bull;&bull;&bull;&nbsp; ' + text;
-                            scroller.scrollLeft = 0;
-                        }
-                    } else {
-                        alertBar.style.display = 'none';
-                    }
-                }
-
-                // Next Up list
                 var nextUpList = document.getElementById('nextUpList');
                 var waitingQueue = data.waiting_queue || [];
                 if (nextUpList) {
                     if (waitingQueue.length > 0) {
-                        var nextHtml = '';
-                        for (var i = 0; i < Math.min(waitingQueue.length, 10); i++) {
+                        var maxShow = Math.min(waitingQueue.length, 10);
+                        var svcToWindow = {};
+                        for (var wi = 0; wi < windowsData.length; wi++) {
+                            var w = windowsData[wi];
+                            if (w.active_services) {
+                                var svcs = w.active_services.split(',');
+                                for (var si = 0; si < svcs.length; si++) {
+                                    svcToWindow[svcs[si].trim()] = { wn: w.window_number, cid: w.id, wl: windowLabel(w) };
+                                }
+                            }
+                            svcToWindow['cid_' + w.id] = { wn: w.window_number, cid: w.id, wl: windowLabel(w) };
+                        }
+                        var highlightedItems = [];
+                        var dimmedItems = [];
+                        var claimedWindows = {};
+                        for (var i = 0; i < waitingQueue.length && (highlightedItems.length + dimmedItems.length) < 10; i++) {
                             var q = waitingQueue[i];
-                            var bg = i === 0 ? 'background: hsl(42 70% 52% / 0.1);' : '';
+                            var win = null;
+                            if (q.counter_id && svcToWindow['cid_' + q.counter_id]) {
+                                win = svcToWindow['cid_' + q.counter_id];
+                            } else if (svcToWindow[q.service_type]) {
+                                win = svcToWindow[q.service_type];
+                            }
+                            var winKey = win ? 'W' + win.wn : null;
+                            var isHighlighted = winKey && !claimedWindows[winKey];
+                            if (isHighlighted) {
+                                claimedWindows[winKey] = true;
+                                highlightedItems.push({ q: q, win: win, winKey: winKey });
+                            } else {
+                                dimmedItems.push({ q: q });
+                            }
+                        }
+                        var orderedItems = highlightedItems.concat(dimmedItems);
+                        var nextHtml = '';
+                        for (var oi = 0; oi < orderedItems.length; oi++) {
+                            var item = orderedItems[oi];
+                            var q = item.q;
+                            var isH = item.winKey ? true : false;
+                            var liClass = isH ? 'highlighted highlighted-w' + item.win.wn : 'dimmed';
+                            var posLabel = isH ? item.winKey : '';
                             var extraParts = [];
                             if (q.company_name) extraParts.push(q.company_name);
                             if (q.purpose) extraParts.push(q.purpose.charAt(0).toUpperCase() + q.purpose.slice(1));
                             var extraStr = extraParts.length > 0 ? ' &middot; ' + extraParts.join(' &middot; ') : '';
-                            nextHtml += '<li class="flex items-center justify-between px-4 py-3" style="' + bg + '">' +
-                                '<div class="flex items-center gap-4">' +
-                                    '<span class="text-[10px] font-mono w-6 tabular-nums" style="color: var(--muted);">' + String(i + 1).padStart(2,'0') + '</span>' +
-                                    '<div class="flex flex-col">' +
-                                        '<span class="font-mono text-sm font-bold tracking-tight">' + q.queue_number + '</span>' +
-                                        '<span class="text-[10px] uppercase tracking-wider" style="color: var(--muted);">' + formatService(q) + extraStr + '</span>' +
-                                    '</div>' +
-                                '</div>' +
+                            nextHtml += '<li class="' + liClass + '">' +
+                                '<span class="pos">' + posLabel + '</span>' +
+                                '<span class="ticket-num">' + q.queue_number + '</span>' +
+                                '<span class="ticket-svc">' + formatService(q) + extraStr + '</span>' +
                             '</li>';
                         }
                         nextUpList.innerHTML = nextHtml;
                     } else {
-                        nextUpList.innerHTML = '<li class="p-8 text-center text-sm" style="color: var(--muted);">No customers waiting</li>';
+                        nextUpList.innerHTML = '<li style="justify-content:center;color:#9ca3af;font-size:14px;padding:20px;">No customers waiting</li>';
                     }
                 }
                 if (document.getElementById('waitingCount')) document.getElementById('waitingCount').textContent = waitingQueue.length;
-
-                // Follow-Up list
-                var followUpList = document.getElementById('followUpList');
-                var followUpPanel = document.getElementById('followUpPanel');
-                var followUpData = data.follow_up_tickets || [];
-                if (followUpList && followUpPanel) {
-                    if (followUpData.length > 0) {
-                        followUpPanel.style.display = 'block';
-                        var fuHtml = '';
-                        for (var i = 0; i < Math.min(followUpData.length, 10); i++) {
-                            var f = followUpData[i];
-                            var extraParts = [];
-                            if (f.company_name) extraParts.push(f.company_name);
-                            if (f.purpose) extraParts.push(f.purpose.charAt(0).toUpperCase() + f.purpose.slice(1));
-                            var extraStr = extraParts.length > 0 ? ' &middot; ' + extraParts.join(' &middot; ') : '';
-                            fuHtml += '<li class="flex items-center justify-between px-4 py-3" style="border-color: hsl(215 60% 25%);">' +
-                                '<div class="flex items-center gap-4">' +
-                                    '<span class="text-[10px] font-mono w-6 tabular-nums" style="color: rgba(255,255,255,0.5);">' + String(i + 1).padStart(2,'0') + '</span>' +
-                                    '<div class="flex flex-col">' +
-                                        '<span class="font-mono text-sm font-bold tracking-tight" style="color: var(--brand-gold);">' + f.queue_number + '</span>' +
-                                        '<span class="text-[10px] uppercase tracking-wider" style="color: rgba(255,255,255,0.5);">' + formatService(f) + extraStr + '</span>' +
-                                    '</div>' +
-                                '</div>' +
-                            '</li>';
-                        }
-                        followUpList.innerHTML = fuHtml;
-                        if (document.getElementById('followUpCount')) document.getElementById('followUpCount').textContent = followUpData.length;
-                    } else {
-                        followUpPanel.style.display = 'none';
-                    }
-                }
             }).catch(function(e) { console.error('Display Error:', e); });
         }
 
         function windowStatusLabel(w) {
             var active = Number(w.is_online) !== 0 && w.status_text !== 'Offline' && w.status_text !== 'On Break';
             var st = (w.status_text || (Number(w.is_online) ? 'Online' : 'Offline'));
-            if (active) return '<span style="background: var(--brand-gold); color: #b91c1c;">Live</span>';
+            if (active) return '<span style="background: #b91c1c; color: white;">Live</span>';
             if (st === 'On Break') return '<span style="background: #f59e0b; color: white;">On Break</span>';
             if (st === 'Offline') return '<span style="background: #9ca3af; color: white;">Offline</span>';
             return '<span style="background: #9ca3af; color: white;">Offline</span>';
@@ -625,6 +1203,9 @@ $mergedPostersJson = json_encode($mergedPosters);
             var extra = document.getElementById('window' + w.window_number + 'Extra');
             if (!card || !serving) return;
 
+            card.classList.remove('card-active');
+            card.classList.remove('card-break');
+
             if (isOffline || statusText === 'Offline') {
                 serving.textContent = '---';
                 if (service) service.textContent = 'Offline';
@@ -637,10 +1218,12 @@ $mergedPostersJson = json_encode($mergedPosters);
                 if (service) service.textContent = 'On Break';
                 if (status) status.textContent = '---';
                 if (extra) extra.textContent = '';
-                card.style.opacity = '0.7';
+                card.style.opacity = '0.8';
+                card.classList.add('card-break');
                 return;
             }
             card.style.opacity = '1';
+            card.classList.add('card-active');
 
             var newServing = (w && w.queue_number) ? w.queue_number : '---';
             var calledAt = (w && w.called_at) ? w.called_at : '';
@@ -652,7 +1235,7 @@ $mergedPostersJson = json_encode($mergedPosters);
                 setTimeout(function() { serving.className = 'num font-extrabold tracking-tighter leading-none tabular-nums'; }, 600);
                 lastCallInfo[w.window_number] = { queue_number: newServing, called_at: calledAt };
                 playNotificationSound();
-                announceNumber(newServing, w.window_number);
+                announceNumber(newServing, w.window_number, windowLabel(w));
             } else if (newServing === '---') {
                 serving.textContent = '---';
                 lastCallInfo[w.window_number] = { queue_number: '---', called_at: '' };
@@ -675,15 +1258,7 @@ $mergedPostersJson = json_encode($mergedPosters);
             }
         }
 
-        // Media Panel — YouTube always plays, poster overlays on timer
-        var mediaLabel = document.getElementById('mediaLabel');
-        document.getElementById('mediaSponsor').textContent = '<?php echo addslashes($settings['video_sponsor'] ?: 'Public Affairs Office'); ?>';
-        document.getElementById('mediaTitle').textContent = '<?php echo addslashes($settings['video_title'] ?: 'Citizen Services Overview'); ?>';
-        document.getElementById('mediaCta').textContent = '<?php echo addslashes($settings['video_cta'] ?? ''); ?>';
-
         startPosterRotation();
-
-        if ('<?php echo $video_type; ?>' !== 'youtube') { initVideoPlayer(); }
 
         window.addEventListener('storage', function(e) {
             if (e.key === 'cq_settings_updated') location.reload();
@@ -692,17 +1267,6 @@ $mergedPostersJson = json_encode($mergedPosters);
         setInterval(updateDisplay, 3000);
         updateDisplay();
 
-        // JS-powered marquee scroll (replaces CSS animation for reliability)
-        function scrollMarquee() {
-            var s = document.getElementById('tickerScroller');
-            if (!s || s.scrollWidth === 0) return;
-            if (s.scrollLeft >= Math.ceil(s.scrollWidth / 2)) {
-                s.scrollLeft = 0;
-            } else {
-                s.scrollLeft += 1;
-            }
-        }
-        marqueeStep = setInterval(scrollMarquee, 40);
     </script>
     <script src="https://www.youtube.com/iframe_api"></script>
 </body>

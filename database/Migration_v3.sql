@@ -19,7 +19,7 @@ ALTER TABLE `customers`
   ADD COLUMN IF NOT EXISTS `company_name` varchar(255) DEFAULT NULL AFTER `service_type`;
 
 ALTER TABLE `customers`
-  ADD COLUMN IF NOT EXISTS `purpose` enum('inquiry','complain','follow-up') DEFAULT NULL AFTER `company_name`;
+  ADD COLUMN IF NOT EXISTS `purpose` varchar(50) DEFAULT NULL AFTER `company_name`;
 
 -- 4. Create known_companies table for autocomplete
 CREATE TABLE IF NOT EXISTS `known_companies` (

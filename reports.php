@@ -62,6 +62,7 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
                     <?php endif; ?>
                     <?php if ($user_role === 'admin'): ?>
                     <a href="kiosk.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Kiosk</a>
+                    <a href="settings.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Settings</a>
                     <?php endif; ?>
                     <a href="<?php echo ($user_role === 'staff' && $user['window_id']) ? 'window.php' : 'index.php'; ?>" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Operator</a>
                     <a href="reports.php" class="px-3 py-1.5 rounded" style="background: rgba(255,255,255,0.1); color: white;">Analytics</a>
@@ -105,16 +106,14 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
                     <div><label class="label-md block mb-1">From</label><input type="date" id="dateFrom" class="filter-field"></div>
                     <div><label class="label-md block mb-1">To</label><input type="date" id="dateTo" class="filter-field"></div>
                 </div>
-                <div id="serviceFilterWrap"><label class="label-md block mb-1">Service</label>
-                    <select id="serviceFilter" class="filter-field">
-                        <option value="">All Services</option>
-                        <option value="insurance">Insurance</option><option value="benefits">Benefits</option>
-                        <option value="id_renewal">ID Renewal</option><option value="atm_renewal">ATM claim</option><option value="other">Other</option>
-                    </select>
+                <div id="windowFilterWrap"><label class="label-md block mb-1">Window</label>
+<select id="windowFilter" class="filter-field" onchange="loadReport()">
+    <option value="">All Windows</option>
+</select>
                 </div>
                 <button id="applyFilterBtn" onclick="loadReport()" class="btn btn-primary text-[11px] py-2 px-4"><i class="fas fa-filter mr-2"></i>Apply</button>
                 <div class="ml-auto flex gap-2">
-                    <button onclick="exportToExcel()" class="btn btn-secondary text-[11px] py-2 px-4"><i class="fas fa-file-excel mr-2" style="color: #059669;"></i>Excel</button>
+
                     <button onclick="printReport()" class="btn btn-secondary text-[11px] py-2 px-4"><i class="fas fa-print mr-2"></i>Print</button>
                 </div>
             </div>
@@ -146,12 +145,12 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
 
         <!-- Hourly distribution + Service breakdown -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="card p-6 animate-entry" style="animation-delay: 100ms;">
-                <div class="flex items-baseline justify-between mb-6">
+            <div class="card p-4 animate-entry flex flex-col" style="animation-delay: 100ms;">
+                <div class="flex items-baseline justify-between mb-3">
                     <h3 class="text-xs font-bold uppercase tracking-widest">Hourly Distribution</h3>
                     <span class="text-[10px] font-mono" style="color: var(--muted);">Peak <span id="peakHour">--</span></span>
                 </div>
-                <div class="flex items-end gap-1.5" style="height: 12rem;" id="hourlyBars">
+                <div class="flex gap-1.5 flex-1 min-h-0" id="hourlyBars">
                     <!-- Injected by JS -->
                 </div>
             </div>
@@ -163,12 +162,20 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
             </div>
         </div>
 
+        <!-- Window Performance -->
+        <div class="card p-6 animate-entry" style="animation-delay: 140ms;">
+            <h3 class="text-xs font-bold uppercase tracking-widest mb-5">Window Performance</h3>
+            <div id="windowBreakdown" class="flex flex-col gap-5">
+                <div class="text-center py-8" style="color: var(--muted);">No window data</div>
+            </div>
+        </div>
+
         <!-- Purpose & Company Breakdown (admin/supervisor only) -->
         <div id="analyticsRow" class="grid grid-cols-1 lg:grid-cols-2 gap-6<?php if ($user_role === 'staff') echo ' hidden'; ?>">
             <div class="card p-6 animate-entry" style="animation-delay: 130ms;">
                 <div class="flex items-baseline justify-between mb-6">
                     <h3 class="text-xs font-bold uppercase tracking-widest">Purpose Breakdown</h3>
-                    <span class="text-[10px] font-mono" style="color: var(--muted);">inquiry · complain · follow-up</span>
+                    <span class="text-[10px] font-mono" style="color: var(--muted);">inquiry/complain · follow-up · request</span>
                 </div>
                 <div id="purposeBars" class="flex flex-col gap-4">
                     <div class="text-center py-8" style="color: var(--muted);">Loading...</div>
@@ -182,6 +189,17 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
                 <div id="companyBars" class="flex flex-col gap-4">
                     <div class="text-center py-8" style="color: var(--muted);">Loading...</div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Follow-Up Tracking -->
+        <div class="card p-6 animate-entry mt-6" style="animation-delay: 185ms;">
+            <div class="flex items-baseline justify-between mb-5">
+                <h3 class="text-xs font-bold uppercase tracking-widest">Follow-Up Tracking</h3>
+                <span class="text-[10px] font-mono" style="color: var(--muted);">per operator</span>
+            </div>
+            <div id="followUpStats" class="flex flex-col gap-3">
+                <div class="text-center py-6" style="color: var(--muted);">No follow-up data</div>
             </div>
         </div>
 
@@ -222,7 +240,7 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
     <div id="toast" class="fixed bottom-4 right-4 hidden px-6 py-3 rounded-xl shadow-lg z-50 text-white text-sm font-medium" style="background: #059669;"></div>
 
     <script>
-        var reportData = [], reportSummary = {}, currentPage = 1, itemsPerPage = 50, currentRange = 'today';
+        var reportData = [], reportSummary = {}, reportByService = null, reportByWindow = null, reportPurpose = null, reportCompany = null, reportFollowUp = null, currentPage = 1, itemsPerPage = 50, currentRange = 'today';
         var userRole = '<?php echo $user_role; ?>', userWindowId = '<?php echo $user['window_id'] ?? ''; ?>', userDisplayName = '<?php echo $display_name; ?>';
 
         function updateFooterTime() {
@@ -248,17 +266,25 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
         function toggleCustomRange() {
             document.getElementById('customDateFields').classList.toggle('hidden');
             if (!document.getElementById('customDateFields').classList.contains('hidden')) {
-                document.getElementById('dateFrom').value = new Date().toISOString().split('T')[0];
-                document.getElementById('dateTo').value = new Date().toISOString().split('T')[0];
+                currentRange = 'custom';
+                var now = new Date();
+                document.getElementById('dateFrom').value = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+                document.getElementById('dateTo').value = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+                ['today','week','month'].forEach(function(r) {
+                    var el = document.getElementById('range' + r.charAt(0).toUpperCase() + r.slice(1));
+                    el.style.background = 'var(--card)'; el.style.color = 'var(--foreground)'; el.style.borderColor = 'var(--border)';
+                });
             }
         }
+
+        function _fmtDate(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
 
         function getDateRange() {
             var today = new Date(), from, to;
             switch(currentRange) {
-                case 'today': from = to = today.toISOString().split('T')[0]; break;
-                case 'week': from = new Date(today.setDate(today.getDate()-today.getDay())).toISOString().split('T')[0]; to = new Date().toISOString().split('T')[0]; break;
-                case 'month': from = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]; to = new Date().toISOString().split('T')[0]; break;
+                case 'today': from = to = _fmtDate(today); break;
+                case 'week': var weekStart = new Date(today); weekStart.setDate(today.getDate()-today.getDay()); from = _fmtDate(weekStart); to = _fmtDate(today); break;
+                case 'month': from = _fmtDate(new Date(today.getFullYear(), today.getMonth(), 1)); to = _fmtDate(today); break;
                 case 'custom': from = document.getElementById('dateFrom').value; to = document.getElementById('dateTo').value; break;
             }
             return { from: from, to: to };
@@ -271,25 +297,26 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
             document.getElementById('printDateRange').textContent = 'Period: ' + d.from + ' to ' + d.to;
             try {
                 var params = new URLSearchParams({ from: d.from, to: d.to });
-                if (userRole === 'staff' && staffServiceTypes) {
-                    params.append('service_types', staffServiceTypes);
+                if (userRole === 'staff') {
                     if (userWindowId) params.append('counter_id', userWindowId);
+                    if (staffServiceTypes) params.append('service_types', staffServiceTypes);
                 } else {
-                    var serviceType = document.getElementById('serviceFilter').value;
-                    if (serviceType) params.append('service_type', serviceType);
+                    var winId = document.getElementById('windowFilter').value;
+                    if (winId) params.append('counter_id', winId);
                 }
                 var token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
                 var res = await fetch('api/reports/daily.php?' + params.toString(), { headers: token ? { 'Authorization': 'Bearer ' + token } : {} });
                 var data = await res.json();
-                if (data.success) { reportData = data.data.customers; currentPage = 1; updateSummary(data.data.summary); updateServiceBreakdown(data.data.by_service); updateHourlyChart(data.data.hourly); updatePurposeChart(data.data.purpose_breakdown); updateCompanyChart(data.data.company_breakdown); updateTable(); }
+                if (data.success) { reportData = data.data.customers; reportByService = data.data.by_service; reportByWindow = data.data.by_window; reportPurpose = data.data.purpose_breakdown; reportCompany = data.data.company_breakdown; reportFollowUp = data.data.follow_up_stats; currentPage = 1; updateSummary(data.data.summary); updateServiceBreakdown(data.data.by_service); updateHourlyChart(data.data.hourly); updatePurposeChart(data.data.purpose_breakdown); updateCompanyChart(data.data.company_breakdown); updateFollowUpStats(data.data.follow_up_stats); updateWindowBreakdown(data.data.by_window); updateTable(); }
             } catch (e) { showToast('Failed to load report', 'error'); }
         }
 
-        if (userRole === 'staff') {
-            if (!userWindowId) staffServiceTypes = '';
-        }
-        if (userRole === 'staff' && userWindowId) {
-            document.getElementById('serviceFilterWrap').style.display = 'none';
+        if (userRole === 'staff' && !userWindowId) {
+            document.getElementById('windowFilterWrap').style.display = 'none';
+            document.getElementById('applyFilterBtn').style.display = 'none';
+            document.getElementById('reportTable').innerHTML = '<tr><td colspan="9" style="padding:2rem;text-align:center;color:var(--muted);">No counter assigned to your account. Contact an admin.</td></tr>';
+        } else if (userRole === 'staff' && userWindowId) {
+            document.getElementById('windowFilterWrap').style.display = 'none';
             document.getElementById('applyFilterBtn').style.display = 'none';
             (async function() {
                 try {
@@ -308,15 +335,12 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
                                         activeCodes.push(assignments[a].service_type);
                                     }
                                 }
-                                activeCodes.push('custom');
+                                if (counters[i].custom_enabled == 1) activeCodes.push('custom');
                                 staffServiceTypes = activeCodes.join(',');
                                 if (!staffServiceTypes) staffServiceTypes = '';
                                 break;
                             }
                         }
-                    }
-                    if (!staffServiceTypes) {
-                        staffServiceTypes = '';
                     }
                     loadReport();
                 } catch (e) { loadReport(); }
@@ -361,7 +385,7 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
             hourly.forEach(function(h) {
                 var p = (h.count / maxCount) * 100;
                 var isPeak = h.count === peakVal;
-                html += '<div class="flex-1 flex flex-col items-center gap-2"><div class="w-full rounded-t-sm" style="height:' + p + '%;background:' + (isPeak ? 'var(--primary)' : 'var(--primary)/15') + ';"></div><span class="text-[9px] font-mono" style="color: var(--muted);">' + String(h.hour).padStart(2,'0') + '</span></div>';
+                html += '<div class="flex-1 flex flex-col items-center justify-end gap-2"><div class="w-full rounded-t-sm" title="' + h.count + ' tickets at ' + String(h.hour).padStart(2,'0') + ':00" style="height:' + p + '%;background:' + (isPeak ? 'var(--primary)' : 'rgba(30, 58, 95, 0.12)') + ';cursor:pointer;"></div><span class="text-[9px] font-mono" style="color: var(--muted);">' + String(h.hour).padStart(2,'0') + '</span></div>';
             });
             container.innerHTML = html;
         }
@@ -371,8 +395,8 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
             if (!c) return;
             if (!purposes || purposes.length === 0) { c.innerHTML = '<div style="color: var(--muted); text-align: center; padding: 2rem;">No purpose data</div>'; return; }
             var total = purposes.reduce(function(a,p){return a+(p.count||0);}, 0) || 1;
-            var labels = { inquiry: 'Inquiry', complain: 'Complain', 'follow-up': 'Follow-up' };
-            var colors = { inquiry: '#3b82f6', complain: '#ef4444', 'follow-up': '#f59e0b' };
+            var labels = { 'inquiry/complain': 'Inquiry/Complain', 'follow-up': 'Follow-up', 'request': 'Request' };
+            var colors = { 'inquiry/complain': '#8b5cf6', 'follow-up': '#f59e0b', 'request': '#10b981' };
             var html = '';
             purposes.forEach(function(p) {
                 var pct = Math.round((p.count/total)*100);
@@ -384,6 +408,23 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
                 '</div>';
             });
             c.innerHTML = html;
+        }
+
+        function updateFollowUpStats(stats) {
+            var c = document.getElementById('followUpStats');
+            if (!c) return;
+            if (!stats || stats.length === 0) { c.innerHTML = '<div class="text-center py-4" style="color: var(--muted);">No follow-up data</div>'; return; }
+            var rows = stats.map(function(s) {
+                return '<div class="flex items-center justify-between py-2 px-3 rounded" style="background: var(--secondary);">' +
+                    '<span class="text-sm font-medium">' + (s.operator_name || 'Unknown') + '</span>' +
+                    '<div class="flex gap-4 font-mono text-sm tabular-nums">' +
+                        '<span title="Pending"><span class="text-yellow-600 font-bold">' + s.pending + '</span> pending</span>' +
+                        '<span title="Resolved"><span class="text-green-600 font-bold">' + s.resolved + '</span> resolved</span>' +
+                        '<span title="Rejected"><span class="text-red-600 font-bold">' + s.rejected + '</span> rejected</span>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+            c.innerHTML = rows;
         }
 
         function updateCompanyChart(companies) {
@@ -405,6 +446,35 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
             c.innerHTML = html;
         }
 
+        function updateWindowBreakdown(windows) {
+            var c = document.getElementById('windowBreakdown');
+            if (!c) return;
+            if (!windows || windows.length === 0) { c.innerHTML = '<div style="color: var(--muted); text-align: center; padding: 2rem;">No window data</div>'; return; }
+            var maxServed = Math.max.apply(null, windows.map(function(w){return w.total_served || 0;})) || 1;
+            var html = '';
+            windows.forEach(function(w) {
+                var pct = Math.round(((w.total_served || 0) / maxServed) * 100);
+                var wait = formatDuration(Math.round(w.avg_wait || 0));
+                var svc = formatDuration(Math.round(w.avg_service || 0));
+                html += '<div>' +
+                    '<div class="flex items-baseline justify-between mb-2">' +
+                        '<div class="flex items-center gap-3">' +
+                            '<span class="font-mono text-[10px] uppercase" style="color: var(--muted);">' + (w.window_name || 'Window ' + w.window_number) + '</span>' +
+                            '<span class="text-sm font-semibold">' + (w.total_served || 0) + ' served</span>' +
+                        '</div>' +
+                        '<div class="flex gap-4 font-mono text-xs tabular-nums" style="color: var(--muted);">' +
+                            '<span><span class="font-bold" style="color: var(--foreground);">' + wait + '</span> avg wait</span>' +
+                            '<span><span class="font-bold" style="color: var(--foreground);">' + svc + '</span> avg handle</span>' +
+                            (w.total_cancelled > 0 ? '<span><span class="font-bold" style="color: #dc2626;">' + w.total_cancelled + '</span> cancelled</span>' : '') +
+                            (w.currently_serving > 0 ? '<span><span class="font-bold" style="color: #059669;">' + w.currently_serving + '</span> serving</span>' : '') +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="progress-bar"><div class="progress-bar-fill" style="width:' + pct + '%;background:var(--primary);"></div></div>' +
+                '</div>';
+            });
+            c.innerHTML = html;
+        }
+
         function updateTable() {
             var tbody = document.getElementById('reportTable'), search = document.getElementById('searchTable').value.toLowerCase();
             var filtered = search ? reportData.filter(function(c) { return (c.name||'').toLowerCase().includes(search) || (c.queue_number||'').toLowerCase().includes(search) || (c.service_type||'').toLowerCase().includes(search); }) : reportData;
@@ -414,10 +484,12 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
             var stClasses = { completed:'badge badge-online', cancelled:'badge badge-offline', serving:'badge badge-primary' };
             tbody.innerHTML = pageData.map(function(c) {
                 var svcClass = svcClasses[c.service_type] || 'badge';
+                var displayStatus = (c.status === 'completed' && c.follow_up_rejected_at) ? 'rejected' : c.status;
                 var stClass = stClasses[c.status] || 'badge';
+                if (displayStatus === 'rejected') stClass = 'badge badge-offline';
                 var svcName = (c.service_name || c.service_type).replace(/_/g,' ');
                 if (c.service_type === 'custom' && c.custom_description) svcName += ' (' + c.custom_description + ')';
-                return '<tr><td class="font-mono text-xs" style="color: var(--muted);">' + new Date(c.created_at).toLocaleDateString() + '</td><td class="font-mono font-bold" style="color: var(--foreground);">' + c.queue_number + '</td><td>' + c.name + '</td><td><span class="' + svcClass + '">' + svcName + '</span></td><td style="color: var(--muted);">' + (c.window_name || '-') + '</td><td><span class="' + stClass + '">' + c.status + '</span></td><td class="font-mono text-xs" style="color: var(--muted);">' + formatDuration(c.wait_duration) + '</td><td class="font-mono text-xs" style="color: var(--muted);">' + formatDuration(c.service_duration) + '</td><td style="color: var(--muted); font-size:11px; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="' + (c.remark || '') + '">' + (c.remark || '-') + '</td></tr>';
+                return '<tr><td class="font-mono text-xs" style="color: var(--muted);">' + new Date(c.created_at).toLocaleDateString() + '</td><td class="font-mono font-bold" style="color: var(--foreground);">' + c.queue_number + '</td><td>' + c.name + '</td><td><span class="' + svcClass + '">' + svcName + '</span></td><td style="color: var(--muted);">' + (c.window_name || '-') + '</td><td><span class="' + stClass + '">' + displayStatus + '</span></td><td class="font-mono text-xs" style="color: var(--muted);">' + formatDuration(c.wait_duration) + '</td><td class="font-mono text-xs" style="color: var(--muted);">' + formatDuration(c.service_duration) + '</td><td style="color: var(--muted); font-size:11px; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="' + (c.remark || '') + '">' + (c.remark || '-') + '</td></tr>';
             }).join('');
             updatePagination(filtered.length);
         }
@@ -433,46 +505,197 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
         }
 
         function goToPage(page) { currentPage = page; updateTable(); }
+        function exportToExcel() {
+            var d = getDateRange();
+            var params = new URLSearchParams({ from: d.from, to: d.to, export: 'excel' });
+            if (userRole === 'staff') {
+                if (userWindowId) params.append('counter_id', userWindowId);
+                if (staffServiceTypes) params.append('service_types', staffServiceTypes);
+            } else {
+                var winId = document.getElementById('windowFilter').value;
+                if (winId) params.append('counter_id', winId);
+            }
+            window.location.href = 'api/reports/daily.php?' + params.toString();
+        }
         function formatDuration(seconds) { if (!seconds || seconds === 0) return '0:00'; var abs = Math.abs(seconds); var m = Math.floor(abs / 60); var s = abs % 60; return (seconds < 0 ? '-' : '') + m + ':' + String(s).padStart(2, '0'); }
         function printReport() {
             var d = getDateRange();
             var w = window.open('', '_blank');
-            var rows = '';
+            var fromMs = new Date(d.from).getTime();
+            var toMs = new Date(d.to).getTime();
+            var daySpan = Math.round((toMs - fromMs) / 86400000) + 1;
+
+            if (daySpan <= 1) {
+                var rows = '';
+                reportData.forEach(function(c) {
+                    var svcName = (c.service_name || c.service_type).replace(/_/g,' ');
+                    if (c.service_type === 'custom' && c.custom_description) svcName += ' (' + c.custom_description + ')';
+                    rows += '<tr>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace;font-size:12px;">' + c.queue_number + '</td>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-size:12px;">' + (c.name||'') + '</td>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-size:12px;">' + svcName + '</td>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-size:12px;">' + (c.window_name||'-') + '</td>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-size:12px;text-transform:capitalize;">' + (c.status === 'completed' && c.follow_up_rejected_at ? 'rejected' : c.status) + '</td>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace;font-size:12px;">' + new Date(c.created_at).toLocaleString() + '</td>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace;font-size:12px;">' + formatDuration(c.wait_duration) + '</td>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace;font-size:12px;">' + formatDuration(c.service_duration) + '</td>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-size:12px;max-width:200px;">' + (c.remark||'') + '</td>' +
+                        '</tr>';
+                });
+                var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Detailed Report</title>' +
+                    '<style>body{font-family:Arial,sans-serif;padding:30px;color:#111;}h1{font-size:18px;margin:0;}h2{font-size:14px;margin:8px 0;color:#555;}' +
+                    '.summary{display:flex;gap:30px;margin:16px 0;padding:12px 16px;background:#f5f5f5;border-radius:6px;}' +
+                    '.summary div{font-size:13px;}.summary strong{display:block;font-size:20px;}' +
+                    'table{width:100%;border-collapse:collapse;margin-top:16px;}th{background:#eee;padding:8px 10px;border:1px solid #ddd;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;text-align:left;}' +
+                    'tr:nth-child(even){background:#fafafa;}@media print{body{padding:15px;}.no-print{display:none;}}' +
+                    '</style></head><body>' +
+                    '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:12px;">' +
+                    '<div><h1>Queue Management System</h1><h2>Detailed Report</h2></div>' +
+                    '<div style="text-align:right;font-size:12px;color:#555;">Period: ' + d.from + ' to ' + d.to + '<br>Generated: ' + new Date().toLocaleString() + '</div></div>' +
+                    '<div class="summary">' +
+                    '<div>Total Served<strong>' + (reportSummary.total_served||0) + '</strong></div>' +
+                    '<div>Avg Wait<strong>' + formatDuration(reportSummary.avg_wait_seconds) + '</strong></div>' +
+                    '<div>Avg Service<strong>' + formatDuration(reportSummary.avg_service_seconds) + '</strong></div>' +
+                    '<div>Per Hour<strong>' + (reportSummary.customers_per_hour||0) + '</strong></div>' +
+                    '</div>' +
+                    '<table><thead><tr>' +
+                    '<th>Queue #</th><th>Customer</th><th>Service</th><th>Window</th><th>Status</th><th>Date/Time</th><th>Wait</th><th>Service</th><th>Remark</th>' +
+                    '</tr></thead><tbody>' + rows + '</tbody></table>' +
+                    '<div style="display:flex;justify-content:space-between;margin-top:50px;gap:60px;">' +
+                    '<div style="flex:1;text-align:center;"><div style="border-top:1px solid #111;padding-top:6px;margin-bottom:2px;min-height:28px;"></div><div style="font-weight:700;font-size:13px;">' + userDisplayName + '</div><div style="font-size:11px;color:#555;margin-top:2px;">Prepared by</div></div>' +
+                    '<div style="flex:1;text-align:center;"><div style="border-top:1px solid #111;padding-top:6px;margin-bottom:2px;min-height:28px;"></div><div style="font-weight:700;font-size:13px;min-height:16px;">&nbsp;</div><div style="font-size:11px;color:#555;margin-top:2px;">Approved by</div></div>' +
+                    '</div>' +
+                    '<div class="no-print" style="text-align:center;margin-top:30px;"><button onclick="window.print()" style="padding:10px 30px;font-size:14px;cursor:pointer;">Print</button></div>' +
+                    '</body></html>';
+                w.document.write(html);
+                w.document.close();
+                return;
+            }
+
+            var dailyMap = {};
             reportData.forEach(function(c) {
-                var svcName = (c.service_name || c.service_type).replace(/_/g,' ');
-                if (c.service_type === 'custom' && c.custom_description) svcName += ' (' + c.custom_description + ')';
-                rows += '<tr>' +
-                    '<td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace;font-size:12px;">' + c.queue_number + '</td>' +
-                    '<td style="padding:6px 10px;border:1px solid #ddd;font-size:12px;">' + (c.name||'') + '</td>' +
-                    '<td style="padding:6px 10px;border:1px solid #ddd;font-size:12px;">' + svcName + '</td>' +
-                    '<td style="padding:6px 10px;border:1px solid #ddd;font-size:12px;">' + (c.window_name||'-') + '</td>' +
-                    '<td style="padding:6px 10px;border:1px solid #ddd;font-size:12px;text-transform:capitalize;">' + c.status + '</td>' +
-                    '<td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace;font-size:12px;">' + new Date(c.created_at).toLocaleString() + '</td>' +
-                    '<td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace;font-size:12px;">' + formatDuration(c.wait_duration) + '</td>' +
-                    '<td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace;font-size:12px;">' + formatDuration(c.service_duration) + '</td>' +
-                    '<td style="padding:6px 10px;border:1px solid #ddd;font-size:12px;max-width:200px;">' + (c.remark||'') + '</td>' +
+                var dt = new Date(c.created_at);
+                var dateKey = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
+                var dayName = dt.toLocaleDateString('en-US', { weekday: 'short' });
+                if (!dailyMap[dateKey]) dailyMap[dateKey] = { date: dateKey, label: dayName + ', ' + dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), count: 0, completed: 0, totalWait: 0, totalService: 0 };
+                dailyMap[dateKey].count++;
+                if (c.status === 'completed') {
+                    dailyMap[dateKey].completed++;
+                    if (c.wait_duration) dailyMap[dateKey].totalWait += c.wait_duration;
+                    if (c.service_duration) dailyMap[dateKey].totalService += c.service_duration;
+                }
+            });
+            var dailyRows = Object.keys(dailyMap).sort().map(function(k) { return dailyMap[k]; });
+
+            var dailyHtml = '';
+            dailyRows.forEach(function(r) {
+                var avgW = r.completed > 0 ? formatDuration(Math.round(r.totalWait / r.completed)) : '—';
+                var avgS = r.completed > 0 ? formatDuration(Math.round(r.totalService / r.completed)) : '—';
+                dailyHtml += '<tr>' +
+                    '<td style="padding:6px 10px;border:1px solid #ddd;font-size:12px;">' + r.label + '</td>' +
+                    '<td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace;font-size:12px;text-align:center;">' + r.count + '</td>' +
+                    '<td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace;font-size:12px;text-align:center;">' + r.completed + '</td>' +
+                    '<td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace;font-size:12px;text-align:center;">' + avgW + '</td>' +
+                    '<td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace;font-size:12px;text-align:center;">' + avgS + '</td>' +
                     '</tr>';
             });
-            var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Detailed Report</title>' +
-                '<style>body{font-family:Arial,sans-serif;padding:30px;color:#111;}h1{font-size:18px;margin:0;}h2{font-size:14px;margin:8px 0;color:#555;}' +
-                '.summary{display:flex;gap:30px;margin:16px 0;padding:12px 16px;background:#f5f5f5;border-radius:6px;}' +
-                '.summary div{font-size:13px;}.summary strong{display:block;font-size:20px;}' +
-                'table{width:100%;border-collapse:collapse;margin-top:16px;}th{background:#eee;padding:8px 10px;border:1px solid #ddd;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;text-align:left;}' +
-                'tr:nth-child(even){background:#fafafa;}@media print{body{padding:15px;}.no-print{display:none;}}' +
+
+            var svcHtml = '';
+            if (reportByService && reportByService.length > 0) {
+                reportByService.forEach(function(s) {
+                    svcHtml += '<tr>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-size:12px;text-transform:capitalize;">' + (s.service_type||'').replace(/_/g,' ') + '</td>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-size:12px;">' + (s.service_name||'') + '</td>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace;font-size:12px;text-align:center;">' + (s.total_served||0) + '</td>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace;font-size:12px;text-align:center;">' + (s.percent||0) + '%</td>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace;font-size:12px;text-align:center;">' + (s.avg_wait ? formatDuration(s.avg_wait) : '—') + '</td>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace;font-size:12px;text-align:center;">' + (s.avg_service ? formatDuration(s.avg_service) : '—') + '</td>' +
+                        '</tr>';
+                });
+            }
+
+            var winHtml = '';
+            if (reportByWindow && reportByWindow.length > 0) {
+                reportByWindow.forEach(function(wh) {
+                    winHtml += '<tr>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-size:12px;">' + (wh.window_name || 'Window ' + wh.window_number) + '</td>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace;font-size:12px;text-align:center;">' + (wh.total_served||0) + '</td>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace;font-size:12px;text-align:center;">' + (wh.avg_wait ? formatDuration(Math.round(wh.avg_wait)) : '—') + '</td>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace;font-size:12px;text-align:center;">' + (wh.avg_service ? formatDuration(Math.round(wh.avg_service)) : '—') + '</td>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace;font-size:12px;text-align:center;color:#dc2626;">' + (wh.total_cancelled||0) + '</td>' +
+                        '</tr>';
+                });
+            }
+
+            var purposeTotal = (reportPurpose || []).reduce(function(a,p){return a+(p.count||0);},0) || 1;
+            var purposeHtml = '';
+            var purposeLabels = { 'inquiry/complain': 'Inquiry/Complain', 'follow-up': 'Follow-up', 'request': 'Request' };
+            if (reportPurpose && reportPurpose.length > 0) {
+                reportPurpose.forEach(function(p) {
+                    var pct = Math.round((p.count / purposeTotal) * 100);
+                    purposeHtml += '<tr>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-size:12px;">' + (purposeLabels[p.purpose] || p.purpose) + '</td>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace;font-size:12px;text-align:center;">' + p.count + '</td>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace;font-size:12px;text-align:center;">' + pct + '%</td>' +
+                        '</tr>';
+                });
+            }
+
+            var companyHtml = '';
+            if (reportCompany && reportCompany.length > 0) {
+                reportCompany.forEach(function(c) {
+                    companyHtml += '<tr>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-size:12px;">' + (c.company_name||'Unknown') + '</td>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace;font-size:12px;text-align:center;">' + c.count + '</td>' +
+                        '</tr>';
+                });
+            }
+
+            var fuHtml = '';
+            if (reportFollowUp && reportFollowUp.length > 0) {
+                reportFollowUp.forEach(function(f) {
+                    fuHtml += '<tr>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-size:12px;">' + (f.operator_name||'Unknown') + '</td>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace;font-size:12px;text-align:center;color:#d97706;">' + (f.pending||0) + '</td>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace;font-size:12px;text-align:center;color:#059669;">' + (f.resolved||0) + '</td>' +
+                        '<td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace;font-size:12px;text-align:center;color:#dc2626;">' + (f.rejected||0) + '</td>' +
+                        '</tr>';
+                });
+            }
+
+            var totalTickets = reportData.length;
+            var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Summary Report</title>' +
+                '<style>' +
+                'body{font-family:Arial,sans-serif;padding:30px;color:#111;line-height:1.5;}' +
+                'h1{font-size:20px;margin:0;font-weight:800;}' +
+                'h2{font-size:14px;margin:6px 0 0;color:#555;font-weight:400;}' +
+                'h3{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#333;margin:24px 0 10px;border-bottom:2px solid #111;padding-bottom:6px;}' +
+                '.kpi-row{display:flex;gap:20px;margin:18px 0;}' +
+                '.kpi-box{flex:1;padding:14px 18px;background:#f5f5f5;border-radius:8px;text-align:center;}' +
+                '.kpi-box .label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#888;margin-bottom:4px;}' +
+                '.kpi-box .value{font-size:24px;font-weight:800;font-family:monospace;}' +
+                'table{width:100%;border-collapse:collapse;margin-top:8px;margin-bottom:16px;}' +
+                'th{background:#eee;padding:8px 10px;border:1px solid #ddd;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;text-align:left;color:#555;}' +
+                'td{font-size:12px;}' +
+                'tr:nth-child(even){background:#fafafa;}' +
+                '@media print{body{padding:15px;}.no-print{display:none;}}' +
                 '</style></head><body>' +
                 '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:12px;">' +
-                '<div><h1>Queue Management System</h1><h2>Detailed Report</h2></div>' +
-                '<div style="text-align:right;font-size:12px;color:#555;">Period: ' + d.from + ' to ' + d.to + '<br>Generated: ' + new Date().toLocaleString() + '</div></div>' +
-                '<div class="summary">' +
-                '<div>Total Served<strong>' + (reportSummary.total_served||0) + '</strong></div>' +
-                '<div>Avg Wait<strong>' + formatDuration(reportSummary.avg_wait_seconds) + '</strong></div>' +
-                '<div>Avg Service<strong>' + formatDuration(reportSummary.avg_service_seconds) + '</strong></div>' +
-                '<div>Per Hour<strong>' + (reportSummary.customers_per_hour||0) + '</strong></div>' +
+                '<div><h1>Queue Management System</h1><h2>Summary Report &mdash; ' + daySpan + ' Day' + (daySpan > 1 ? 's' : '') + '</h2></div>' +
+                '<div style="text-align:right;font-size:12px;color:#555;">Period: ' + d.from + ' to ' + d.to + '<br>Total Tickets: ' + totalTickets + '<br>Generated: ' + new Date().toLocaleString() + '</div></div>' +
+                '<div class="kpi-row">' +
+                '<div class="kpi-box"><div class="label">Total Served</div><div class="value">' + (reportSummary.total_served||0) + '</div></div>' +
+                '<div class="kpi-box"><div class="label">Avg Wait</div><div class="value">' + formatDuration(reportSummary.avg_wait_seconds) + '</div></div>' +
+                '<div class="kpi-box"><div class="label">Avg Service</div><div class="value">' + formatDuration(reportSummary.avg_service_seconds) + '</div></div>' +
+                '<div class="kpi-box"><div class="label">Per Hour</div><div class="value">' + (reportSummary.customers_per_hour||0) + '</div></div>' +
                 '</div>' +
-                '<table><thead><tr>' +
-                '<th>Queue #</th><th>Customer</th><th>Service</th><th>Window</th><th>Status</th><th>Date/Time</th><th>Wait</th><th>Service</th><th>Remark</th>' +
-                '</tr></thead><tbody>' + rows + '</tbody></table>' +
-                '<div style="display:flex;justify-content:space-between;margin-top:50px;gap:60px;">' +
+                (svcHtml ? '<h3>Service Breakdown</h3><table><thead><tr><th>Type</th><th>Service</th><th style="text-align:center;">Served</th><th style="text-align:center;">%</th><th style="text-align:center;">Avg Wait</th><th style="text-align:center;">Avg Service</th></tr></thead><tbody>' + svcHtml + '</tbody></table>' : '') +
+                (dailyHtml ? '<h3>Daily Summary</h3><table><thead><tr><th>Date</th><th style="text-align:center;">Total</th><th style="text-align:center;">Completed</th><th style="text-align:center;">Avg Wait</th><th style="text-align:center;">Avg Service</th></tr></thead><tbody>' + dailyHtml + '</tbody></table>' : '') +
+                (winHtml ? '<h3>Window Performance</h3><table><thead><tr><th>Window</th><th style="text-align:center;">Served</th><th style="text-align:center;">Avg Wait</th><th style="text-align:center;">Avg Handle</th><th style="text-align:center;">Cancelled</th></tr></thead><tbody>' + winHtml + '</tbody></table>' : '') +
+                (purposeHtml ? '<h3>Purpose Breakdown</h3><table><thead><tr><th>Purpose</th><th style="text-align:center;">Count</th><th style="text-align:center;">%</th></tr></thead><tbody>' + purposeHtml + '</tbody></table>' : '') +
+                (companyHtml ? '<h3>Top Companies</h3><table><thead><tr><th>Company</th><th style="text-align:center;">Tickets</th></tr></thead><tbody>' + companyHtml + '</tbody></table>' : '') +
+                (fuHtml ? '<h3>Follow-Up Tracking</h3><table><thead><tr><th>Operator</th><th style="text-align:center;">Pending</th><th style="text-align:center;">Resolved</th><th style="text-align:center;">Rejected</th></tr></thead><tbody>' + fuHtml + '</tbody></table>' : '') +
+                '<div style="display:flex;justify-content:space-between;margin-top:60px;gap:60px;">' +
                 '<div style="flex:1;text-align:center;"><div style="border-top:1px solid #111;padding-top:6px;margin-bottom:2px;min-height:28px;"></div><div style="font-weight:700;font-size:13px;">' + userDisplayName + '</div><div style="font-size:11px;color:#555;margin-top:2px;">Prepared by</div></div>' +
                 '<div style="flex:1;text-align:center;"><div style="border-top:1px solid #111;padding-top:6px;margin-bottom:2px;min-height:28px;"></div><div style="font-weight:700;font-size:13px;min-height:16px;">&nbsp;</div><div style="font-size:11px;color:#555;margin-top:2px;">Approved by</div></div>' +
                 '</div>' +
@@ -484,7 +707,26 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
 
         function showToast(m, t) { var toast = document.getElementById('toast'); toast.textContent = m; toast.className = 'fixed bottom-4 right-4 px-6 py-3 rounded-xl shadow-lg z-50 text-white text-sm font-medium ' + (t === 'success' ? 'bg-emerald-600' : 'bg-red-600'); toast.classList.remove('hidden'); setTimeout(function() { toast.classList.add('hidden'); }, 3000); }
         document.getElementById('searchTable').addEventListener('input', updateTable);
-        if (userRole !== 'staff') loadReport();
+        if (userRole !== 'staff') {
+            (async function() {
+                try {
+                    var token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+                    var headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+                    var res = await fetch('api/counter/get_assignments.php', { headers: headers });
+                    var data = await res.json();
+                    if (data.success && data.data && data.data.counters) {
+                        var sel = document.getElementById('windowFilter');
+                        data.data.counters.forEach(function(c) {
+                            var opt = document.createElement('option');
+                            opt.value = c.counter_id;
+                            opt.textContent = c.display_name || c.name || 'Window ' + c.window_number;
+                            sel.appendChild(opt);
+                        });
+                    }
+                } catch(e) {}
+                loadReport();
+            })();
+        }
         function logout() {
             if (confirm('Sign out of Analytics?')) {
                 var token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');

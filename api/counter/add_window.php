@@ -19,6 +19,7 @@ try {
     }
     
     $name = $data['name'] ?? null;
+    $description = trim($data['description'] ?? '');
     
     if (empty($name)) {
         throw new Exception('Window name is required');
@@ -36,10 +37,10 @@ try {
     
     // Insert new counter
     $stmt = $conn->prepare("
-        INSERT INTO counters (name, display_name, window_number, is_online, status_text)
-        VALUES (?, ?, ?, 0, 'Offline')
+        INSERT INTO counters (name, display_name, description, window_number, is_online, status_text)
+        VALUES (?, ?, ?, ?, 0, 'Offline')
     ");
-    $stmt->execute([$name, $name, $windowNumber]);
+    $stmt->execute([$name, $name, $description ?: null, $windowNumber]);
     $counterId = $conn->lastInsertId();
     
     // Insert default service assignment ('other')

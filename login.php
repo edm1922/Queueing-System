@@ -110,8 +110,8 @@ $company_name = htmlspecialchars($s['company_name'] ?? 'Service Center');
                     storage.setItem('user_data', JSON.stringify(data.data.user));
                     document.cookie = 'auth_token=' + data.data.token + '; path=/; max-age=28800; SameSite=Lax';
                     setLoading(false);
-                    var role = data.data.user.role, win = data.data.user.window_id;
-                    var target = (role === 'staff' && win) ? 'window.php' : 'index.php';
+                    var win = data.data.user.window_id;
+                    var target = win ? 'window.php' : 'index.php';
                     window.location.href = target;
                 } else { showError(data.message || 'Login failed'); setLoading(false); }
             } catch (err) { showError('Connection error. Please try again.'); setLoading(false); }

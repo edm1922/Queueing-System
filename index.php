@@ -53,6 +53,7 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
                     <?php endif; ?>
                     <?php if ($user_role === 'admin'): ?>
                     <a href="kiosk.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Kiosk</a>
+                    <a href="settings.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Settings</a>
                     <?php endif; ?>
                     <a href="index.php" class="px-3 py-1.5 rounded" style="background: rgba(255,255,255,0.1); color: white;">Operator</a>
                     <a href="reports.php" class="px-3 py-1.5 rounded" style="color: rgba(255,255,255,0.6);">Analytics</a>
@@ -177,8 +178,7 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
                     <div class="grid grid-cols-2 gap-4" id="sessionTotals">
                         <div><div class="text-2xl font-bold tracking-tight tabular-nums" id="sessionServed">0</div><div class="text-[9px] font-medium uppercase tracking-wider" style="color: rgba(255,255,255,0.4);">Served</div></div>
                         <div><div class="text-2xl font-bold tracking-tight tabular-nums" id="sessionNoshows">0</div><div class="text-[9px] font-medium uppercase tracking-wider" style="color: rgba(255,255,255,0.4);">No-shows</div></div>
-                        <div><div class="text-2xl font-bold tracking-tight tabular-nums" id="sessionAvgHandle">0:00</div><div class="text-[9px] font-medium uppercase tracking-wider" style="color: rgba(255,255,255,0.4);">Avg. handle</div></div>
-                        <div><div class="text-2xl font-bold tracking-tight tabular-nums" id="sessionIdle">--m</div><div class="text-[9px] font-medium uppercase tracking-wider" style="color: rgba(255,255,255,0.4);">Idle</div></div>
+                        <div><div class="text-2xl font-bold tracking-tight tabular-nums" id="sessionAvgHandle">0:00</div><div class="text-[9px] font-medium uppercase tracking-wider" style="color: rgba(255,255,255,0.4);">Avg wait</div></div>
                     </div>
                 </div>
             </div>
@@ -249,7 +249,25 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
                 </div>
                 <div class="space-y-4">
                     <div><label class="label-md block mb-1">Window Name</label><input type="text" id="newWindowName" class="w-full px-4 py-2 rounded" style="border: 1px solid var(--border);" placeholder="e.g. Window 3"></div>
+                    <div><label class="label-md block mb-1">Description (optional)</label><input type="text" id="newWindowDesc" class="w-full px-4 py-2 rounded" style="border: 1px solid var(--border);" placeholder="e.g. Insurance & Benefits"></div>
                     <button onclick="submitNewWindow()" class="btn btn-primary w-full">Add Window</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="editWindowModal" class="fixed inset-0 bg-black bg-opacity-50 hidden modal-overlay z-50 flex items-center justify-center p-4">
+        <div class="card w-full max-w-md">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold" style="color: var(--foreground);">Edit Window</h3>
+                    <button onclick="closeEditWindowModal()" class="btn btn-ghost p-1"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="space-y-4">
+                    <input type="hidden" id="editWindowId">
+                    <div><label class="label-md block mb-1">Window Name</label><input type="text" id="editWindowName" class="w-full px-4 py-2 rounded" style="border: 1px solid var(--border);" placeholder="e.g. Window 3"></div>
+                    <div><label class="label-md block mb-1">Description (optional)</label><input type="text" id="editWindowDesc" class="w-full px-4 py-2 rounded" style="border: 1px solid var(--border);" placeholder="e.g. Insurance & Benefits"></div>
+                    <button onclick="submitEditWindow()" class="btn btn-primary w-full">Save Changes</button>
                 </div>
             </div>
         </div>
@@ -289,8 +307,8 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
                 <div class="mb-6 p-4 rounded" style="background: var(--secondary); border: 1px solid var(--border);">
                     <h4 class="label-md mb-2">Assign Service to Group</h4>
                     <div class="flex gap-3">
-                        <select id="assignGroupServiceId" class="flex-1 px-4 py-2 rounded" style="border: 1px solid var(--border);"></select>
-                        <select id="assignGroupTargetId" class="flex-1 px-4 py-2 rounded" style="border: 1px solid var(--border);"></select>
+                        <select id="assignGroupTargetId" class="flex-1 px-4 py-2 rounded" style="border: 1px solid var(--border);" onchange="var s=document.getElementById('assignGroupServiceId');if(s){s.disabled=!this.value;if(!this.value)s.value='';}"></select>
+                        <select id="assignGroupServiceId" class="flex-1 px-4 py-2 rounded" disabled style="border: 1px solid var(--border);"></select>
                         <button onclick="assignServiceToGroup()" class="btn btn-primary shrink-0">Assign</button>
                     </div>
                 </div>
@@ -329,7 +347,8 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
                     <button onclick="closeUserModal()" class="btn btn-ghost p-1"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="mb-6 p-4 rounded" style="background: var(--secondary); border: 1px solid var(--border);">
-                    <h4 class="label-md mb-3">Create New User</h4>
+                    <h4 class="label-md mb-3" id="userFormTitle">Create New User</h4>
+                    <input type="hidden" id="editUserId" value="">
                     <div class="grid grid-cols-2 gap-3 mb-3">
                         <input type="text" id="newUserUsername" class="w-full px-3 py-2 rounded text-xs" style="border:1px solid var(--border);" placeholder="Username (min 3 chars)">
                         <input type="password" id="newUserPassword" class="w-full px-3 py-2 rounded text-xs" style="border:1px solid var(--border);" placeholder="Password (min 6 chars)">
@@ -346,7 +365,7 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
                                 <option value="">No window assignment</option>
                             </select>
                         </div>
-                        <button onclick="createUser()" class="btn btn-primary text-xs shrink-0">Create User</button>
+                        <button onclick="submitUserForm()" class="btn btn-primary text-xs shrink-0" id="userFormBtn">Create User</button>
                     </div>
                 </div>
                 <div>
@@ -377,7 +396,25 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
 
     <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
 
-    <script>var currentUserRole = '<?php echo $user_role; ?>';</script>
+    <!-- Forward Follow-Up Modal -->
+    <div id="forwardOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="card w-full max-w-md p-6">
+            <h3 class="text-lg font-bold mb-1">Forward Follow-Up</h3>
+            <p class="text-xs mb-4" style="color: var(--muted);">Send this ticket to another counter's follow-up queue.</p>
+            <label class="text-xs font-semibold uppercase tracking-wider mb-1 block" style="color: var(--muted);">Target Counter</label>
+            <select id="forwardTarget" class="w-full px-4 py-3 rounded text-sm mb-3" style="border: 1px solid var(--border); background: var(--background); color: var(--foreground);" onchange="document.getElementById('forwardConfirm').disabled = !this.value || !document.getElementById('forwardRemark').value.trim()">
+                <option value="">Select a counter...</option>
+            </select>
+            <label class="text-xs font-semibold uppercase tracking-wider mb-1 block" style="color: var(--muted);">Remark (required)</label>
+            <textarea id="forwardRemark" rows="3" class="w-full px-4 py-3 rounded text-sm" style="border: 1px solid var(--border); resize: vertical;" placeholder="Explain why this is being forwarded..." oninput="document.getElementById('forwardConfirm').disabled = !this.value.trim() || !document.getElementById('forwardTarget').value"></textarea>
+            <div class="flex gap-3 mt-4">
+                <button id="forwardCancel" class="btn btn-secondary flex-1 py-2 text-sm">Cancel</button>
+                <button id="forwardConfirm" class="btn btn-primary flex-1 py-2 text-sm" disabled><i class="fas fa-share mr-1"></i>Forward</button>
+            </div>
+        </div>
+    </div>
+
+    <script>var currentUserRole = '<?php echo $user_role; ?>'; var currentUserWindowId = <?php echo $user['window_id'] ?? 'null'; ?>; var currentUserId = <?php echo $user['id']; ?>;</script>
     <script src="js/main.js?v=12"></script>
     <script>
         function updateFooterTime() {
@@ -399,6 +436,88 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
             var s = sec % 60;
             el.textContent = 'SESSION ' + m + 'm ' + String(s).padStart(2,'0') + 's';
         }, 1000);
+
+        // ====== Announcements ======
+        function openAnnouncementModal() {
+            document.getElementById('announcementModal').classList.remove('hidden');
+            loadActiveAnnouncements();
+        }
+        function closeAnnouncementModal() {
+            document.getElementById('announcementModal').classList.add('hidden');
+        }
+        async function loadActiveAnnouncements() {
+            try {
+                var res = await fetch('api/announcement/index.php?active=true');
+                var result = await res.json();
+                var el = document.getElementById('activeAnnouncements');
+                if (!el) return;
+                if (!result.success || !result.data || result.data.length === 0) {
+                    el.innerHTML = '<div class="text-sm py-4 text-center" style="color: var(--muted);">No active announcements</div>';
+                    return;
+                }
+                var html = '';
+                for (var i = 0; i < result.data.length; i++) {
+                    var a = result.data[i];
+                    var typeColor = a.type === 'warning' ? '#d97706' : a.type === 'urgent' ? '#dc2626' : '#6b7280';
+                    html += '<div class="flex items-start justify-between gap-2 p-3 rounded" style="background: var(--secondary);">' +
+                        '<div class="flex-1 min-w-0">' +
+                            (a.title ? '<div class="text-xs font-bold">' + escapeHtml(a.title) + '</div>' : '') +
+                            '<div class="text-sm" style="color: var(--foreground);">' + escapeHtml(a.message) + '</div>' +
+                        '</div>' +
+                        '<button onclick="deleteAnnouncement(' + a.id + ')" class="shrink-0 w-6 h-6 flex items-center justify-center rounded hover:bg-red-50" style="color: #9ca3af;" title="Delete"><i class="fas fa-times text-[10px]"></i></button>' +
+                    '</div>';
+                }
+                el.innerHTML = html;
+            } catch (e) { console.error('Load announcements error:', e); }
+        }
+        async function addAnnouncement() {
+            var title = document.getElementById('announcementTitle').value.trim();
+            var message = document.getElementById('announcementMessage').value.trim();
+            var type = document.getElementById('announcementType').value;
+            if (!message) { showToast('Message is required', 'error'); return; }
+            try {
+                var token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+                var authHeaders = token ? { 'Authorization': 'Bearer ' + token } : {};
+                var res = await fetch('api/announcement/index.php', {
+                    method: 'POST',
+                    headers: Object.assign(authHeaders, { 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({ title: title, message: message, type: type, priority: 0 })
+                });
+                var result = await res.json();
+                if (result.success) {
+                    document.getElementById('announcementTitle').value = '';
+                    document.getElementById('announcementMessage').value = '';
+                    showToast('Announcement added', 'success');
+                    loadActiveAnnouncements();
+                } else {
+                    showToast(result.message || 'Failed to add', 'error');
+                }
+            } catch (e) { showToast('Error: ' + e.message, 'error'); }
+        }
+        async function deleteAnnouncement(id) {
+            if (!confirm('Delete this announcement?')) return;
+            try {
+                var token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+                var authHeaders = token ? { 'Authorization': 'Bearer ' + token } : {};
+                var res = await fetch('api/announcement/index.php', {
+                    method: 'POST',
+                    headers: Object.assign(authHeaders, { 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({ _method: 'DELETE', id: id })
+                });
+                var result = await res.json();
+                if (result.success) {
+                    showToast('Announcement deleted', 'success');
+                    loadActiveAnnouncements();
+                } else {
+                    showToast(result.message || 'Failed to delete', 'error');
+                }
+            } catch (e) { showToast('Error: ' + e.message, 'error'); }
+        }
+        function escapeHtml(str) {
+            var d = document.createElement('div');
+            d.appendChild(document.createTextNode(str));
+            return d.innerHTML;
+        }
 
         function logout() {
             if (confirm('Sign out of Operator Console?')) {

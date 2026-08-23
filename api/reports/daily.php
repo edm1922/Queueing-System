@@ -1,8 +1,8 @@
 <?php
 header('Content-Type: application/json');
-include '../../config.php';
+include __DIR__ . '/../../config.php';
 
-requireRole(['admin', 'supervisor', 'staff']);
+$authUser = requireRole(['admin', 'supervisor', 'staff']);
 
 try {
     $db = new Database();
@@ -26,12 +26,9 @@ try {
         $where .= " AND c.service_type = ?";
         $params[] = $serviceType;
     }
-    if ($serviceTypesMulti && $counterId > 0 && in_array('custom', $codes)) {
-        $customOverride = " AND (c.service_type != 'custom' OR c.counter_id = ?)";
-        $customParams = [$counterId];
-    } elseif ($counterId) {
-        $customOverride = " AND c.counter_id = ?";
-        $customParams = [$counterId];
+    if ($counterId) {
+        $customOverride = " AND (c.counter_id = ? OR (c.is_follow_up = 1 AND c.forwarded_to_counter_id = ?))";
+        $customParams = [$counterId, $counterId];
     } else {
         $customOverride = '';
         $customParams = [];
@@ -175,7 +172,7 @@ try {
                 $c['queue_number'],
                 $c['name'],
                 $c['service_name'],
-                ucfirst($c['status']),
+                $c['follow_up_rejected_at'] ? 'Rejected' : ucfirst($c['status']),
                 $c['created_at'],
                 $c['wait_duration'] ?? 0,
                 $c['service_duration'] ?? 0,
@@ -187,6 +184,65 @@ try {
         exit;
     }
 
+    // Follow-up tracking stats per operator
+    $fuWhere = "WHERE DATE(c.created_at) BETWEEN ? AND ?";
+    $fuParams = [$from, $to];
+    if ($serviceTypesMulti) {
+        $codes = array_map('trim', explode(',', $serviceTypesMulti));
+        $placeholders = implode(',', array_fill(0, count($codes), '?'));
+        $fuWhere .= " AND c.service_type IN ($placeholders)";
+        $fuParams = array_merge($fuParams, $codes);
+    } elseif ($serviceType) {
+        $fuWhere .= " AND c.service_type = ?";
+        $fuParams[] = $serviceType;
+    }
+    $fuWindowId = intval($authUser['window_id'] ?? 0);
+    $stmt = $conn->prepare("
+        SELECT 
+            ? as operator_name,
+            COUNT(DISTINCT CASE WHEN c.follow_up_resolved_at IS NOT NULL THEN c.id END) as resolved,
+            COUNT(DISTINCT CASE WHEN c.follow_up_rejected_at IS NOT NULL THEN c.id END) as rejected,
+            COUNT(DISTINCT CASE WHEN c.is_follow_up = 1 AND c.follow_up_resolved_at IS NULL AND c.follow_up_rejected_at IS NULL THEN c.id END) as pending
+        FROM customers c
+        $fuWhere
+        AND (c.follow_up_marked_by = ? OR c.follow_up_completed_by = ?" . ($fuWindowId ? " OR c.forwarded_to_counter_id = $fuWindowId" : "") . ")
+    ");
+    $stmt->execute(array_merge($fuParams, [$authUser['display_name'], $authUser['id'], $authUser['id']]));
+    $followUpStats = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Per-window breakdown
+    $winWhere = "WHERE DATE(c.created_at) BETWEEN ? AND ? AND c.counter_id IS NOT NULL";
+    $winParams = [$from, $to];
+    if ($serviceTypesMulti) {
+        $codes = array_map('trim', explode(',', $serviceTypesMulti));
+        $placeholders = implode(',', array_fill(0, count($codes), '?'));
+        $winWhere .= " AND c.service_type IN ($placeholders)";
+        $winParams = array_merge($winParams, $codes);
+    } elseif ($serviceType) {
+        $winWhere .= " AND c.service_type = ?";
+        $winParams[] = $serviceType;
+    }
+    $stmt = $conn->prepare("
+        SELECT 
+            ct.id as counter_id,
+            ct.display_name as window_name,
+            ct.window_number,
+            COUNT(CASE WHEN c.status = 'completed' THEN 1 END) as total_served,
+            AVG(CASE WHEN c.status = 'completed' THEN c.wait_duration END) as avg_wait,
+            AVG(CASE WHEN c.status = 'completed' THEN c.service_duration END) as avg_service,
+            COUNT(CASE WHEN c.status = 'cancelled' THEN 1 END) as total_cancelled,
+            COUNT(CASE WHEN c.status = 'skipped' THEN 1 END) as total_skipped,
+            COUNT(CASE WHEN c.status = 'no-show' THEN 1 END) as total_noshow,
+            COUNT(CASE WHEN c.status = 'serving' THEN 1 END) as currently_serving
+        FROM customers c
+        LEFT JOIN counters ct ON ct.id = c.counter_id
+        $winWhere $customOverride
+        GROUP BY c.counter_id
+        ORDER BY ct.window_number
+    ");
+    $stmt->execute(array_merge($winParams, $customParams));
+    $byWindow = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
     echo json_encode([
         'success' => true,
         'data' => [
@@ -197,10 +253,12 @@ try {
                 'avg_service_seconds' => $avgService,
                 'customers_per_hour' => $customersPerHour
             ],
+            'by_window' => $byWindow,
             'by_service' => $byService,
             'hourly' => $hourly,
             'purpose_breakdown' => $purposeBreakdown,
             'company_breakdown' => $companyBreakdown,
+            'follow_up_stats' => $followUpStats,
             'date_range' => ['from' => $from, 'to' => $to]
         ]
     ]);

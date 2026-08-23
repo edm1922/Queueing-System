@@ -55,7 +55,7 @@ CREATE TABLE `customers` (
   `queue_number` varchar(20) NOT NULL,
   `name` varchar(100) NOT NULL,
   `service_type` varchar(50) NOT NULL,
-  `status` enum('waiting','serving','completed','cancelled') DEFAULT 'waiting',
+  `status` enum('waiting','serving','completed','cancelled','skipped','no-show') DEFAULT 'waiting',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `called_at` timestamp NULL DEFAULT NULL,
   `completed_at` timestamp NULL DEFAULT NULL

@@ -41,25 +41,22 @@ try {
     
     $isOnline = $counter['is_online'];
     
-    // Check for cross-counter conflicts: services already assigned (primary) to another counter
+    // Determine which services already have a primary window elsewhere
+    $primaryOverrides = [];
     $checkServices = array_filter($services, function($s) { return !in_array($s, ['other', 'custom']); });
     if (!empty($checkServices)) {
         $placeholders = implode(',', array_fill(0, count($checkServices), '?'));
         $stmt = $conn->prepare("
-            SELECT csa.service_type, ct.display_name as window_name
+            SELECT csa.service_type
             FROM counter_service_assignments csa
-            JOIN counters ct ON ct.id = csa.counter_id
             WHERE csa.service_type IN ($placeholders)
             AND csa.counter_id != ?
             AND csa.is_primary = 1
         ");
         $params = array_merge(array_values($checkServices), [$counterId]);
         $stmt->execute($params);
-        $conflicts = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        if (!empty($conflicts)) {
-            $msgs = array_map(function($c) { return $c['service_type'] . ' (' . $c['window_name'] . ')'; }, $conflicts);
-            throw new Exception('Cannot assign: ' . implode(', ', $msgs) . ' already assigned to another window');
-        }
+        $existing = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $primaryOverrides = array_fill_keys($existing, 0);
     }
     
     // Delete all existing assignments for this counter (primary + redistributed)
@@ -70,11 +67,12 @@ try {
     $displayOrder = 1;
     $stmt = $conn->prepare("
         INSERT INTO counter_service_assignments (counter_id, service_type, is_primary, is_active, display_order)
-        VALUES (?, ?, 1, ?, ?)
+        VALUES (?, ?, ?, ?, ?)
     ");
     
     foreach ($services as $service) {
-        $stmt->execute([$counterId, $service, $isOnline ? 1 : 0, $displayOrder++]);
+        $isPrimary = array_key_exists($service, $primaryOverrides) ? 0 : 1;
+        $stmt->execute([$counterId, $service, $isPrimary, $isOnline ? 1 : 0, $displayOrder++]);
     }
     
     // service_types column has been removed in v2, only counter_service_assignments is used

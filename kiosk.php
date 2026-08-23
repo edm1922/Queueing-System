@@ -29,13 +29,17 @@ try {
     $stmt = $conn->query("SELECT name FROM known_companies ORDER BY name ASC");
     $knownCompanies = $stmt->fetchAll(PDO::FETCH_COLUMN);
 } catch (Exception $e) {}
-$isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
+$isDisplay = isset($_GET['mode']) && ($_GET['mode'] === 'display' || $_GET['mode'] === 'mobile');
+$isMobile = isset($_GET['mode']) && $_GET['mode'] === 'mobile';
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script>
+        (function(){var w=window.innerWidth,ua=navigator.userAgent;var device='desktop';var isTouch='ontouchstart'in window||navigator.maxTouchPoints>0;if(isTouch&&w<768){device='mobile'}else if(isTouch&&w<1024){device='tablet'}else if(isTouch&&w>=1024){device='tablet'}document.documentElement.setAttribute('data-device',device);})();
+    </script>
     <title>Self-Service Kiosk — <?php echo $company_name; ?></title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563eb'><path d='M3 3h18v2H3V3zm0 4h18v2H3V7zm0 4h18v2H3v-2zm0 4h12v2H3v-2zm14 0l3 3-3 3v-6z'/></svg>">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -48,11 +52,25 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
             --kiosk-scale: 1.15;
             --card-min-h: 220px;
             --btn-min-h: 64px;
+            --kiosk-header-h: auto;
+            --kiosk-footer-h: auto;
             <?php else: ?>
             --kiosk-scale: 1;
             --card-min-h: auto;
             --btn-min-h: auto;
+            --kiosk-header-h: auto;
+            --kiosk-footer-h: auto;
             <?php endif; ?>
+        }
+        [data-device="mobile"] {
+            --kiosk-scale: 1;
+            --card-min-h: 140px;
+            --btn-min-h: 52px;
+        }
+        [data-device="tablet"] {
+            --kiosk-scale: 1.05;
+            --card-min-h: 180px;
+            --btn-min-h: 58px;
         }
 
         .service-btn {
@@ -111,24 +129,26 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
         body {
             overflow: hidden;
             background: linear-gradient(160deg, hsl(210 30% 97%) 0%, hsl(215 45% 95%) 100%);
+            height: 100dvh; height: 100vh;
         }
         #kioskContainer {
-            height: 100vh;
+            height: 100dvh; height: 100vh;
             display: flex;
             flex-direction: column;
         }
         .kiosk-main {
             flex: 1;
             display: flex;
-            align-items: center;
-            justify-content: center;
+            flex-direction: column;
             padding: 2rem;
             overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
         }
         .kiosk-main > div {
             width: 100%;
             max-width: 900px;
-            margin: 0 auto;
+            margin: auto;
         }
         #step1 h1 {
             font-size: 2.5rem;
@@ -201,6 +221,7 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
             gap: 2rem;
             background: hsl(210 30% 97% / 0.7);
             backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border-top: 1px solid var(--border);
             z-index: 10;
             pointer-events: none;
@@ -209,22 +230,10 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
             width: 8px; height: 8px; border-radius: 50%; background: var(--success);
             animation: pulse-dot 2s infinite;
         }
-        .display-footer span {
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.15em;
-            color: var(--muted);
-        }
+        .display-footer span { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: var(--muted); }
         .touch-hint {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            z-index: 999;
-            opacity: 0;
-            transition: opacity 0.5s;
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            pointer-events: none; z-index: 999; opacity: 0; transition: opacity 0.5s;
         }
         #fsOverlay {
             position: fixed; inset: 0; z-index: 9999;
@@ -237,21 +246,76 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
         #fsOverlay .fs-icon { font-size: 64px; color: white; margin-bottom: 1.5rem; }
         #fsOverlay .fs-label { color: rgba(255,255,255,0.9); font-size: 1.5rem; font-weight: 700; letter-spacing: 0.05em; }
         #fsOverlay .fs-sublabel { color: rgba(255,255,255,0.5); font-size: 0.9rem; margin-top: 0.5rem; }
-        <?php endif; ?>
+        [data-device="mobile"] #fsOverlay,
+        [data-device="tablet"] #fsOverlay { display: none; }
 
-        @media (max-width: 640px) {
-            <?php if ($isDisplay): ?>
-            .kiosk-main { padding: 1rem; align-items: flex-start; }
-            #step1 h1 { font-size: 1.5rem; }
-            #servicesGrid { grid-template-columns: 1fr; }
-            .service-btn { min-height: 160px; padding: 1.25rem 1.5rem !important; }
-            .service-btn h3 { font-size: 1.3rem !important; }
-            .display-header { flex-direction: column; gap: 0.5rem; padding: 1rem 1rem 0; }
-            .display-header .brand-text .company { font-size: 20px; }
-            #step2 input#customerName { font-size: 1.5rem; }
-            #step3 #queueNumber { font-size: 80px !important; }
-            <?php endif; ?>
+        /* ===== TABLET (768px – 1023px) ===== */
+        @media (max-width: 1023px) {
+            [data-device="tablet"] .kiosk-main,
+            [data-device="mobile"] .kiosk-main { padding: 1.5rem; align-items: flex-start; }
+            [data-device="tablet"] .kiosk-main > div,
+            [data-device="mobile"] .kiosk-main > div { max-width: 100%; }
+            [data-device="tablet"] #servicesGrid,
+            [data-device="mobile"] #servicesGrid { gap: 1rem; }
+            [data-device="tablet"] #step1 h1,
+            [data-device="mobile"] #step1 h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+            [data-device="tablet"] .service-btn,
+            [data-device="mobile"] .service-btn { padding: 1.5rem 1.75rem !important; border-radius: 1rem !important; min-height: 160px; }
+            [data-device="tablet"] .service-btn h3,
+            [data-device="mobile"] .service-btn h3 { font-size: 1.35rem !important; }
+            [data-device="tablet"] .service-btn .desc-text,
+            [data-device="mobile"] .service-btn .desc-text { font-size: 0.9rem !important; }
+            [data-device="tablet"] .display-header,
+            [data-device="mobile"] .display-header { padding: 1rem 1.5rem 0.25rem; gap: 1rem; }
+            [data-device="tablet"] .display-header .brand-text .company,
+            [data-device="mobile"] .display-header .brand-text .company { font-size: 20px; }
+            [data-device="tablet"] #step2,
+            [data-device="mobile"] #step2 { max-width: 400px !important; }
+            [data-device="tablet"] #step2 input#customerName,
+            [data-device="mobile"] #step2 input#customerName { font-size: 1.5rem; padding: 1rem 1.25rem; }
+            [data-device="tablet"] #step2 .btn,
+            [data-device="mobile"] #step2 .btn { font-size: 1rem; }
+            [data-device="tablet"] #step2 h1,
+            [data-device="mobile"] #step2 h1 { font-size: 1.5rem; }
+            [data-device="tablet"] #step2 p,
+            [data-device="mobile"] #step2 p { font-size: 1rem; }
+            [data-device="tablet"] #step3 #queueNumber,
+            [data-device="mobile"] #step3 #queueNumber { font-size: 100px !important; }
+            [data-device="tablet"] #step3 .card,
+            [data-device="mobile"] #step3 .card { padding: 2rem 1.5rem !important; border-radius: 1.5rem !important; }
+            [data-device="tablet"] .display-footer,
+            [data-device="mobile"] .display-footer { padding: 0.75rem 1.5rem; gap: 1.5rem; }
+            [data-device="tablet"] .display-footer span,
+            [data-device="mobile"] .display-footer span { font-size: 10px; }
+            [data-device="tablet"] #step1b,
+            [data-device="mobile"] #step1b { max-width: 100% !important; }
+            [data-device="tablet"] #step1b #groupDisplayGrid,
+            [data-device="mobile"] #step1b #groupDisplayGrid { grid-template-columns: 1fr 1fr; gap: 1rem; }
         }
+
+        /* ===== PHONE (<768px) ===== */
+        @media (max-width: 767px) {
+            [data-device="mobile"] .kiosk-main { padding: 1rem; }
+            [data-device="mobile"] #servicesGrid { grid-template-columns: 1fr; gap: 0.75rem; }
+            [data-device="mobile"] #step1 h1 { font-size: 1.25rem; margin-bottom: 0.25rem; }
+            [data-device="mobile"] .service-btn { min-height: 130px; padding: 1rem 1.25rem !important; }
+            [data-device="mobile"] .service-btn h3 { font-size: 1.15rem !important; }
+            [data-device="mobile"] .display-header { flex-direction: column; gap: 0.25rem; padding: 0.75rem 1rem 0; }
+            [data-device="mobile"] .display-header .brand .logo-box { width: 36px; height: 36px; }
+            [data-device="mobile"] .display-header .brand .logo-box img { width: 24px; height: 24px; }
+            [data-device="mobile"] .display-header .brand-text .company { font-size: 16px; }
+            [data-device="mobile"] .display-header .brand-text .tagline { font-size: 8px; }
+            [data-device="mobile"] #step2 { max-width: 100% !important; }
+            [data-device="mobile"] #step2 .card { padding: 1.25rem !important; }
+            [data-device="mobile"] #step2 input#customerName { font-size: 1.25rem; padding: 0.75rem 1rem; min-height: 48px; }
+            [data-device="mobile"] #step2 .btn { min-height: 48px; font-size: 0.9rem; }
+            [data-device="mobile"] #step3 #queueNumber { font-size: 64px !important; }
+            [data-device="mobile"] #step3 p { font-size: 0.9rem !important; }
+            [data-device="mobile"] .display-footer { padding: 0.5rem 1rem; gap: 1rem; }
+            [data-device="mobile"] .display-footer span { font-size: 9px; }
+            [data-device="mobile"] #step1b #groupDisplayGrid { grid-template-columns: 1fr; }
+        }
+        <?php endif; ?>
     </style>
 </head>
 <body class="min-h-screen flex flex-col" style="background: var(--background);">
@@ -352,32 +416,53 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
             <h1 class="font-extrabold tracking-tight mb-2" id="serviceTitle">Enter Your Details</h1>
             <p class="mb-8" style="color: var(--muted);">Fill in your information to receive a queue ticket</p>
             <div class="card p-8">
-                <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Company (optional)</label>
-                <input type="text" id="companyName" list="companyList" class="touch-input w-full px-6 py-4 text-center rounded-xl mb-4" style="background: var(--background); color: var(--foreground); border: 1px solid var(--border);" placeholder="Enter company name" autocomplete="off" inputmode="text">
-                <datalist id="companyList">
-                    <?php foreach ($knownCompanies as $cname): ?>
-                    <option value="<?php echo htmlspecialchars($cname); ?>">
-                    <?php endforeach; ?>
-                </datalist>
+        <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Tap Your ID Card <span class="text-[9px] font-normal" style="color: var(--muted);">(or type your name)</span></label>
+        <input type="text" id="rfidInput" class="touch-input w-full px-6 py-4 text-center rounded-xl mb-4" style="background: var(--background); color: var(--foreground); border: 1px solid var(--border);" placeholder="Tap your ID card" autocomplete="off">
+        <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Your Name <span style="color:#ef4444;">*</span></label>
+        <div class="autocomplete-wrapper mb-4" style="position:relative;">
+            <input type="text" id="customerName" class="touch-input w-full px-6 py-4 text-center rounded-xl" style="background: var(--background); color: var(--foreground); border: 1px solid var(--border);" placeholder="Type your name to search" autocomplete="off" inputmode="text">
+            <div id="employeeSuggestions" class="hidden" style="position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--card);border:1px solid var(--border);border-radius:0.75rem;max-height:240px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.12);"></div>
+        </div>
 
-                <div id="customDescriptionRow" class="hidden">
-                    <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Describe your concern</label>
-                    <input type="text" id="customDescription" class="touch-input w-full px-6 py-4 text-center rounded-xl mb-4" style="background: var(--background); color: var(--foreground); border: 1px solid var(--primary);" placeholder="e.g. Meeting with Sir Murphy" autocomplete="off" inputmode="text" maxlength="150">
+        <div id="companyRow" class="hidden">
+            <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Company</label>
+            <input type="text" id="companyName" class="touch-input w-full px-6 py-4 text-center rounded-xl mb-4" style="background: var(--background); color: var(--foreground); border: 1px solid var(--border);" readonly placeholder="Auto-detected from employee">
+        </div>
+
+        <div id="customDescriptionRow" class="hidden">
+            <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Describe your concern <span style="color:#ef4444;">*</span></label>
+            <input type="text" id="customDescription" class="touch-input w-full px-6 py-4 text-center rounded-xl mb-4" style="background: var(--background); color: var(--foreground); border: 1px solid var(--primary);" placeholder="e.g. Meeting with Sir Murphy" autocomplete="off" inputmode="text" maxlength="150">
+        </div>
+
+        <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Purpose <span style="color:#ef4444;">*</span></label>
+        <select id="purposeSelect" class="touch-input w-full px-6 py-4 text-center rounded-xl mb-4" style="background: var(--background); color: var(--foreground); border: 1px solid var(--border);">
+            <option value="">-- Select purpose --</option>
+            <option value="inquiry/complain">Inquiry/Complain</option>
+            <option value="follow-up">Follow-up</option>
+            <option value="request">Request</option>
+        </select>
+
+        <div id="remarkRow" class="hidden mt-4">
+            <div id="remarkTextRow">
+                <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Remark <span class="text-[9px] font-normal" style="color: var(--muted);">(optional)</span></label>
+                <input type="text" id="remarkInput" class="touch-input w-full px-6 py-4 text-center rounded-xl" style="background: var(--background); color: var(--foreground); border: 1px solid var(--border);" placeholder="e.g. Follow-up on previous visit" autocomplete="off" inputmode="text" maxlength="255">
+            </div>
+            <div id="remarkPayslipRow" class="hidden">
+                <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Payroll Period <span style="color:#ef4444;">*</span></label>
+                <select id="payrollMonthSelect" class="touch-input w-full px-6 py-4 text-center rounded-xl" style="background: var(--background); color: var(--foreground); border: 1px solid var(--border);"></select>
+                <div class="flex gap-4 mt-3 justify-center">
+                    <label class="flex items-center gap-2 px-5 py-3 rounded-xl cursor-pointer" style="background: var(--background); border: 1px solid var(--border); color: var(--foreground);">
+                        <input type="checkbox" id="payrollHalf1" value="1 - 15" class="w-5 h-5"> <span class="text-base">1 - 15</span>
+                    </label>
+                    <label class="flex items-center gap-2 px-5 py-3 rounded-xl cursor-pointer" style="background: var(--background); border: 1px solid var(--border); color: var(--foreground);">
+                        <input type="checkbox" id="payrollHalf2" value="16 - 31" class="w-5 h-5"> <span class="text-base" id="payrollHalf2Label">16 - 31</span>
+                    </label>
                 </div>
-
-                <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Purpose</label>
-                <select id="purposeSelect" class="touch-input w-full px-6 py-4 text-center rounded-xl mb-4" style="background: var(--background); color: var(--foreground); border: 1px solid var(--border);">
-                    <option value="">-- Select purpose --</option>
-                    <option value="inquiry">Inquiry</option>
-                    <option value="complain">Complain</option>
-                    <option value="follow-up">Follow-up</option>
-                </select>
-
-                <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Your Name</label>
-                <input type="text" id="customerName" class="touch-input w-full px-6 py-4 text-center rounded-xl" style="background: var(--background); color: var(--foreground); border: 1px solid var(--border);" placeholder="Tap here to enter name" autocomplete="off" inputmode="text">
-                <div class="flex gap-4 mt-6">
-                    <button onclick="goBack()" class="btn btn-secondary flex-1 py-4 text-base">Back</button>
-                    <button onclick="submitCustomer()" id="submitBtn" class="btn flex-1 py-4 text-base font-bold" style="background: #059669; color: white;">Get Queue Number</button>
+            </div>
+        </div>
+        <div class="flex gap-4 mt-6">
+            <button onclick="goBack()" class="btn btn-secondary flex-1 py-4 text-base">Back</button>
+            <button onclick="submitCustomer()" id="submitBtn" class="btn flex-1 py-4 text-base font-bold" style="background: #059669; color: white;" disabled>Get Queue Number</button>
                 </div>
             </div>
         </div>
@@ -391,7 +476,10 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
                 <p class="text-lg" style="color: var(--muted);">Service: <span id="serviceName">---</span> &middot; <span id="windowAssigned">Available Window</span></p>
                 <p class="text-base" style="color: var(--muted);"><span id="successCompany"></span><span id="successPurpose"></span></p>
                 <p class="mt-4 text-lg max-w-prose mx-auto" style="color: var(--muted);">Please take a seat. Your number will be called shortly on the public display.</p>
-                <button onclick="resetKiosk()" class="mt-8 px-10 py-4 text-sm font-bold uppercase tracking-widest rounded-xl" style="background: var(--foreground); color: var(--background);">Done</button>
+                <div class="flex gap-4 justify-center mt-8">
+                    <button onclick="resetKiosk()" class="px-10 py-4 text-sm font-bold uppercase tracking-widest rounded-xl" style="background: var(--foreground); color: var(--background);">Done</button>
+                    <button onclick="printTicket()" class="px-10 py-4 text-sm font-bold uppercase tracking-widest rounded-xl" style="background: var(--primary); color: white;"><i class="fas fa-print mr-2"></i>Print Ticket</button>
+                </div>
             </div>
             <div class="text-center mt-6"><p class="text-base" style="color: var(--muted);">Auto-resetting in <span id="countdown">30</span> seconds...</p></div>
         </div>
@@ -439,7 +527,8 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
     <div class="flex items-center justify-between">
         <h2 class="text-[11px] font-bold uppercase tracking-[0.2em]" style="color: var(--muted);">Self-Service Kiosk</h2>
         <div class="flex items-center gap-3">
-            <a href="kiosk.php?mode=display" id="displayModeBtn" class="text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded" style="background: var(--primary); color: white; text-decoration: none; cursor: pointer;"><i class="fas fa-expand-alt mr-1.5"></i>Display Mode</a>
+            <a href="kiosk.php?mode=display" id="displayModeBtn" class="text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded" style="background: var(--primary); color: white; text-decoration: none; cursor: pointer;"><i class="fas fa-expand-alt mr-1.5"></i>Display</a>
+            <a href="kiosk.php?mode=mobile" id="mobileModeBtn" class="text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded" style="background: #059669; color: white; text-decoration: none; cursor: pointer;"><i class="fas fa-mobile-alt mr-1.5"></i>Mobile</a>
             <span class="font-mono text-[10px]" style="color: var(--muted);">TERMINAL: KIOSK-01</span>
         </div>
     </div>
@@ -507,32 +596,53 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
         <h1 class="text-3xl font-extrabold tracking-tight mb-2" id="serviceTitle">Enter Your Details</h1>
         <p class="text-sm mb-8" style="color: var(--muted);">Fill in your information to receive a queue ticket</p>
         <div class="card p-8">
-            <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Company (optional)</label>
-            <input type="text" id="companyName" list="companyList" class="touch-input w-full px-5 py-3 text-lg text-center rounded-xl mb-4" style="background: var(--background); color: var(--foreground); border: 1px solid var(--border);" placeholder="Enter company name" autocomplete="off" inputmode="text">
-            <datalist id="companyList">
-                <?php foreach ($knownCompanies as $cname): ?>
-                <option value="<?php echo htmlspecialchars($cname); ?>">
-                <?php endforeach; ?>
-            </datalist>
+            <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Tap Your ID Card <span class="text-[9px] font-normal" style="color: var(--muted);">(or type your name)</span></label>
+            <input type="text" id="rfidInput" class="touch-input w-full px-5 py-3 text-lg text-center rounded-xl mb-4" style="background: var(--background); color: var(--foreground); border: 1px solid var(--border);" placeholder="Tap your ID card" autocomplete="off">
+            <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Your Name <span style="color:#ef4444;">*</span></label>
+            <div class="autocomplete-wrapper mb-4" style="position:relative;">
+                <input type="text" id="customerName" class="touch-input w-full px-5 py-3 text-lg text-center rounded-xl" style="background: var(--background); color: var(--foreground); border: 1px solid var(--border);" placeholder="Type your name to search" autocomplete="off" inputmode="text">
+                <div id="employeeSuggestions" class="hidden" style="position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--card);border:1px solid var(--border);border-radius:0.75rem;max-height:240px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.12);"></div>
+            </div>
+
+            <div id="companyRow" class="hidden">
+                <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Company</label>
+                <input type="text" id="companyName" class="touch-input w-full px-5 py-3 text-lg text-center rounded-xl mb-4" style="background: var(--background); color: var(--foreground); border: 1px solid var(--border);" readonly placeholder="Auto-detected from employee">
+            </div>
 
             <div id="customDescriptionRow" class="hidden">
-                <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Describe your concern</label>
+                <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Describe your concern <span style="color:#ef4444;">*</span></label>
                 <input type="text" id="customDescription" class="touch-input w-full px-5 py-3 text-lg text-center rounded-xl mb-4" style="background: var(--background); color: var(--foreground); border: 1px solid var(--primary);" placeholder="e.g. Meeting with Sir Murphy" autocomplete="off" inputmode="text" maxlength="150">
             </div>
 
-            <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Purpose</label>
+            <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Purpose <span style="color:#ef4444;">*</span></label>
             <select id="purposeSelect" class="touch-input w-full px-5 py-3 text-lg text-center rounded-xl mb-4" style="background: var(--background); color: var(--foreground); border: 1px solid var(--border);">
                 <option value="">-- Select purpose --</option>
-                <option value="inquiry">Inquiry</option>
-                <option value="complain">Complain</option>
+                <option value="inquiry/complain">Inquiry/Complain</option>
                 <option value="follow-up">Follow-up</option>
+                <option value="request">Request</option>
             </select>
 
-            <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Your Name</label>
-            <input type="text" id="customerName" class="touch-input w-full px-5 py-3 text-lg text-center rounded-xl" style="background: var(--background); color: var(--foreground); border: 1px solid var(--border);" placeholder="Tap here to enter name" autocomplete="off" inputmode="text">
+            <div id="remarkRow" class="hidden mt-4">
+                <div id="remarkTextRow">
+                    <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Remark <span class="text-[9px] font-normal" style="color: var(--muted);">(optional)</span></label>
+                    <input type="text" id="remarkInput" class="touch-input w-full px-5 py-3 text-lg text-center rounded-xl" style="background: var(--background); color: var(--foreground); border: 1px solid var(--border);" placeholder="e.g. Follow-up on previous visit" autocomplete="off" inputmode="text" maxlength="255">
+                </div>
+                <div id="remarkPayslipRow" class="hidden">
+                    <label class="text-xs font-bold uppercase tracking-widest mb-1 block" style="color: var(--muted);">Payroll Period <span style="color:#ef4444;">*</span></label>
+                    <select id="payrollMonthSelect" class="touch-input w-full px-5 py-3 text-lg text-center rounded-xl" style="background: var(--background); color: var(--foreground); border: 1px solid var(--border);"></select>
+                    <div class="flex gap-4 mt-3 justify-center">
+                        <label class="flex items-center gap-2 px-5 py-3 rounded-xl cursor-pointer" style="background: var(--background); border: 1px solid var(--border); color: var(--foreground);">
+                            <input type="checkbox" id="payrollHalf1" value="1 - 15" class="w-5 h-5"> <span class="text-lg">1 - 15</span>
+                        </label>
+                        <label class="flex items-center gap-2 px-5 py-3 rounded-xl cursor-pointer" style="background: var(--background); border: 1px solid var(--border); color: var(--foreground);">
+                            <input type="checkbox" id="payrollHalf2" value="16 - 31" class="w-5 h-5"> <span class="text-lg" id="payrollHalf2Label">16 - 31</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
             <div class="flex gap-4 mt-6">
                 <button onclick="goBack()" class="btn btn-secondary flex-1 py-4 text-base">Back</button>
-                <button onclick="submitCustomer()" id="submitBtn" class="btn flex-1 py-4 text-base font-bold" style="background: #059669; color: white;">Get Queue Number</button>
+                <button onclick="submitCustomer()" id="submitBtn" class="btn flex-1 py-4 text-base font-bold" style="background: #059669; color: white;" disabled>Get Queue Number</button>
             </div>
         </div>
     </div>
@@ -575,12 +685,19 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
     var finalServiceType = null, countdownInterval = null;
     var serviceNames = {<?php foreach ($services as $svc): echo "'" . $svc['code'] . "': '" . addslashes($svc['name']) . "',"; endforeach; ?>};
     var serviceStatuses = { custom: 'active', other: 'active' };
+    var _lastRefreshToken = 0;
+    var _ticketData = {};
 
     async function fetchCounterStatuses() {
         try {
             var res = await fetch('api/get_kiosk_status.php');
             var data = await res.json();
             if (!data.success) return;
+            if (data.force_refresh_token && _lastRefreshToken && data.force_refresh_token !== _lastRefreshToken) {
+                location.reload();
+                return;
+            }
+            if (data.force_refresh_token) _lastRefreshToken = data.force_refresh_token;
             var statusMap = {};
             data.data.counters.forEach(function(c) {
                 c.services.forEach(function(s) {
@@ -591,14 +708,16 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
                     else statusMap[s.service_type].online++;
                 });
             });
-            // Custom uses ALL counters (not just primary)
+            // Custom uses only counters with custom_enabled = 1
             var allOnline = 0, allBreak = 0, allOffline = 0;
             data.data.counters.forEach(function(c) {
+                if (c.custom_enabled != 1) return;
                 if (c.status_text === 'On Break') allBreak++;
                 else if (c.status_text === 'Offline' || c.is_online == 0) allOffline++;
                 else allOnline++;
             });
-            if (allOnline === 0 && allBreak === 0) serviceStatuses.custom = 'offline';
+            if (allOnline + allBreak + allOffline === 0) serviceStatuses.custom = 'offline';
+            else if (allOnline === 0 && allBreak === 0) serviceStatuses.custom = 'offline';
             else if (allBreak > 0 && allOnline === 0) serviceStatuses.custom = 'break';
             else serviceStatuses.custom = 'active';
             for (var code in statusMap) {
@@ -626,7 +745,6 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
             if (status === 'offline') {
                 card.style.opacity = '0.4';
                 card.style.cursor = 'not-allowed';
-                card.style.pointerEvents = 'none';
                 card.style.filter = 'grayscale(1)';
                 var badge = document.createElement('span');
                 badge.className = 'status-badge';
@@ -692,6 +810,9 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
     updateFooterTime();
     fetchCounterStatuses();
     setInterval(fetchCounterStatuses, 10000);
+    window.addEventListener('storage', function(e) {
+        if (e.key === 'cq_settings_updated') location.reload();
+    });
 
     function toggleGroup(gid) {
         var items = document.querySelectorAll('[data-group="' + gid + '"]');
@@ -724,15 +845,18 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
     }
 
     function selectService(code) {
-        if (serviceStatuses[code] === 'offline') return;
         finalServiceType = code;
         document.getElementById('serviceTitle').textContent = 'Service: ' + (serviceNames[code] || code);
         var customRow = document.getElementById('customDescriptionRow');
         if (code === 'custom') {
             if (customRow) customRow.classList.remove('hidden');
             document.getElementById('customDescription').value = '';
+            document.getElementById('remarkRow').classList.add('hidden');
         } else {
             if (customRow) customRow.classList.add('hidden');
+            document.getElementById('remarkRow').classList.remove('hidden');
+            document.getElementById('remarkTextRow').classList.remove('hidden');
+            document.getElementById('remarkPayslipRow').classList.add('hidden');
         }
         var step1b = document.getElementById('step1b');
         if (step1b && !step1b.classList.contains('hidden')) {
@@ -743,7 +867,36 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
             document.getElementById('step1').classList.add('hidden');
         }
         document.getElementById('step2').classList.remove('hidden');
-        setTimeout(function() { document.getElementById('customerName').focus(); }, 300);
+        document.getElementById('submitBtn').disabled = true;
+        document.getElementById('companyName').value = '';
+        document.getElementById('purposeSelect').value = '';
+        document.getElementById('customerName').value = '';
+        if (document.getElementById('rfidInput')) document.getElementById('rfidInput').value = '';
+        document.getElementById('companyRow').classList.add('hidden');
+        document.getElementById('employeeSuggestions').classList.add('hidden');
+        document.getElementById('employeeSuggestions').innerHTML = '';
+        window._selectedEmployeeId = null;
+        setTimeout(function() {
+            var rfidEl = document.getElementById('rfidInput');
+            if (rfidEl) { rfidEl.focus(); } else { document.getElementById('customerName').focus(); }
+        }, 300);
+    }
+
+    function validateForm() {
+        var companyRow = document.getElementById('companyRow');
+        var company = document.getElementById('companyName').value;
+        var purpose = document.getElementById('purposeSelect').value;
+        var name = document.getElementById('customerName').value.trim();
+        var customDesc = document.getElementById('customDescription');
+        var customVal = (customDesc && !customDesc.parentElement.classList.contains('hidden')) ? customDesc.value.trim() : '';
+        var valid = purpose !== '' && name.length >= 2;
+        if (!companyRow.classList.contains('hidden')) valid = valid && company !== '';
+        if (finalServiceType === 'custom') valid = valid && customVal.length >= 2;
+        var payslipRow = document.getElementById('remarkPayslipRow');
+        if (payslipRow && !payslipRow.classList.contains('hidden')) {
+            valid = valid && (document.getElementById('payrollHalf1').checked || document.getElementById('payrollHalf2').checked);
+        }
+        document.getElementById('submitBtn').disabled = !valid;
     }
 
     function goBack() {
@@ -759,6 +912,13 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
         document.getElementById('customerName').value = '';
         document.getElementById('companyName').value = '';
         document.getElementById('purposeSelect').value = '';
+        if (document.getElementById('rfidInput')) document.getElementById('rfidInput').value = '';
+        document.getElementById('companyRow').classList.add('hidden');
+        document.getElementById('employeeSuggestions').classList.add('hidden');
+        document.getElementById('employeeSuggestions').innerHTML = '';
+        window._selectedEmployeeId = null;
+        if (document.getElementById('remarkInput')) document.getElementById('remarkInput').value = '';
+        resetPayrollPeriod();
     }
 
     async function submitCustomer() {
@@ -766,6 +926,10 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
         var company = document.getElementById('companyName').value.trim();
         var purpose = document.getElementById('purposeSelect').value;
         var customDesc = document.getElementById('customDescription') ? document.getElementById('customDescription').value.trim() : '';
+        var payslipRow = document.getElementById('remarkPayslipRow');
+        var remark = payslipRow && !payslipRow.classList.contains('hidden')
+            ? getPayrollRemark()
+            : (document.getElementById('remarkInput') ? document.getElementById('remarkInput').value.trim() : '');
         if (!name || name.length < 2) { alert('Please enter your name (min 2 characters)'); return; }
         var btn = document.getElementById('submitBtn');
         btn.disabled = true;
@@ -773,6 +937,7 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
         try {
             var body = { name: name, service_type: finalServiceType, company_name: company, purpose: purpose };
             if (customDesc) body.custom_description = customDesc;
+            if (remark) body.remark = remark;
             var res = await fetch('api/add_customer.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
             var data = await res.json();
             if (data.success) {
@@ -788,19 +953,79 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
         if (serviceType === 'custom' && customDesc) displayName += ' (' + customDesc + ')';
         document.getElementById('serviceName').textContent = displayName;
         document.getElementById('windowAssigned').textContent = data.assigned_counter || 'Available Window';
+        var customerName = document.getElementById('customerName').value.trim();
         var company = document.getElementById('companyName').value.trim();
         var purpose = document.getElementById('purposeSelect').value;
+        var payslipRow = document.getElementById('remarkPayslipRow');
+        var remark = (payslipRow && !payslipRow.classList.contains('hidden'))
+            ? getPayrollRemark()
+            : (document.getElementById('remarkInput') ? document.getElementById('remarkInput').value.trim() : '');
+        _ticketData = { queueNumber: queueNumber, serviceName: displayName, customerName: customerName, company: company, purpose: purpose, remark: remark, window: data.assigned_counter || 'Available Window', date: new Date().toLocaleString() };
         var companyEl = document.getElementById('successCompany');
         var purposeEl = document.getElementById('successPurpose');
         if (company) { companyEl.textContent = 'Company: ' + company; }
         else { companyEl.textContent = ''; }
         if (purpose) { purposeEl.textContent = (company ? '  \u00b7  ' : '') + 'Purpose: ' + purpose.charAt(0).toUpperCase() + purpose.slice(1); }
         else { purposeEl.textContent = ''; }
+        if (remark) { purposeEl.textContent += (purpose ? '  \u00b7  ' : (company ? '  \u00b7  ' : '')) + 'Remark: ' + remark; }
         document.getElementById('step2').classList.add('hidden');
         document.getElementById('step3').classList.remove('hidden');
         var seconds = 30;
         document.getElementById('countdown').textContent = seconds;
         countdownInterval = setInterval(function() { seconds--; document.getElementById('countdown').textContent = seconds; if (seconds <= 0) resetKiosk(); }, 1000);
+    }
+
+    function printTicket() {
+        var d = _ticketData;
+        if (!d.queueNumber) return;
+        var companyName = '<?php echo addslashes($company_name); ?>';
+        var branchName = '<?php echo addslashes($branch_name); ?>';
+        var w = window.open('', '_blank', 'width=400,height=600');
+        var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Ticket</title>' +
+            '<style>' +
+            '@page{margin:0;size:80mm auto;}' +
+            'body{margin:0;padding:8px 6px;width:72mm;font-family:"Courier New",monospace;font-size:13px;color:#111;text-align:center;}' +
+            '.header{font-size:16px;font-weight:700;margin-bottom:2px;}' +
+            '.branch{font-size:10px;color:#555;margin-bottom:10px;}' +
+            '.divider{border-top:1px dashed #555;margin:10px 0;}' +
+            '.ticket-no{font-size:40px;font-weight:900;letter-spacing:2px;margin:6px 0;}' +
+            '.label{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#777;margin-top:6px;}' +
+            '.value{font-size:14px;font-weight:700;margin-bottom:3px;}' +
+            '.footer{font-size:9px;color:#777;margin-top:12px;}' +
+            '.auto-close-note{font-size:8px;color:#aaa;margin-top:10px;}' +
+            '@media print{body{padding:0;}.auto-close-note{display:none;}}' +
+            '</style></head><body>' +
+            '<div class="header">' + companyName + '</div>' +
+            (branchName ? '<div class="branch">' + branchName + '</div>' : '') +
+            '<div class="divider"></div>' +
+            '<div class="label">Queue Number</div>' +
+            '<div class="ticket-no">' + d.queueNumber + '</div>' +
+            '<div class="divider"></div>' +
+            '<div class="label">Service</div>' +
+            '<div class="value">' + d.serviceName + '</div>' +
+            (d.customerName ? '<div class="label">Customer</div><div class="value">' + d.customerName + '</div>' : '') +
+            (d.company ? '<div class="label">Company</div><div class="value">' + d.company + '</div>' : '') +
+            (d.purpose ? '<div class="label">Purpose</div><div class="value">' + d.purpose.charAt(0).toUpperCase() + d.purpose.slice(1) + '</div>' : '') +
+            (d.remark ? '<div class="label">Remark</div><div class="value">' + d.remark + '</div>' : '') +
+            '<div class="label">Assigned Window</div>' +
+            '<div class="value">' + d.window + '</div>' +
+            '<div class="divider"></div>' +
+            '<div class="label">Date &amp; Time</div>' +
+            '<div class="value" style="font-size:13px;">' + d.date + '</div>' +
+            '<div class="divider"></div>' +
+            '<div class="footer">Please wait for your number to be called.</div>' +
+            '<div class="auto-close-note">This window will close automatically in 15 seconds.</div>' +
+            '<script>' +
+            'var printTimer = setTimeout(function(){ try { window.close(); } catch(e) {} }, 15000);' +
+            'window.onafterprint = function(){ clearTimeout(printTimer); try { window.close(); } catch(e) {} };' +
+            '<\/script>' +
+            '</body></html>';
+        w.document.write(html);
+        w.document.close();
+        w.focus();
+        setTimeout(function() {
+            try { w.print(); } catch (e) {}
+        }, 300);
     }
 
     function resetKiosk() {
@@ -813,11 +1038,201 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
         document.getElementById('customerName').value = '';
         document.getElementById('companyName').value = '';
         document.getElementById('purposeSelect').value = '';
+        if (document.getElementById('rfidInput')) document.getElementById('rfidInput').value = '';
+        document.getElementById('companyRow').classList.add('hidden');
+        document.getElementById('employeeSuggestions').classList.add('hidden');
+        document.getElementById('employeeSuggestions').innerHTML = '';
+        window._selectedEmployeeId = null;
         if (document.getElementById('customDescription')) document.getElementById('customDescription').value = '';
-        document.getElementById('submitBtn').disabled = false;
+        if (document.getElementById('remarkInput')) document.getElementById('remarkInput').value = '';
+        resetPayrollPeriod();
+        document.getElementById('remarkTextRow').classList.remove('hidden');
+        document.getElementById('remarkPayslipRow').classList.add('hidden');
+        document.getElementById('remarkRow').classList.add('hidden');
+        document.getElementById('submitBtn').disabled = true;
         document.getElementById('submitBtn').innerHTML = 'Get Queue Number';
         finalServiceType = null;
         fetchCounterStatuses();
+    }
+
+    var MONTH_NAMES = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+
+    function initPayrollPeriod() {
+        var monthSel = document.getElementById('payrollMonthSelect');
+        if (!monthSel) return;
+        var now = new Date();
+        var year = now.getFullYear();
+        monthSel.innerHTML = '';
+        for (var m = 1; m <= 12; m++) {
+            var opt = document.createElement('option');
+            opt.value = m;
+            opt.textContent = MONTH_NAMES[m - 1];
+            monthSel.appendChild(opt);
+        }
+        monthSel.value = now.getMonth() + 1;
+        updatePayrollHalfLabels();
+    }
+
+    function updatePayrollHalfLabels() {
+        var monthSel = document.getElementById('payrollMonthSelect');
+        var h2 = document.getElementById('payrollHalf2');
+        if (!monthSel || !h2) return;
+        var monthNum = parseInt(monthSel.value, 10);
+        if (!monthNum) return;
+        var lastDay = new Date(new Date().getFullYear(), monthNum, 0).getDate();
+        var label = '16 - ' + lastDay;
+        h2.value = label;
+        var labelEl = document.getElementById('payrollHalf2Label');
+        if (labelEl) labelEl.textContent = label;
+        validateForm();
+    }
+
+    function getPayrollRemark() {
+        var monthSel = document.getElementById('payrollMonthSelect');
+        var monthNum = monthSel ? parseInt(monthSel.value, 10) : 0;
+        if (!monthNum) return '';
+        var parts = [];
+        if (document.getElementById('payrollHalf1').checked) parts.push('1 - 15');
+        if (document.getElementById('payrollHalf2').checked) parts.push(document.getElementById('payrollHalf2').value);
+        if (!parts.length) return '';
+        return MONTH_NAMES[monthNum - 1] + ' ' + parts.join(', ');
+    }
+
+    function resetPayrollPeriod() {
+        var monthSel = document.getElementById('payrollMonthSelect');
+        if (monthSel) {
+            monthSel.value = new Date().getMonth() + 1;
+            updatePayrollHalfLabels();
+        }
+        var h1 = document.getElementById('payrollHalf1');
+        var h2 = document.getElementById('payrollHalf2');
+        if (h1) h1.checked = false;
+        if (h2) h2.checked = false;
+    }
+
+    initPayrollPeriod();
+
+    document.getElementById('purposeSelect').addEventListener('change', validateForm);
+    document.getElementById('customerName').addEventListener('input', validateForm);
+    document.getElementById('customerName').addEventListener('input', searchEmployee);
+    document.getElementById('customerName').addEventListener('blur', function() {
+        setTimeout(function() {
+            document.getElementById('employeeSuggestions').classList.add('hidden');
+        }, 200);
+    });
+    var _payrollMonthEl = document.getElementById('payrollMonthSelect');
+    if (_payrollMonthEl) _payrollMonthEl.addEventListener('change', updatePayrollHalfLabels);
+    var _payrollHalf1El = document.getElementById('payrollHalf1');
+    if (_payrollHalf1El) _payrollHalf1El.addEventListener('change', validateForm);
+    var _payrollHalf2El = document.getElementById('payrollHalf2');
+    if (_payrollHalf2El) _payrollHalf2El.addEventListener('change', validateForm);
+    var _customDescEl = document.getElementById('customDescription');
+    if (_customDescEl) _customDescEl.addEventListener('input', validateForm);
+
+    function handleRfidScan() {
+        var rfidInput = document.getElementById('rfidInput');
+        if (!rfidInput) return;
+        var rfid = rfidInput.value.trim();
+        if (!rfid) return;
+        rfidInput.value = '';
+        fetch('api/employee_lookup.php?action=rfid&rfid=' + encodeURIComponent(rfid))
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success && data.data) {
+                    var emp = data.data;
+                    selectEmployee(emp.employee_id, emp.full_name, emp.company || '');
+                    var purposeSel = document.getElementById('purposeSelect');
+                    if (purposeSel) purposeSel.focus();
+                } else {
+                    alert(data.message || 'ID not found. Please type your name.');
+                    rfidInput.focus();
+                }
+            })
+            .catch(function() {
+                alert('Server unavailable. Please type your name.');
+                rfidInput.focus();
+            });
+    }
+
+    var _rfidInputEl = document.getElementById('rfidInput');
+    if (_rfidInputEl) _rfidInputEl.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleRfidScan();
+        }
+    });
+
+    // Employee autocomplete
+    var _searchTimer = null;
+    function searchEmployee() {
+        clearTimeout(_searchTimer);
+        var q = document.getElementById('customerName').value.trim();
+        var list = document.getElementById('employeeSuggestions');
+        if (q.length < 2) {
+            list.classList.add('hidden');
+            list.innerHTML = '';
+            return;
+        }
+        _searchTimer = setTimeout(function() {
+            fetch('api/employee_lookup.php?action=search&q=' + encodeURIComponent(q))
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    list.innerHTML = '';
+                    if (!data.success || !data.data || data.data.length === 0) {
+                        list.classList.add('hidden');
+                        return;
+                    }
+                    data.data.forEach(function(emp) {
+                        var item = document.createElement('div');
+                        item.className = 'employee-suggestion';
+                        item.setAttribute('data-id', emp.employee_id);
+                        item.setAttribute('data-company', emp.company || '');
+                        item.innerHTML = '<div class="px-5 py-3 border-b cursor-pointer hover:bg-gray-50 transition-colors" style="border-color:var(--border);">' +
+                            '<div class="font-semibold text-sm">' + escapeHtml(emp.full_name) + '</div>' +
+                            '<div class="text-xs" style="color:var(--muted);">' + escapeHtml(emp.company || 'No company on record') + '</div>' +
+                            '</div>';
+                        item.addEventListener('click', function(e) {
+                            var el = e.currentTarget;
+                            selectEmployee(el.getAttribute('data-id'), el.querySelector('.font-semibold').textContent, el.getAttribute('data-company'));
+                        });
+                        list.appendChild(item);
+                    });
+                    list.classList.remove('hidden');
+                })
+                .catch(function() {
+                    list.classList.add('hidden');
+                    list.innerHTML = '';
+                });
+        }, 250);
+    }
+
+    function selectEmployee(id, name, company) {
+        document.getElementById('customerName').value = name;
+        document.getElementById('companyName').value = company;
+        document.getElementById('employeeSuggestions').classList.add('hidden');
+        document.getElementById('employeeSuggestions').innerHTML = '';
+        window._selectedEmployeeId = id;
+        var row = document.getElementById('companyRow');
+        if (company) {
+            row.classList.remove('hidden');
+        } else {
+            row.classList.add('hidden');
+        }
+        if (finalServiceType === 'payslip' && company.toUpperCase() === 'GENERAL TUNA CORPORATION') {
+            document.getElementById('remarkTextRow').classList.add('hidden');
+            document.getElementById('remarkPayslipRow').classList.remove('hidden');
+            resetPayrollPeriod();
+        } else {
+            document.getElementById('remarkTextRow').classList.remove('hidden');
+            document.getElementById('remarkPayslipRow').classList.add('hidden');
+        }
+        validateForm();
+    }
+
+    function escapeHtml(str) {
+        var div = document.createElement('div');
+        div.textContent = str || '';
+        return div.innerHTML;
     }
 
     document.addEventListener('keydown', function(e) {
@@ -841,13 +1256,47 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
         window.location.href = 'kiosk.php?mode=display';
     }
 
-    document.getElementById('displayModeBtn').addEventListener('click', function(e) {
-        e.preventDefault();
-        navigateDisplayMode();
-    });
+    function navigateMobileMode() {
+        window.location.href = 'kiosk.php?mode=mobile';
+    }
+
+    var displayBtn = document.getElementById('displayModeBtn');
+    if (displayBtn) displayBtn.addEventListener('click', function(e) { e.preventDefault(); navigateDisplayMode(); });
+    var mobileBtn = document.getElementById('mobileModeBtn');
+    if (mobileBtn) mobileBtn.addEventListener('click', function(e) { e.preventDefault(); navigateMobileMode(); });
+
+    // Device/orientation detection
+    function detectDevice() {
+        var w = window.innerWidth;
+        var ua = navigator.userAgent;
+        var isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        var device = 'desktop';
+        if (isTouch && w < 768) { device = 'mobile'; }
+        else if (isTouch && w < 1024) { device = 'tablet'; }
+        else if (isTouch && w >= 1024) { device = 'tablet'; }
+        document.documentElement.setAttribute('data-device', device);
+        document.documentElement.setAttribute('data-orientation', screen.orientation ? screen.orientation.type.split('-')[0] : (w > window.innerHeight ? 'landscape' : 'portrait'));
+    }
+    detectDevice();
+    window.addEventListener('resize', detectDevice);
+    if (screen.orientation) {
+        screen.orientation.addEventListener('change', function() {
+            setTimeout(detectDevice, 300);
+        });
+    }
 
     // Fullscreen overlay handler (display mode only)
     <?php if ($isDisplay): ?>
+    <?php if ($isMobile): ?>
+    // Mobile mode: auto fullscreen, skip overlay
+    (function() {
+        var el = document.documentElement;
+        var fs = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+        if (fs) { setTimeout(function() { fs.call(el)['catch'](function(){}); }, 500); }
+        var overlay = document.getElementById('fsOverlay');
+        if (overlay) overlay.classList.add('hidden-fs');
+    })();
+    <?php else: ?>
     function enterFullscreen() {
         var el = document.documentElement;
         var fs = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
@@ -857,6 +1306,7 @@ $isDisplay = isset($_GET['mode']) && $_GET['mode'] === 'display';
         var overlay = document.getElementById('fsOverlay');
         if (overlay) overlay.classList.add('hidden-fs');
     }
+    <?php endif; ?>
     <?php endif; ?>
 
     // Touch ripple effect

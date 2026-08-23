@@ -118,7 +118,7 @@ CREATE TABLE `service_types` (
   `name` varchar(50) NOT NULL,
   `code` varchar(20) NOT NULL,
   `description` varchar(255) DEFAULT NULL,
-  `queue_prefix` char(1) NOT NULL,
+  `queue_prefix` varchar(3) NOT NULL,
   `is_active` tinyint(1) DEFAULT 1,
   `group_id` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -133,23 +133,24 @@ INSERT INTO `service_types` (`name`, `code`, `description`, `queue_prefix`) VALU
 ('ID Renewal', 'id_renewal', 'ID card renewal, updates, replacements', 'R'),
 ('ATM Claim', 'atm_renewal', 'ATM card renewal, PIN issues, replacements', 'R'),
 ('Other', 'other', 'General inquiries and other services', 'O'),
-('Custom', 'custom', 'Custom inquiry or concern', 'C');
+('Custom', 'custom', 'Custom inquiry or concern', 'CS');
 
 -- --------------------------------------------------------
 -- Queue sequences for atomic queue number generation
 -- --------------------------------------------------------
 
 CREATE TABLE `queue_sequences` (
-  `prefix` char(1) NOT NULL,
+  `prefix` varchar(3) NOT NULL,
   `current_value` int(11) NOT NULL DEFAULT 0,
+  `queue_date` date NOT NULL,
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`prefix`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-INSERT INTO `queue_sequences` (`prefix`, `current_value`) VALUES
-('I', 0),
-('R', 0),
-('O', 0);
+INSERT INTO `queue_sequences` (`prefix`, `current_value`, `queue_date`) VALUES
+('I', 0, CURDATE()),
+('R', 0, CURDATE()),
+('O', 0, CURDATE());
 
 -- --------------------------------------------------------
 -- Counters (Windows) table
@@ -159,6 +160,8 @@ CREATE TABLE `counters` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(50) NOT NULL,
   `display_name` varchar(50) DEFAULT NULL,
+  `description` varchar(200) DEFAULT NULL,
+  `custom_enabled` tinyint(1) NOT NULL DEFAULT 1,
   `window_number` int(11) DEFAULT NULL,
   `is_online` tinyint(1) DEFAULT 1,
   `status_text` varchar(20) DEFAULT 'Online',
@@ -208,11 +211,12 @@ INSERT INTO `counter_service_assignments` (`counter_id`, `service_type`, `is_pri
 CREATE TABLE `customers` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `queue_number` varchar(20) NOT NULL,
+  `queue_date` date NOT NULL,
   `name` varchar(100) NOT NULL,
   `service_type` varchar(50) NOT NULL,
   `company_name` varchar(255) DEFAULT NULL,
-  `purpose` enum('inquiry','complain','follow-up') DEFAULT NULL,
-  `status` enum('waiting','serving','completed','cancelled') DEFAULT 'waiting',
+  `purpose` varchar(50) DEFAULT NULL,
+  `status` enum('waiting','serving','completed','cancelled','skipped','no-show') DEFAULT 'waiting',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `called_at` timestamp NULL DEFAULT NULL,
   `served_at` timestamp NULL DEFAULT NULL,
@@ -222,15 +226,24 @@ CREATE TABLE `customers` (
   `counter_id` int(11) DEFAULT NULL,
   `is_redistributed` tinyint(1) DEFAULT 0,
   `is_follow_up` tinyint(1) DEFAULT 0,
+  `follow_up_marked_by` int(11) DEFAULT NULL,
+  `follow_up_completed_by` int(11) DEFAULT NULL,
+  `follow_up_resolved_at` timestamp NULL DEFAULT NULL,
+  `follow_up_rejected_at` timestamp NULL DEFAULT NULL,
   `remark` text DEFAULT NULL,
   `custom_description` varchar(255) DEFAULT NULL,
+  `forwarded_to_counter_id` int(11) DEFAULT NULL,
+  `forwarded_by_user_id` int(11) DEFAULT NULL,
+  `forward_remark` text DEFAULT NULL,
+  `forwarded_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `queue_number` (`queue_number`),
+  UNIQUE KEY `uq_queue_number_date` (`queue_number`, `queue_date`),
   KEY `idx_status` (`status`),
   KEY `idx_service_type` (`service_type`),
   KEY `idx_created_at` (`created_at`),
   KEY `idx_status_created` (`status`, `created_at`),
-  KEY `idx_status_service` (`status`, `service_type`)
+  KEY `idx_status_service` (`status`, `service_type`),
+  KEY `idx_follow_up_marked_by` (`follow_up_marked_by`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -261,6 +274,7 @@ CREATE TABLE `display_settings` (
   `active_announcement` text DEFAULT NULL,
   `company_logo` varchar(255) DEFAULT NULL,
   `theme_color` varchar(20) DEFAULT '#1e3a5f',
+  `force_refresh_token` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -280,6 +294,7 @@ CREATE TABLE `display_announcements` (
   `priority` int(11) DEFAULT 0,
   `is_active` tinyint(1) DEFAULT 1,
   `is_preset` tinyint(1) DEFAULT 0,
+  `counter_id` int(11) DEFAULT NULL,
   `starts_at` timestamp NULL DEFAULT NULL,
   `expires_at` timestamp NULL DEFAULT NULL,
   `display_duration` int(11) DEFAULT 10,

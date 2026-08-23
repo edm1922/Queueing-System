@@ -49,16 +49,44 @@ try {
         $stmt->execute([$customer['service_type']]);
         $availableCounter = $stmt->fetch(PDO::FETCH_ASSOC);
         $counterId = $availableCounter ? $availableCounter['counter_id'] : null;
+    } else if ($customer['service_type'] === 'custom') {
+        $stmt = $conn->prepare("SELECT custom_enabled FROM counters WHERE id = ?");
+        $stmt->execute([$counterId]);
+        $counter = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$counter || $counter['custom_enabled'] != 1) {
+            throw new Exception('Custom tickets are not enabled for this window');
+        }
+    } else {
+        $stmt = $conn->prepare("
+            SELECT id FROM counter_service_assignments 
+            WHERE counter_id = ? AND service_type = ? AND is_active = 1
+        ");
+        $stmt->execute([$counterId, $customer['service_type']]);
+        if (!$stmt->fetch()) {
+            throw new Exception('This window is not assigned to the service ' . $customer['service_type']);
+        }
     }
     
     if (!$counterId) {
-        $stmt = $conn->query("SELECT id as counter_id FROM counters WHERE is_online = 1 LIMIT 1");
+        if ($customer['service_type'] === 'custom') {
+            $stmt = $conn->prepare("SELECT id as counter_id FROM counters WHERE is_online = 1 AND custom_enabled = 1 LIMIT 1");
+        } else {
+            $stmt = $conn->query("SELECT id as counter_id FROM counters WHERE is_online = 1 LIMIT 1");
+        }
         $anyCounter = $stmt->fetch(PDO::FETCH_ASSOC);
         $counterId = $anyCounter ? $anyCounter['counter_id'] : null;
     }
     
     if (!$counterId) {
         throw new Exception('No counter is currently online');
+    }
+    
+    // Verify the target counter is actually online
+    $stmt = $conn->prepare("SELECT is_online, status_text FROM counters WHERE id = ?");
+    $stmt->execute([$counterId]);
+    $counterRow = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$counterRow || !$counterRow['is_online'] || $counterRow['status_text'] !== 'Online') {
+        throw new Exception('Cannot call a customer — window is not online. Set status to Online first.');
     }
     
     $now = date('Y-m-d H:i:s');

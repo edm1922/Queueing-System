@@ -115,7 +115,7 @@ try {
         $conn->beginTransaction();
         $stmt = $conn->prepare("INSERT INTO service_types (name, code, description, queue_prefix, is_active) VALUES (?, ?, ?, ?, 1)");
         $stmt->execute([$name, $code, '', $prefix]);
-        $stmt = $conn->prepare("INSERT INTO queue_sequences (prefix, current_value) VALUES (?, 0) ON DUPLICATE KEY UPDATE prefix = prefix");
+        $stmt = $conn->prepare("INSERT INTO queue_sequences (prefix, current_value, queue_date) VALUES (?, 0, CURDATE()) ON DUPLICATE KEY UPDATE prefix = prefix");
         $stmt->execute([$prefix]);
         $conn->commit();
 
@@ -162,7 +162,7 @@ try {
             $stmt->execute([$newCode, $oldCode]);
         }
 
-        $stmt = $conn->prepare("INSERT INTO queue_sequences (prefix, current_value) VALUES (?, 0) ON DUPLICATE KEY UPDATE prefix = prefix");
+        $stmt = $conn->prepare("INSERT INTO queue_sequences (prefix, current_value, queue_date) VALUES (?, 0, CURDATE()) ON DUPLICATE KEY UPDATE prefix = prefix");
         $stmt->execute([$prefix]);
         $conn->commit();
         echo json_encode(['success' => true, 'message' => 'Service updated']);

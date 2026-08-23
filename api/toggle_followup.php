@@ -8,7 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-requireRole(['admin', 'supervisor', 'staff']);
+$user = requireRole(['admin', 'supervisor', 'staff']);
 
 try {
     $input = file_get_contents('php://input');
@@ -38,10 +38,11 @@ try {
             SET status = 'completed', 
                 completed_at = ?,
                 service_duration = TIMESTAMPDIFF(SECOND, served_at, ?),
-                is_follow_up = 1
+                is_follow_up = 1,
+                follow_up_marked_by = ?
             WHERE id = ?
         ");
-        $stmt->execute([$now, $now, $customerId]);
+        $stmt->execute([$now, $now, $user['id'], $customerId]);
 
         $stmt = $conn->prepare("UPDATE counters SET current_customer_id = NULL WHERE current_customer_id = ?");
         $stmt->execute([$customerId]);
@@ -62,13 +63,21 @@ try {
 
         $conn->commit();
         echo json_encode(['success' => true, 'is_follow_up' => 1, 'message' => 'Ticket completed and marked as follow-up']);
-    } else {
-        $stmt = $conn->prepare("UPDATE customers SET is_follow_up = ? WHERE id = ?");
-        $stmt->execute([$newVal, $customerId]);
+    } else if ($newVal) {
+        $stmt = $conn->prepare("UPDATE customers SET is_follow_up = 1, follow_up_marked_by = ? WHERE id = ?");
+        $stmt->execute([$user['id'], $customerId]);
         echo json_encode([
             'success' => true,
-            'is_follow_up' => $newVal,
-            'message' => $newVal ? 'Marked as follow-up' : 'Removed follow-up mark'
+            'is_follow_up' => 1,
+            'message' => 'Marked as follow-up'
+        ]);
+    } else {
+        $stmt = $conn->prepare("UPDATE customers SET is_follow_up = 0 WHERE id = ?");
+        $stmt->execute([$customerId]);
+        echo json_encode([
+            'success' => true,
+            'is_follow_up' => 0,
+            'message' => 'Removed follow-up mark'
         ]);
     }
 

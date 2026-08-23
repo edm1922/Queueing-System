@@ -1,5 +1,5 @@
 <?php include 'config.php';
-$user = requireAuth();
+$user = requireRole(['admin']);
 if (!$user) { header('Location: login.php'); exit; }
 try { $db = new Database(); $conn = $db->getConnection(); $s = $conn->query("SELECT * FROM display_settings LIMIT 1")->fetch(PDO::FETCH_ASSOC); } catch (Exception $e) { $s = []; }
 $company_name = htmlspecialchars($s['company_name'] ?? 'Service Center');
@@ -84,102 +84,91 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
                 <h2 class="text-xs font-bold uppercase tracking-widest mb-4" style="color: var(--muted);">Queue Settings</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div><label class="label-md block mb-1.5">Cut-off Time</label><input type="time" id="cutoffTime" class="input-field"></div>
-                    <div><label class="label-md block mb-1.5">Welcome Message</label><input type="text" id="welcomeMessage" class="input-field" placeholder="Welcome! Please have your queue ticket ready."></div>
+                </div>
+            </div>
+
+            <div class="card p-6 animate-entry" style="animation-delay: 95ms;">
+                <h2 class="text-xs font-bold uppercase tracking-widest mb-4" style="color: var(--muted);">Known Companies</h2>
+                <p class="text-[11px] mb-4" style="color: var(--muted);">Pre-listed company names shown as suggestions in the kiosk.</p>
+                <div class="flex items-center gap-3 mb-4">
+                    <input type="text" id="companyInput" class="input-field" placeholder="Enter company name" style="flex:1;">
+                    <button type="button" onclick="addCompany()" class="btn btn-primary whitespace-nowrap"><i class="fas fa-plus-circle mr-1"></i> Add</button>
+                </div>
+                <div id="companyList" class="space-y-2">
+                    <div class="text-center py-4 text-sm" style="color: var(--muted);">Loading...</div>
                 </div>
             </div>
 
             <div class="card p-6 animate-entry" style="animation-delay: 100ms;">
-                <h2 class="text-xs font-bold uppercase tracking-widest mb-4" style="color: var(--muted);">Media Panel</h2>
-                <p class="text-[11px] mb-4" style="color: var(--muted);">Configure the YouTube video shown on the Live Display. Changes take effect on page reload.</p>
-
-                <h3 class="text-[10px] font-bold uppercase tracking-wider mb-3" style="color: var(--brand-gold);">YouTube Video</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div><label class="label-md block mb-1.5">YouTube Video ID</label><input type="text" id="videoUrl" class="input-field" placeholder="e.g. aqz-KE-bpKQ"></div>
-                    <div><label class="label-md block mb-1.5">Video Type</label><select id="videoType" class="input-field"><option value="youtube">YouTube</option><option value="none">None</option></select></div>
-                    <div><label class="label-md block mb-1.5">Title</label><input type="text" id="videoTitle" class="input-field" placeholder="Citizen Services Overview"></div>
-                    <div><label class="label-md block mb-1.5">Sponsor</label><input type="text" id="videoSponsor" class="input-field" placeholder="Public Affairs Office"></div>
-                    <div class="md:col-span-2"><label class="label-md block mb-1.5">Call-to-action (optional)</label><input type="text" id="videoCta" class="input-field" placeholder=""></div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <h2 class="text-xs font-bold uppercase tracking-widest mb-4" style="color: var(--muted);">Display Appearance</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label class="label-md block mb-1.5">Media Volume</label>
+                        <label class="label-md block mb-1.5">Accent Color</label>
                         <div class="flex items-center gap-3">
-                            <i class="fas fa-volume-down text-sm" style="color: var(--muted);"></i>
-                            <input type="range" id="videoVolume" min="0" max="100" value="50" class="flex-1" style="accent-color: var(--brand-gold);">
-                            <span id="volumeDisplay" class="font-mono text-xs tabular-nums" style="color: var(--muted);">50%</span>
+                            <input type="color" id="themeColor" class="input-field h-10 p-1" value="#2563eb">
+                            <span id="themeColorLabel" class="font-mono text-xs" style="color: var(--muted);">#2563eb</span>
                         </div>
-                        <p class="text-[10px] mt-1" style="color: var(--muted);">Ducks to ~15% when a number is called</p>
+                        <p class="text-[10px] mt-1" style="color: var(--muted);">Used for badges, highlights, and UI accents on the public display.</p>
                     </div>
                 </div>
             </div>
 
-            <div class="card p-6 animate-entry" style="animation-delay: 110ms;">
-                <h2 class="text-xs font-bold uppercase tracking-widest mb-4" style="color: var(--muted);">Poster Display</h2>
-                <p class="text-[11px] mb-4" style="color: var(--muted);">Posters appear in the right panel of the Live Display.</p>
+            <div class="card p-6 animate-entry" style="animation-delay: 120ms;">
+                <h2 class="text-xs font-bold uppercase tracking-widest mb-4" style="color: var(--muted);">Screen Management</h2>
+                <p class="text-[11px] mb-4" style="color: var(--muted);">Force a hard reload on all open screens (display, kiosk, window portals).</p>
+                <button type="button" onclick="refreshAllScreens()" id="refreshAllBtn" class="btn btn-primary">
+                    <i class="fas fa-sync-alt mr-2"></i>Refresh All Screens
+                </button>
+            </div>
 
-                <div class="mb-5 max-w-xs">
-                    <label class="label-md block mb-1.5">Display Duration</label>
-                    <select id="posterDuration" class="input-field">
-                        <option value="5">5 seconds</option>
-                        <option value="10" selected>10 seconds</option>
-                        <option value="15">15 seconds</option>
-                        <option value="30">30 seconds</option>
-                    </select>
+            <div class="card p-6 animate-entry" style="animation-delay: 130ms;">
+                <h2 class="text-xs font-bold uppercase tracking-widest mb-4" style="color: var(--muted);">Announcements</h2>
+                <p class="text-[11px] mb-4" style="color: var(--muted);">Announcements scroll in the bottom panel of the public display.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label class="label-md block mb-1.5">Title <span class="text-[9px]" style="color: var(--muted);">(optional)</span></label>
+                        <input type="text" id="annTitle" class="input-field" placeholder="e.g. Holiday Schedule">
+                    </div>
+                    <div>
+                        <label class="label-md block mb-1.5">Type</label>
+                        <select id="annType" class="input-field">
+                            <option value="info">Info</option>
+                            <option value="warning">Warning</option>
+                            <option value="urgent">Urgent</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label-md block mb-1.5">Priority</label>
+                        <select id="annPriority" class="input-field">
+                            <option value="0">Normal</option>
+                            <option value="5">High</option>
+                            <option value="10">Urgent</option>
+                        </select>
+                    </div>
                 </div>
+                <div class="mb-3">
+                    <label class="label-md block mb-1.5">Message</label>
+                    <textarea id="annMessage" class="input-field" rows="2" placeholder="Enter announcement message..."></textarea>
+                </div>
+                <div class="flex items-center gap-3 mb-5">
+                    <button type="button" onclick="addAnnouncement()" class="btn btn-primary"><i class="fas fa-plus-circle mr-1"></i> Add Announcement</button>
+                </div>
+
+                <div class="h-px my-4" style="background: var(--border);"></div>
 
                 <div>
-                    <label class="label-md block mb-2">Poster Images</label>
-                    <div class="flex items-center gap-3 mb-3">
-                        <input type="file" id="posterUpload" class="input-field" multiple accept="image/*">
-                        <button type="button" onclick="uploadPosters()" class="btn btn-primary whitespace-nowrap"><i class="fas fa-upload mr-1"></i> Upload</button>
-                    </div>
-                    <p class="text-[10px] mb-3" style="color: var(--muted);">Supported: JPG, PNG, GIF, WebP.</p>
-                    <div id="posterGallery" class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <!-- Injected by JS -->
+                    <label class="label-md block mb-3">Active Announcements</label>
+                    <div id="announcementList" class="space-y-2">
+                        <div class="text-center py-6 text-sm" style="color: var(--muted);">No announcements</div>
                     </div>
                 </div>
+            </div>
 
-                <div class="h-px my-5" style="background: var(--border);"></div>
-
-                <div>
-                    <label class="label-md block mb-3">Announcement Posters</label>
-                    <p class="text-[10px] mb-3" style="color: var(--muted);">Create text-based announcement posters that rotate alongside image posters.</p>
-                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
-                        <div class="md:col-span-2">
-                            <label class="label-md block mb-1.5">Title</label>
-                            <input type="text" id="annPosterTitle" class="input-field" placeholder="e.g. Holiday Schedule">
-                        </div>
-                        <div>
-                            <label class="label-md block mb-1.5">Background</label>
-                            <input type="color" id="annPosterBg" class="input-field h-10 p-1" value="#1e3a5f">
-                        </div>
-                        <div>
-                            <label class="label-md block mb-1.5">Text Color</label>
-                            <input type="color" id="annPosterFg" class="input-field h-10 p-1" value="#ffffff">
-                        </div>
-                        <div>
-                            <label class="label-md block mb-1.5">Text Size</label>
-                            <select id="annPosterTextSize" class="input-field">
-                                <option value="sm">Small</option>
-                                <option value="md" selected>Medium</option>
-                                <option value="lg">Large</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="mb-4">
-                        <label class="label-md block mb-1.5">Body Message</label>
-                        <textarea id="annPosterBody" class="input-field" rows="3" placeholder="Enter the announcement message..."></textarea>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <button type="button" onclick="addAnnouncementPoster()" class="btn btn-primary"><i class="fas fa-plus-circle mr-1"></i> Add to Rotation</button>
-                        <span class="text-[10px]" style="color: var(--muted);">Preview:</span>
-                        <div id="annPosterPreview" style="width:100px;height:56px;border-radius:4px;overflow:hidden;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;text-align:center;padding:4px;"></div>
-                    </div>
-                    <div id="annPosterList" class="flex flex-wrap gap-3 mt-4">
-                        <!-- Injected by JS -->
-                    </div>
-                </div>
+            <div class="card p-6 animate-entry" style="border: 2px solid #dc2626; animation-delay: 115ms;">
+                <h2 class="text-xs font-bold uppercase tracking-widest mb-1" style="color: #dc2626;">Danger Zone</h2>
+                <p class="text-[11px] mb-4" style="color: var(--muted);">Permanently delete all customer tickets and reset queue numbers. This cannot be undone.</p>
+                <button type="button" onclick="clearAllTickets()" class="btn px-4 py-2 text-xs font-bold uppercase tracking-wider" style="background: #dc2626; color: white;"><i class="fas fa-trash-alt mr-2"></i>Clear All Tickets</button>
             </div>
 
             <div class="flex justify-end gap-3 animate-entry" style="animation-delay: 120ms;">
@@ -192,9 +181,6 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
     <div id="toast" class="fixed bottom-4 right-4 hidden px-6 py-3 rounded-xl shadow-lg z-50 text-white text-sm font-medium"></div>
 
     <script>
-        var posterImages = [];
-        var annPosters = [];
-
         async function loadSettings() {
             try {
                 var res = await fetch('api/settings/index.php');
@@ -206,20 +192,10 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
                     document.getElementById('address').value = s.address || '';
                     document.getElementById('cutoffTime').value = s.cutoff_time || '17:00';
                     document.getElementById('companyLogo').value = s.company_logo || '';
-                    document.getElementById('welcomeMessage').value = s.welcome_message || '';
-                    document.getElementById('videoUrl').value = s.video_url || '';
-                    document.getElementById('videoType').value = s.video_type || 'youtube';
-                    document.getElementById('videoTitle').value = s.video_title || 'Citizen Services Overview';
-                    document.getElementById('videoSponsor').value = s.video_sponsor || 'Public Affairs Office';
-                    document.getElementById('videoCta').value = s.video_cta || '';
-                    var vol = s.video_volume || 50;
-                    document.getElementById('videoVolume').value = vol;
-                    document.getElementById('volumeDisplay').textContent = vol + '%';
-                    if (s.poster_duration) document.getElementById('posterDuration').value = s.poster_duration;
-                    posterImages = Array.isArray(s.poster_images) ? s.poster_images : [];
-                    renderPosterGallery();
-                    annPosters = Array.isArray(s.poster_announcements) ? s.poster_announcements : [];
-                    renderAnnouncementPosters();
+                    if (s.theme_color) {
+                        document.getElementById('themeColor').value = s.theme_color;
+                        document.getElementById('themeColorLabel').textContent = s.theme_color;
+                    }
                 }
             } catch (e) { console.error('Load error:', e); showToast('Failed to load settings', 'error'); }
         }
@@ -239,17 +215,7 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
                 address: document.getElementById('address').value,
                 cutoff_time: document.getElementById('cutoffTime').value,
                 company_logo: document.getElementById('companyLogo').value,
-                welcome_message: document.getElementById('welcomeMessage').value,
-                auto_play_video: 1,
-                video_url: document.getElementById('videoUrl').value,
-                video_type: document.getElementById('videoType').value,
-                video_title: document.getElementById('videoTitle').value,
-                video_sponsor: document.getElementById('videoSponsor').value,
-                video_cta: document.getElementById('videoCta').value,
-                video_volume: parseInt(document.getElementById('videoVolume').value),
-                poster_duration: parseInt(document.getElementById('posterDuration').value),
-                poster_images: JSON.stringify(posterImages),
-                poster_announcements: JSON.stringify(annPosters)
+                theme_color: document.getElementById('themeColor').value
             };
             try {
                 var token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
@@ -280,128 +246,196 @@ $user_role = htmlspecialchars($user['role'] ?? 'staff');
 
         loadSettings();
 
-        function updateAnnPreview() {
-            var el = document.getElementById('annPosterPreview');
-            var title = document.getElementById('annPosterTitle').value;
-            var body = document.getElementById('annPosterBody').value;
-            var bg = document.getElementById('annPosterBg').value;
-            var fg = document.getElementById('annPosterFg').value;
-            var ts = document.getElementById('annPosterTextSize').value;
-            el.style.background = bg;
-            el.style.color = fg;
-            el.style.fontSize = {sm:'7px',md:'8px',lg:'10px'}[ts] || '8px';
-            el.textContent = (title || body || 'Preview').substring(0, 30);
-        }
-        document.getElementById('annPosterTitle').addEventListener('input', updateAnnPreview);
-        document.getElementById('annPosterBody').addEventListener('input', updateAnnPreview);
-        document.getElementById('annPosterBg').addEventListener('input', updateAnnPreview);
-        document.getElementById('annPosterFg').addEventListener('input', updateAnnPreview);
-        document.getElementById('annPosterTextSize').addEventListener('change', updateAnnPreview);
-
-        function renderAnnouncementPosters() {
-            var el = document.getElementById('annPosterList');
-            if (!el) return;
-            if (annPosters.length === 0) {
-                el.innerHTML = '<span class="text-[10px]" style="color: var(--muted);">No announcement posters created</span>';
-                return;
-            }
-            el.innerHTML = annPosters.map(function(p, i) {
-                var ts = p.text_size || 'md';
-                var tsLabel = {sm:'S',md:'M',lg:'L'}[ts] || 'M';
-                return '<div style="width:160px;height:90px;border-radius:6px;overflow:hidden;border:1px solid var(--border);position:relative;cursor:pointer;background:' + p.bg + ';color:' + p.fg + ';display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px;text-align:center;" onclick="removeAnnouncementPoster(' + i + ')">' +
-                    '<div style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.5);color:white;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:10px;">&times;</div>' +
-                    '<div style="position:absolute;bottom:2px;right:2px;background:rgba(0,0,0,0.4);color:white;border-radius:3px;padding:1px 4px;font-size:7px;line-height:1.3;">' + tsLabel + '</div>' +
-                    (p.title ? '<div style="font-size:10px;font-weight:700;line-height:1.2;margin-bottom:2px;">' + p.title.substring(0, 30) + '</div>' : '') +
-                    (p.body ? '<div style="font-size:7px;line-height:1.2;opacity:0.85;">' + p.body.substring(0, 50) + '</div>' : '') +
-                '</div>';
-            }).join('');
-        }
-
-        function addAnnouncementPoster() {
-            var title = document.getElementById('annPosterTitle').value.trim();
-            var body = document.getElementById('annPosterBody').value.trim();
-            if (!title && !body) { showToast('Enter a title or message', 'error'); return; }
-            annPosters.push({
-                title: title,
-                body: body,
-                bg: document.getElementById('annPosterBg').value,
-                fg: document.getElementById('annPosterFg').value,
-                text_size: document.getElementById('annPosterTextSize').value
-            });
-            renderAnnouncementPosters();
-            document.getElementById('annPosterTitle').value = '';
-            document.getElementById('annPosterBody').value = '';
-            document.getElementById('annPosterTextSize').value = 'md';
-            updateAnnPreview();
-            showToast('Announcement poster added', 'success');
-        }
-
-        function removeAnnouncementPoster(idx) {
-            if (!confirm('Remove this announcement poster?')) return;
-            annPosters.splice(idx, 1);
-            renderAnnouncementPosters();
-        }
-
-        document.getElementById('videoVolume').addEventListener('input', function() {
-            document.getElementById('volumeDisplay').textContent = this.value + '%';
+        document.getElementById('themeColor').addEventListener('input', function() {
+            document.getElementById('themeColorLabel').textContent = this.value;
         });
 
-        function renderPosterGallery() {
-            var el = document.getElementById('posterGallery');
-            if (!el) return;
-            if (posterImages.length === 0) {
-                el.innerHTML = '<div class="col-span-full text-center py-8 text-sm" style="color: var(--muted);">No posters uploaded yet</div>';
-                return;
-            }
-            el.innerHTML = posterImages.map(function(src, i) {
-                return '<div class="relative group rounded-md overflow-hidden border border-border" style="aspect-ratio: 16/9;">' +
-                    '<img src="' + src + '" class="w-full h-full object-cover">' +
-                    '<div class="absolute inset-0 flex items-center justify-center" style="background: rgba(0,0,0,0); transition: background 0.2s;">' +
-                        '<div class="flex gap-2">' +
-                            '<button type="button" onclick="removePoster(' + i + ')" class="bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-700"><i class="fas fa-trash-alt text-xs"></i></button>' +
-                        '</div>' +
-                    '</div>' +
-                '</div>';
-            }).join('');
-        }
-
-        async function uploadPosters() {
-            var input = document.getElementById('posterUpload');
-            if (!input.files.length) return;
-            var fd = new FormData();
-            for (var i = 0; i < input.files.length; i++) {
-                fd.append('poster_images[]', input.files[i]);
-            }
+        async function loadAnnouncements() {
             try {
-                var token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
-                var res = await fetch('api/settings/index.php', { method: 'POST', headers: token ? { 'Authorization': 'Bearer ' + token } : {}, body: fd });
+                var res = await fetch('api/announcement/index.php?active=false');
                 var result = await res.json();
-                if (result.success) {
-                    showToast('Posters uploaded', 'success');
-                    input.value = '';
-                    await loadSettings();
-                } else {
-                    showToast(result.message || 'Upload failed', 'error');
+                var el = document.getElementById('announcementList');
+                if (!result.success || !result.data || result.data.length === 0) {
+                    el.innerHTML = '<div class="text-center py-6 text-sm" style="color: var(--muted);">No announcements. Add one above.</div>';
+                    return;
                 }
-            } catch (e) { showToast('Upload error: ' + e.message, 'error'); }
+                el.innerHTML = result.data.map(function(a) {
+                    var typeColors = {info: '#2563eb', warning: '#d97706', urgent: '#dc2626'};
+                    var typeLabels = {info: 'Info', warning: 'Warning', urgent: 'Urgent'};
+                    return '<div class="flex items-start justify-between gap-3 p-3 rounded-md" style="background: var(--card); border: 1px solid var(--border);">' +
+                        '<div class="flex-1 min-w-0">' +
+                            '<div class="flex items-center gap-2 mb-1">' +
+                                '<span class="text-[9px] font-bold uppercase px-2 py-0.5 rounded-sm" style="background: ' + typeColors[a.type] + '; color: white;">' + typeLabels[a.type] + '</span>' +
+                                (a.title ? '<span class="text-base font-bold truncate">' + escapeHtml(a.title) + '</span>' : '') +
+                            '</div>' +
+                            '<p class="text-[15px] font-medium" style="color: var(--foreground);">' + escapeHtml(a.message) + '</p>' +
+                        '</div>' +
+                        '<button type="button" onclick="deleteAnnouncement(' + a.id + ')" class="shrink-0 w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50" style="color: #9ca3af;" title="Delete"><i class="fas fa-times text-xs"></i></button>' +
+                    '</div>';
+                }).join('');
+            } catch (e) { console.error('Load announcements error:', e); }
         }
 
-        async function removePoster(idx) {
-            if (!confirm('Remove this poster image?')) return;
+        async function addAnnouncement() {
+            var title = document.getElementById('annTitle').value.trim();
+            var message = document.getElementById('annMessage').value.trim();
+            var type = document.getElementById('annType').value;
+            var priority = parseInt(document.getElementById('annPriority').value);
+
+            if (!message) { showToast('Message is required', 'error'); return; }
+
             try {
                 var token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
-                var res = await fetch('api/settings/index.php', {
+                var res = await fetch('api/announcement/index.php', {
                     method: 'POST',
                     headers: Object.assign(token ? { 'Authorization': 'Bearer ' + token } : {}, { 'Content-Type': 'application/json' }),
-                    body: JSON.stringify({ remove_poster: idx })
+                    body: JSON.stringify({ title: title, message: message, type: type, priority: priority })
                 });
                 var result = await res.json();
                 if (result.success) {
-                    showToast('Poster removed', 'success');
-                    await loadSettings();
+                    showToast('Announcement added', 'success');
+                    document.getElementById('annTitle').value = '';
+                    document.getElementById('annMessage').value = '';
+                    document.getElementById('annType').value = 'info';
+                    document.getElementById('annPriority').value = '0';
+                    loadAnnouncements();
                 } else {
-                    showToast(result.message || 'Failed to remove', 'error');
+                    showToast(result.message || 'Failed to add', 'error');
                 }
+            } catch (e) { showToast('Error: ' + e.message, 'error'); }
+        }
+
+        async function deleteAnnouncement(id) {
+            if (!confirm('Delete this announcement?')) return;
+            try {
+                var token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+                var res = await fetch('api/announcement/index.php', {
+                    method: 'POST',
+                    headers: Object.assign(token ? { 'Authorization': 'Bearer ' + token } : {}, { 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({ _method: 'DELETE', id: id })
+                });
+                var result = await res.json();
+                if (result.success) {
+                    showToast('Announcement deleted', 'success');
+                    loadAnnouncements();
+                } else {
+                    showToast(result.message || 'Failed to delete', 'error');
+                }
+            } catch (e) { showToast('Error: ' + e.message, 'error'); }
+        }
+
+        function escapeHtml(str) {
+            var d = document.createElement('div');
+            d.appendChild(document.createTextNode(str));
+            return d.innerHTML;
+        }
+
+        async function loadCompanies() {
+            try {
+                var res = await fetch('api/company/index.php');
+                var result = await res.json();
+                var el = document.getElementById('companyList');
+                if (!result.success || !result.data || result.data.length === 0) {
+                    el.innerHTML = '<div class="text-center py-4 text-sm" style="color: var(--muted);">No companies added yet.</div>';
+                    return;
+                }
+                el.innerHTML = result.data.map(function(c) {
+                    return '<div class="flex items-center justify-between gap-3 p-3 rounded-md" style="background: var(--card); border: 1px solid var(--border);">' +
+                        '<span class="text-sm font-medium">' + escapeHtml(c.name) + '</span>' +
+                        '<button type="button" onclick="deleteCompany(' + c.id + ')" class="shrink-0 w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50" style="color: #9ca3af;" title="Delete"><i class="fas fa-times text-xs"></i></button>' +
+                    '</div>';
+                }).join('');
+            } catch (e) { console.error('Load companies error:', e); }
+        }
+
+        async function addCompany() {
+            var input = document.getElementById('companyInput');
+            var name = input.value.trim();
+            if (!name) { showToast('Company name is required', 'error'); return; }
+            try {
+                var token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+                var res = await fetch('api/company/index.php', {
+                    method: 'POST',
+                    headers: Object.assign(token ? { 'Authorization': 'Bearer ' + token } : {}, { 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({ name: name })
+                });
+                var result = await res.json();
+                if (result.success) {
+                    showToast('Company added', 'success');
+                    input.value = '';
+                    loadCompanies();
+                } else {
+                    showToast(result.message || 'Failed to add', 'error');
+                }
+            } catch (e) { showToast('Error: ' + e.message, 'error'); }
+        }
+
+        async function deleteCompany(id) {
+            if (!confirm('Delete this company?')) return;
+            try {
+                var token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+                var res = await fetch('api/company/index.php', {
+                    method: 'POST',
+                    headers: Object.assign(token ? { 'Authorization': 'Bearer ' + token } : {}, { 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({ _method: 'DELETE', id: id })
+                });
+                var result = await res.json();
+                if (result.success) {
+                    showToast('Company deleted', 'success');
+                    loadCompanies();
+                } else {
+                    showToast(result.message || 'Failed to delete', 'error');
+                }
+            } catch (e) { showToast('Error: ' + e.message, 'error'); }
+        }
+
+        document.getElementById('companyInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); addCompany(); }
+        });
+
+        loadCompanies();
+
+        loadAnnouncements();
+
+        async function refreshAllScreens() {
+            var btn = document.getElementById('refreshAllBtn');
+            var icon = btn.querySelector('i');
+            var txt = btn.childNodes[btn.childNodes.length - 1];
+            icon.className = 'fas fa-spinner fa-spin mr-2';
+            txt.textContent = 'Refreshing...';
+            btn.disabled = true;
+            try {
+                var token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+                var authHeaders = token ? { 'Authorization': 'Bearer ' + token } : {};
+                var res = await fetch('api/force_refresh.php', {
+                    method: 'POST',
+                    headers: Object.assign(authHeaders, { 'Content-Type': 'application/json' })
+                });
+                var result = await res.json();
+                if (result.success) {
+                    try { localStorage.setItem('cq_settings_updated', Date.now().toString()); } catch(e) {}
+                    showToast('Screens will refresh shortly', 'success');
+                } else {
+                    showToast(result.message || 'Failed to refresh screens', 'error');
+                }
+            } catch (e) { showToast('Error: ' + e.message, 'error'); }
+            icon.className = 'fas fa-sync-alt mr-2';
+            txt.textContent = 'Refresh All Screens';
+            btn.disabled = false;
+        }
+
+        async function clearAllTickets() {
+            if (!confirm('This will permanently delete ALL customer tickets and reset queue numbers. Type "CLEAR" to confirm.')) return;
+            var input = prompt('To confirm, type "CLEAR" in the box below:');
+            if (input !== 'CLEAR') { showToast('Cancelled — did not type CLEAR', 'error'); return; }
+            try {
+                var token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+                var res = await fetch('api/clear_tickets.php', {
+                    method: 'POST',
+                    headers: Object.assign(token ? { 'Authorization': 'Bearer ' + token } : {}, { 'Content-Type': 'application/json' })
+                });
+                var result = await res.json();
+                showToast(result.success ? result.message : result.message || 'Failed to clear tickets', result.success ? 'success' : 'error');
             } catch (e) { showToast('Error: ' + e.message, 'error'); }
         }
 

@@ -36,6 +36,8 @@ try {
         'serving' => 0,
         'completed' => 0,
         'cancelled' => 0,
+        'skipped' => 0,
+        'no-show' => 0,
         'today_total' => 0
     ];
     
@@ -43,7 +45,7 @@ try {
         if (isset($stats[$row['status']])) {
             $stats[$row['status']] = (int)$row['count'];
         }
-        if ($row['status'] !== 'cancelled') {
+        if (!in_array($row['status'], ['cancelled', 'skipped', 'no-show'])) {
             $stats['today_total'] += (int)$row['count'];
         }
     }
@@ -80,6 +82,17 @@ try {
     $stmt->execute($timingParams);
     $timings = $stmt->fetch(PDO::FETCH_ASSOC);
 
+    $idleQuery = "SELECT TIMESTAMPDIFF(SECOND, MAX(completed_at), NOW()) as idle_seconds FROM customers WHERE DATE(created_at) = CURDATE() AND status = 'completed' AND completed_at IS NOT NULL";
+    $idleParams = [];
+    if ($counterId) {
+        $idleQuery .= " AND counter_id = ?";
+        $idleParams[] = $counterId;
+    }
+    $stmt = $conn->prepare($idleQuery);
+    $stmt->execute($idleParams);
+    $idleRow = $stmt->fetch(PDO::FETCH_ASSOC);
+    $idleSeconds = $idleRow ? (int)($idleRow['idle_seconds'] ?? 0) : 0;
+
     $counterSql = "
         SELECT 
             c.id, c.display_name, c.window_number, c.is_online, c.customers_served, c.avg_service_time,
@@ -108,7 +121,9 @@ try {
                 'avg_wait_formatted' => formatDuration($timings['avg_wait'] ?? 0),
                 'avg_service_formatted' => formatDuration($timings['avg_service'] ?? 0),
                 'max_wait_seconds' => (int)($timings['max_wait'] ?? 0),
-                'max_service_seconds' => (int)($timings['max_service'] ?? 0)
+                'max_service_seconds' => (int)($timings['max_service'] ?? 0),
+                'idle_seconds' => $idleSeconds,
+                'idle_formatted' => $idleSeconds > 0 ? formatDuration($idleSeconds) : '--'
             ],
             'counters' => $counterStats
         ]

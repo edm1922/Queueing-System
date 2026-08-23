@@ -19,6 +19,7 @@ try {
         'cutoff_time' => $cutoffRaw,
         'cutoff_time_formatted' => date('g:i A', strtotime($cutoffRaw))
     ];
+    $data['force_refresh_token'] = intval($settings['force_refresh_token'] ?? 0);
     
     $settingsHashFields = [];
     foreach (['company_name','branch_name','address','welcome_message','video_url','video_type','video_title','video_sponsor','video_cta','video_volume','cutoff_time','company_logo','poster_duration','poster_images','poster_announcements'] as $f) {
@@ -27,7 +28,7 @@ try {
     $data['settings_hash'] = md5(json_encode($settingsHashFields));
     
     $stmt = $conn->query("
-        SELECT c.id, c.display_name, c.is_online, c.window_number, c.status_text,
+        SELECT c.id, c.display_name, c.description, c.is_online, c.window_number, c.status_text, c.custom_enabled,
                cust.id as customer_id, cust.queue_number, cust.name as customer_name, 
                cust.service_type, cust.company_name, cust.purpose, cust.called_at,
                cust.custom_description,
@@ -65,11 +66,13 @@ try {
     $data['waiting_count'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
     
     $stmt = $conn->prepare("
-        SELECT * FROM display_announcements 
-        WHERE is_active = 1 
-        AND (starts_at IS NULL OR starts_at <= NOW())
-        AND (expires_at IS NULL OR expires_at > NOW())
-        ORDER BY priority DESC, created_at DESC
+        SELECT a.*, c.display_name as window_name
+        FROM display_announcements a
+        LEFT JOIN counters c ON c.id = a.counter_id
+        WHERE a.is_active = 1 
+        AND (a.starts_at IS NULL OR a.starts_at <= NOW())
+        AND (a.expires_at IS NULL OR a.expires_at > NOW())
+        ORDER BY a.priority DESC, a.created_at DESC
         LIMIT 10
     ");
     $stmt->execute();
@@ -91,7 +94,7 @@ try {
     }
     
     $stmt = $conn->query("
-        SELECT queue_number, service_type, name, company_name, purpose, custom_description
+        SELECT queue_number, service_type, name, company_name, purpose, custom_description, counter_id
         FROM customers 
         WHERE status = 'waiting' AND DATE(created_at) = CURDATE()
         ORDER BY created_at ASC
@@ -110,15 +113,6 @@ try {
         LIMIT 10
     ");
     $data['recent_called_history'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    $stmt = $conn->query("
-        SELECT id, queue_number, name, service_type, company_name, purpose, created_at, custom_description
-        FROM customers
-        WHERE is_follow_up = 1 AND status = 'completed' AND DATE(created_at) = CURDATE()
-        ORDER BY completed_at DESC
-        LIMIT 20
-    ");
-    $data['follow_up_tickets'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     echo json_encode($data);
     

@@ -39,20 +39,24 @@ try {
         throw new Exception('Customer not found');
     }
     
-    if ($customer['status'] === 'completed' || $customer['status'] === 'cancelled') {
+    $terminals = ['completed', 'cancelled', 'skipped', 'no-show'];
+    if (in_array($customer['status'], $terminals)) {
         throw new Exception('Customer is already ' . $customer['status']);
     }
+    
+    $statusMap = ['skipped' => 'skipped', 'no-show' => 'no-show'];
+    $newStatus = $statusMap[$reason] ?? 'cancelled';
     
     $now = date('Y-m-d H:i:s');
     $stmt = $conn->prepare("
         UPDATE customers 
-        SET status = 'cancelled', 
+        SET status = ?,
             completed_at = ?,
             service_duration = TIMESTAMPDIFF(SECOND, served_at, ?),
             remark = COALESCE(?, remark)
         WHERE id = ?
     ");
-    $stmt->execute([$now, $now, $remark, $customerId]);
+    $stmt->execute([$newStatus, $now, $now, $remark, $customerId]);
     
     if ($customer['status'] === 'serving') {
         $stmt = $conn->prepare("UPDATE counters SET current_customer_id = NULL WHERE current_customer_id = ?");

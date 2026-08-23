@@ -1,7 +1,6 @@
 <?php
 header('Content-Type: application/json');
 include '../../config.php';
-requireRole(['admin']);
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -9,27 +8,30 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+$user = requireRole(['admin']);
+
 try {
     $input = file_get_contents('php://input');
     $data = json_decode($input, true);
     if (json_last_error() !== JSON_ERROR_NONE) throw new Exception('Invalid JSON input');
 
-    $userId = intval($data['user_id'] ?? 0);
-    if (!$userId) throw new Exception('User ID is required');
+    $counterId = $data['counter_id'] ?? null;
+    $enabled = $data['enabled'] ?? null;
+
+    if (!$counterId) throw new Exception('counter_id is required');
+    if ($enabled === null) throw new Exception('enabled is required');
 
     $db = new Database();
     $conn = $db->getConnection();
 
-    $stmt = $conn->prepare("SELECT username FROM users WHERE id = ?");
-    $stmt->execute([$userId]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-    if (!$user) throw new Exception('User not found');
-    if ($user['username'] === 'admin') throw new Exception('Cannot delete the admin user');
+    $stmt = $conn->prepare("UPDATE counters SET custom_enabled = ? WHERE id = ?");
+    $stmt->execute([intval($enabled) ? 1 : 0, $counterId]);
 
-    $stmt = $conn->prepare("DELETE FROM users WHERE id = ?");
-    $stmt->execute([$userId]);
-
-    echo json_encode(['success' => true, 'message' => 'User deleted']);
+    echo json_encode([
+        'success' => true,
+        'message' => $enabled ? 'Custom tickets enabled' : 'Custom tickets disabled',
+        'custom_enabled' => intval($enabled) ? 1 : 0
+    ]);
 
 } catch (Exception $e) {
     http_response_code(500);

@@ -16,6 +16,7 @@ try {
             c.window_number,
             c.is_online,
             c.status_text,
+            c.custom_enabled,
             c.avg_service_time,
             c.customers_served,
             c.current_customer_id,
